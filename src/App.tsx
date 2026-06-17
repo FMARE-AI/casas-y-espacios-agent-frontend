@@ -3,6 +3,7 @@
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
+import { useAuth } from './hooks/useAuth'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
 import FirstLoginPage from './pages/FirstLoginPage'
@@ -12,7 +13,9 @@ import HistorialPage from './pages/HistorialPage'
 import GestionPage from './pages/GestionPage'
 import PerfilPage from './pages/PerfilPage'
 
-export default function App() {
+function AppRoutes() {
+  useAuth() // inicializa Supabase auth y sincroniza el store
+
   const { isLoading } = useAuthStore()
 
   if (isLoading) {
@@ -24,27 +27,33 @@ export default function App() {
   }
 
   return (
+    <Routes>
+      {/* Rutas públicas */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/first-login" element={<FirstLoginPage />} />
+
+      {/* Rutas protegidas — cualquier rol */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/" element={<BandejaPage />} />
+        <Route path="/chat/:id" element={<ChatPage />} />
+        <Route path="/historial" element={<HistorialPage />} />
+        <Route path="/perfil" element={<PerfilPage />} />
+      </Route>
+
+      {/* Rutas protegidas — solo admin */}
+      <Route element={<ProtectedRoute requiredRole="admin" />}>
+        <Route path="/gestion" element={<GestionPage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+export default function App() {
+  return (
     <BrowserRouter>
-      <Routes>
-        {/* Rutas públicas */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/first-login" element={<FirstLoginPage />} />
-
-        {/* Rutas protegidas — cualquier rol */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<BandejaPage />} />
-          <Route path="/chat/:id" element={<ChatPage />} />
-          <Route path="/historial" element={<HistorialPage />} />
-          <Route path="/perfil" element={<PerfilPage />} />
-        </Route>
-
-        {/* Rutas protegidas — solo admin */}
-        <Route element={<ProtectedRoute requiredRole="admin" />}>
-          <Route path="/gestion" element={<GestionPage />} />
-        </Route>
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppRoutes />
     </BrowserRouter>
   )
 }
