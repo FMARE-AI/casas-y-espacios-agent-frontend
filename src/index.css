@@ -2,6 +2,26 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+  /* Fondos */
+  --color-bg-main: #1D1D1B;
+  --color-bg-secondary: #252522;
+  --color-bg-tertiary: #2E2E2B;
+  /* Marca */
+  --color-brand-blue: #01A4E3;
+  /* Bordes */
+  --color-border-default: #3A3A37;
+  /* Texto */
+  --color-text-primary: #F0F0F5;
+  --color-text-secondary: #8B8FA8;
+  /* Estados */
+  --color-error: #FF5B5B;
+  --color-success: #00D4AA;
+  --color-warning: #FFB84D;
+  /* Fuente */
+  --font-sans: 'Inter', sans-serif;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

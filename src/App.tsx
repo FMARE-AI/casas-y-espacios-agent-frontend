@@ -1,12 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
+import { useAuth } from './hooks/useAuth'
+import { useAuthStore } from './store/authStore'
 import { ROUTES } from './constants/routes'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { GestionPage } from './pages/GestionPage'
 import { LoginPage } from './pages/LoginPage'
 import { FirstLoginPage } from './pages/FirstLoginPage'
-import { useAuth } from './hooks/useAuth'
-import { useAuthStore } from './store/authStore'
+import BandejaPage from './pages/BandejaPage'
+import ChatPage from './pages/ChatPage'
+import HistorialPage from './pages/HistorialPage'
+import PerfilPage from './pages/PerfilPage'
 
 function AuthInit() {
   useAuth()
@@ -38,6 +42,16 @@ function App() {
           element={<PublicRoute><LoginPage /></PublicRoute>}
         />
         <Route path={ROUTES.FIRST_LOGIN} element={<FirstLoginRoute />} />
+
+        {/* Protected routes — any role */}
+        <Route element={<ProtectedRoute />}>
+          <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
+          <Route path={ROUTES.CHAT} element={<ChatPage />} />
+          <Route path="/historial" element={<HistorialPage />} />
+          <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
+        </Route>
+
+        {/* Protected routes — admin only */}
         <Route
           path={ROUTES.GESTION}
           element={
@@ -46,8 +60,10 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
       </Routes>
+
       <Toaster
         position="top-right"
         toastOptions={{
@@ -63,4 +79,3 @@ function App() {
 }
 
 export default App
-  
