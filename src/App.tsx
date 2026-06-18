@@ -61,6 +61,7 @@ function App() {
           }
         />
 
+        <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
         <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
       </Routes>
 
