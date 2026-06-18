@@ -19,7 +19,11 @@ function AuthInit() {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, isFirstLogin } = useAuthStore()
-  if (isLoading) return null
+  if (isLoading) return (
+    <div className="min-h-screen bg-[#1D1D1B] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
   if (session) return <Navigate to={isFirstLogin ? ROUTES.FIRST_LOGIN : ROUTES.GESTION} replace />
   return <>{children}</>
 }
