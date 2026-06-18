@@ -1,24 +1,47 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
+import { useAuth } from './hooks/useAuth'
 import { ROUTES } from './constants/routes'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { GestionPage } from './pages/GestionPage'
+import LoginPage from './pages/LoginPage'
+import FirstLoginPage from './pages/FirstLoginPage'
+import BandejaPage from './pages/BandejaPage'
+import ChatPage from './pages/ChatPage'
+import HistorialPage from './pages/HistorialPage'
+import PerfilPage from './pages/PerfilPage'
 
-function App() {
+function AppContent() {
+  useAuth() // inicializa Supabase auth y sincroniza el store
+
   return (
-    <BrowserRouter>
+    <>
       <Routes>
-        <Route path="/login" element={<div>Login</div>} />
+        {/* Rutas públicas */}
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.FIRST_LOGIN} element={<FirstLoginPage />} />
+
+        {/* Rutas protegidas — cualquier rol */}
+        <Route element={<ProtectedRoute />}>
+          <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
+          <Route path={ROUTES.CHAT} element={<ChatPage />} />
+          <Route path="/historial" element={<HistorialPage />} />
+          <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
+        </Route>
+
+        {/* Rutas protegidas — solo admin */}
         <Route
+          path={ROUTES.GESTION}
           element={
             <ProtectedRoute requiredRole="admin">
               <GestionPage />
             </ProtectedRoute>
           }
-          path={ROUTES.GESTION}
         />
-        <Route path="*" element={<Navigate to={ROUTES.GESTION} replace />} />
+
+        <Route path="*" element={<Navigate to={ROUTES.BANDEJA} replace />} />
       </Routes>
+
       <Toaster
         position="top-right"
         toastOptions={{
@@ -29,14 +52,14 @@ function App() {
           },
         }}
       />
-    </BrowserRouter>
+    </>
   )
 }
 
 export default function App() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <AppContent />
     </BrowserRouter>
   )
 }
