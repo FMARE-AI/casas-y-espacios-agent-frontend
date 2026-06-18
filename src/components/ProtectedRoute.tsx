@@ -25,7 +25,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/login" replace />
   }
 
-  if (requiredRole && role !== requiredRole) {
+  // Solo aplicar el check de rol cuando el advisor esté cargado desde el backend
+  if (requiredRole && role !== null && role !== requiredRole) {
     return <Navigate to="/login" replace />
   }
 

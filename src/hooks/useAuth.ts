@@ -11,36 +11,21 @@ export function useAuth() {
   const store = useAuthStore()
   const navigate = useNavigate()
 
-  async function loadAdvisor() {
-    try {
-      const { advisor } = await advisorsService.getMe()
-      store.setAdvisor(advisor)
-      // Si full_name está vacío, el asesor aún no configuró su cuenta
-      const isFirst = !advisor.full_name || advisor.full_name.trim() === ''
-      store.setFirstLogin(isFirst)
-    } catch {
-      await supabase.auth.signOut()
-    } finally {
-      store.setLoading(false)
-    }
-  }
+  // TODO: llamar getMe() cuando el backend esté disponible
+  // async function loadAdvisor() { ... }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       store.setSession(session)
-      if (session) {
-        loadAdvisor()
-      } else {
-        store.setLoading(false)
-      }
+      store.setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         store.setSession(session)
 
-        if (event === 'SIGNED_IN' && session) {
-          await loadAdvisor()
+        if (event === 'SIGNED_IN') {
+          store.setLoading(false)
         }
 
         if (event === 'SIGNED_OUT') {

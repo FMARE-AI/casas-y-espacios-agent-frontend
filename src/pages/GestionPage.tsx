@@ -3,8 +3,9 @@ import { advisorsService } from '../services/advisors'
 import type { Advisor } from '../types'
 import { AdvisorsTable } from '../components/management/AdvisorsTable'
 import { AdvisorModal } from '../components/management/AdvisorModal'
-import { Plus, Search, AlertTriangle, Shield } from 'lucide-react'
+import { Plus, Search, AlertTriangle, Shield, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuth } from '../hooks/useAuth'
 
 type ModalState =
   | { type: 'none' }
@@ -33,6 +34,7 @@ interface ApiErrorResponse {
 }
 
 export const GestionPage: React.FC = () => {
+  const { signOut } = useAuth()
   // Datos del servidor
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -55,8 +57,15 @@ export const GestionPage: React.FC = () => {
     try {
       const { advisors: fetchedAdvisors } = await advisorsService.list()
       setAdvisors(fetchedAdvisors)
-    } catch {
-      toast.error('Error al cargar la lista de asesores.')
+    } catch (err: unknown) {
+      const isNetworkError = err instanceof Error && (
+        err.message.includes('Network Error') ||
+        err.message.includes('ERR_CONNECTION_REFUSED')
+      )
+      if (!isNetworkError) {
+        toast.error('Error al cargar la lista de asesores.')
+      }
+      setAdvisors([])
     } finally {
       setIsLoading(false)
     }
@@ -200,6 +209,13 @@ export const GestionPage: React.FC = () => {
           >
             <Plus className="h-4 w-4" />
             Crear Nuevo
+          </button>
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-2 rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3 py-2.5 text-sm text-[#8B8FA8] hover:text-[#F0F0F5] hover:border-[#FF5B5B]/50 transition-all"
+            title="Cerrar sesión"
+          >
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>

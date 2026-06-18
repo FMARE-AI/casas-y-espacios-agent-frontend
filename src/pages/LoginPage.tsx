@@ -28,7 +28,8 @@ export function LoginPage() {
     try {
       setShowError(false)
       await signIn(data.email, data.password)
-    } catch {
+    } catch (err) {
+      console.error('[LoginPage] Supabase error:', err)
       setShowError(true)
     }
   }
