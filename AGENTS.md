@@ -40,18 +40,18 @@ VITE_WS_BASE_URL=      # ws://localhost:8000 locally
 
 No usar colores fuera de estos tokens. En Tailwind v4 se usan como `bg-bg-main`, `text-text-primary`, etc.
 
-| Token             | Valor     | Uso                          |
-|-------------------|-----------|------------------------------|
-| `bg-bg-main`      | `#1D1D1B` | Fondo principal              |
-| `bg-bg-secondary` | `#252522` | Cards, sidebar               |
-| `bg-bg-tertiary`  | `#2E2E2B` | Inputs, botones secundarios  |
-| `bg-brand-blue`   | `#01A4E3` | Botones primarios, focus     |
-| `border-border-default` | `#3A3A37` | Todos los bordes        |
-| `text-text-primary` | `#F0F0F5` | Texto principal            |
-| `text-text-secondary` | `#8B8FA8` | Texto secundario         |
-| `bg-error`        | `#FF5B5B` | Error, escalada              |
-| `bg-success`      | `#00D4AA` | Éxito, activa                |
-| `bg-warning`      | `#FFB84D` | Advertencia, en atención     |
+| Token                   | Valor     | Uso                         |
+| ----------------------- | --------- | --------------------------- |
+| `bg-bg-main`            | `#1D1D1B` | Fondo principal             |
+| `bg-bg-secondary`       | `#252522` | Cards, sidebar              |
+| `bg-bg-tertiary`        | `#2E2E2B` | Inputs, botones secundarios |
+| `bg-brand-blue`         | `#01A4E3` | Botones primarios, focus    |
+| `border-border-default` | `#3A3A37` | Todos los bordes            |
+| `text-text-primary`     | `#F0F0F5` | Texto principal             |
+| `text-text-secondary`   | `#8B8FA8` | Texto secundario            |
+| `bg-error`              | `#FF5B5B` | Error, escalada             |
+| `bg-success`            | `#00D4AA` | Éxito, activa               |
+| `bg-warning`            | `#FFB84D` | Advertencia, en atención    |
 
 ## Estructura del proyecto
 
@@ -95,40 +95,46 @@ src/
 
 ## Rutas
 
-| Ruta          | Página            | Acceso          |
-|---------------|-------------------|-----------------|
-| `/login`      | LoginPage         | Público         |
-| `/first-login`| FirstLoginPage    | Público         |
-| `/`           | BandejaPage       | Asesor, Admin   |
-| `/chat/:id`   | ChatPage          | Asesor, Admin   |
-| `/historial`  | HistorialPage     | Asesor, Admin   |
-| `/perfil`     | PerfilPage        | Asesor, Admin   |
-| `/gestion`    | GestionPage       | Solo Admin      |
+| Ruta           | Página         | Acceso        |
+| -------------- | -------------- | ------------- |
+| `/login`       | LoginPage      | Público       |
+| `/first-login` | FirstLoginPage | Público       |
+| `/`            | BandejaPage    | Asesor, Admin |
+| `/chat/:id`    | ChatPage       | Asesor, Admin |
+| `/historial`   | HistorialPage  | Asesor, Admin |
+| `/perfil`      | PerfilPage     | Asesor, Admin |
+| `/gestion`     | GestionPage    | Solo Admin    |
 
 ## Reglas que nunca se rompen
 
 **Tipos**
+
 - Todos los tipos en `src/types/index.ts`
 - Nunca `any`, nunca tipos inline en componentes
 
 **Llamadas al backend**
+
 - Siempre a través de `src/services/`
 - Nunca `apiClient` directamente en componentes
 - Nunca `fetch` — solo Axios via `apiClient`
 
 **Estado global**
+
 - Auth → `useAuthStore`
 - WebSocket → `useWSStore`
 - Listas del servidor (conversaciones, mensajes) → estado local del componente, nunca en Zustand
 
 **Supabase**
+
 - Solo para Auth — nunca `supabase.from(...)` en componentes
 - Todos los datos del dominio vienen del backend FastAPI
 
 **Formularios**
+
 - Siempre React Hook Form + Zod, nunca `useState` para campos
 
 **Estilos**
+
 - Solo clases Tailwind con los tokens de la paleta
 - Glassmorphism: `bg-[#252522]/80 backdrop-blur-lg`
 - Nunca estilos inline salvo animaciones dinámicas
@@ -140,31 +146,31 @@ Los servicios en `src/services/` ya hacen `return data.data`.
 
 ## Eventos WebSocket
 
-| Evento                   | Acción en UI                            |
-|--------------------------|-----------------------------------------|
-| `escalation.new`         | Nueva card en bandeja + toast           |
-| `escalation.assigned`    | Actualiza card en bandeja               |
-| `message.new`            | Agrega mensaje al feed del chat         |
-| `conversation.returned`  | Actualiza estado del chat               |
-| `advisor.connected`      | Actualiza indicador en bandeja          |
-| `advisor.disconnected`   | Actualiza indicador en bandeja          |
-| `behavior.alert`         | Badge admin + lista alertas             |
-| `advisor.status_changed` | Indicador disponibilidad sidebar        |
+| Evento                   | Acción en UI                     |
+| ------------------------ | -------------------------------- |
+| `escalation.new`         | Nueva card en bandeja + toast    |
+| `escalation.assigned`    | Actualiza card en bandeja        |
+| `message.new`            | Agrega mensaje al feed del chat  |
+| `conversation.returned`  | Actualiza estado del chat        |
+| `advisor.connected`      | Actualiza indicador en bandeja   |
+| `advisor.disconnected`   | Actualiza indicador en bandeja   |
+| `behavior.alert`         | Badge admin + lista alertas      |
+| `advisor.status_changed` | Indicador disponibilidad sidebar |
 
 ## Tareas y archivos principales
 
-| Tarea  | Archivos principales                          |
-|--------|-----------------------------------------------|
-| FE-2   | Sidebar.tsx, ProtectedRoute.tsx               |
-| FE-3   | LoginPage.tsx, FirstLoginPage.tsx             |
-| FE-4   | BandejaPage.tsx, components/bandeja/          |
-| FE-5   | ChatPage.tsx, components/chat/                |
-| FE-6   | HistorialPage.tsx                             |
-| FE-7   | GestionPage.tsx, components/gestion/          |
-| FE-8   | PerfilPage.tsx, components/perfil/            |
-| FE-9   | components/chat/AudioRecorder.tsx             |
-| FE-10  | hooks/useWebSocket.ts, store/wsStore.ts       |
-| FE-11  | components/shared/SessionExpiredModal.tsx     |
+| Tarea | Archivos principales                      |
+| ----- | ----------------------------------------- |
+| FE-2  | Sidebar.tsx, ProtectedRoute.tsx           |
+| FE-3  | LoginPage.tsx, FirstLoginPage.tsx         |
+| FE-4  | BandejaPage.tsx, components/bandeja/      |
+| FE-5  | ChatPage.tsx, components/chat/            |
+| FE-6  | HistorialPage.tsx                         |
+| FE-7  | GestionPage.tsx, components/gestion/      |
+| FE-8  | PerfilPage.tsx, components/perfil/        |
+| FE-9  | components/chat/AudioRecorder.tsx         |
+| FE-10 | hooks/useWebSocket.ts, store/wsStore.ts   |
+| FE-11 | components/shared/SessionExpiredModal.tsx |
 
 ## Deployment
 
