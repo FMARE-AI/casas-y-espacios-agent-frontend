@@ -5,7 +5,6 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/authStore'
-import { advisorsService } from '../services'
 
 export function useAuth() {
   const store = useAuthStore()
