@@ -1,8 +1,241 @@
-// Implementado en tarea FE-2
-export default function Sidebar() {
+import { useEffect } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { supabase } from '../../lib/supabase'
+import { useAuthStore } from '../../store/authStore'
+import { useWSStore } from '../../store/wsStore'
+import type { WSStatus } from '../../types'
+
+export interface SidebarProps {
+  mobileOpen: boolean
+  onClose: () => void
+}
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return '?'
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+}
+
+const WS_DOT_CLASSES: Record<WSStatus, string> = {
+  connected: 'bg-[#01A4E3] ws-pulse-dot',
+  reconnecting: 'bg-[#FFB84D]',
+  disconnected: 'bg-[#FF5B5B]',
+}
+
+const WS_STATUS_LABELS: Record<WSStatus, string> = {
+  connected: 'En línea',
+  reconnecting: 'Reconectando...',
+  disconnected: 'Sin conexión',
+}
+
+interface NavItemProps {
+  to: string
+  active: boolean
+  label: string
+  icon: React.ReactNode
+  badge?: number
+}
+
+function NavItem({ to, active, label, icon, badge }: NavItemProps) {
   return (
-    <aside className="w-64 bg-[#252522] border-r border-[#3A3A37] shrink-0">
-      <p className="p-4 text-[#8B8FA8] text-sm">Sidebar — Tarea FE-2</p>
-    </aside>
+    <Link
+      to={to}
+      className={[
+        'flex items-center justify-between pr-3.5 py-2.5 rounded-md text-xs font-semibold transition w-full',
+        active
+          ? 'text-white'
+          : 'text-[#8B8FA8] hover:text-white hover:bg-[#2E2E2B]/50 pl-4',
+      ].join(' ')}
+      style={
+        active
+          ? {
+              background: 'linear-gradient(135deg, #01A4E3 0%, #007bb0 100%)',
+              borderLeft: '4px solid #00D4AA',
+              paddingLeft: '0.75rem',
+            }
+          : undefined
+      }
+    >
+      <span className="flex items-center space-x-2.5">
+        {icon}
+        <span>{label}</span>
+      </span>
+      {badge !== undefined && badge > 0 && (
+        <span className="bg-[#FF5B5B] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+          {badge}
+        </span>
+      )}
+    </Link>
+  )
+}
+
+export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { advisor, role, reset } = useAuthStore()
+  const { status: wsStatus, unreadAlerts } = useWSStore()
+
+  useEffect(() => {
+    onClose()
+  }, [location.pathname])
+
+  const isActive = (path: string) =>
+    path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    reset()
+    navigate('/login')
+  }
+
+  const wsDotClass = WS_DOT_CLASSES[wsStatus]
+
+  return (
+    <>
+      <style>{`
+        @keyframes wsPulse {
+          0%   { transform: scale(0.9); opacity: 0.6; }
+          50%  { transform: scale(1.25); opacity: 1; }
+          100% { transform: scale(0.9); opacity: 0.6; }
+        }
+        .ws-pulse-dot {
+          animation: wsPulse 1.6s infinite ease-in-out;
+        }
+      `}</style>
+
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/70 z-30 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        id="main-sidebar"
+        className={[
+          'fixed top-0 bottom-0 left-0 w-64',
+          'border-r border-[#3A3A37] flex flex-col justify-between p-4 shrink-0 z-40',
+          'transition-transform duration-300',
+          'md:sticky md:top-0 md:h-screen md:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+        ].join(' ')}
+        style={{
+          background: 'rgba(37,37,34,0.8)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+        }}
+      >
+        <div className="space-y-6">
+          {/* User profile card */}
+          <div className="flex items-center space-x-3 p-2 bg-[#2E2E2B]/50 rounded-lg border border-[#3A3A37]">
+            <div className="relative shrink-0">
+              <div className="w-10 h-10 rounded-full border border-[#01A4E3] bg-[#01A4E3]/25 flex items-center justify-center">
+                <span className="text-xs font-bold text-[#01A4E3]">
+                  {getInitials(advisor?.full_name)}
+                </span>
+              </div>
+              <div
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#252522] ${wsDotClass}`}
+              />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs font-bold text-[#F0F0F5] truncate">
+                {advisor?.full_name ?? 'Asesor'}
+              </h4>
+              <span
+                className={[
+                  'text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase inline-block mt-0.5',
+                  role === 'admin'
+                    ? 'bg-[#FF5B5B]/15 text-[#FF5B5B]'
+                    : 'bg-[#01A4E3]/10 text-[#01A4E3]',
+                ].join(' ')}
+              >
+                {role ?? 'asesor'}
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="space-y-1.5" id="sidebar-navigation-container">
+            <NavItem
+              to="/"
+              active={isActive('/')}
+              label="Bandeja de Entrada"
+              badge={unreadAlerts}
+              icon={
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              }
+            />
+
+            <NavItem
+              to="/historial"
+              active={isActive('/historial')}
+              label="Historial Cerrados"
+              icon={
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+
+            {role === 'admin' && (
+              <NavItem
+                to="/gestion"
+                active={isActive('/gestion')}
+                label="Gestión Asesores"
+                icon={
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
+                }
+              />
+            )}
+
+            <NavItem
+              to="/perfil"
+              active={isActive('/perfil')}
+              label="Mi Perfil"
+              icon={
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              }
+            />
+          </nav>
+        </div>
+
+        {/* Bottom section */}
+        <div className="mt-8 pt-4 border-t border-[#3A3A37]/60 space-y-3">
+          {/* WS status widget */}
+          <div className="p-2.5 bg-[#1D1D1B] rounded-lg border border-[#3A3A37] text-center">
+            <p className="text-[9px] text-[#8B8FA8] uppercase font-bold tracking-wider">Túnel WebSocket</p>
+            <div className="flex items-center justify-center gap-2 mt-1" id="sidebar-ws-status-area">
+              <span className={`w-2 h-2 rounded-full inline-block ${wsDotClass}`} />
+              <span className="text-[11px] text-[#F0F0F5] font-semibold">
+                {WS_STATUS_LABELS[wsStatus]}
+              </span>
+            </div>
+          </div>
+
+          {/* Sign out */}
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 border border-[#FF5B5B]/30 hover:border-[#FF5B5B] text-[#FF5B5B] hover:bg-[#FF5B5B]/10 rounded-md text-xs font-semibold transition"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Cerrar Sesión</span>
+          </button>
+        </div>
+      </aside>
+    </>
   )
 }

@@ -3,7 +3,7 @@ import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
 import { useAuthStore } from './store/authStore'
 import { ROUTES } from './constants/routes'
-import { ProtectedRoute } from './components/ProtectedRoute'
+import ProtectedRoute from './components/layout/ProtectedRoute'
 import { GestionPage } from './pages/GestionPage'
 import { LoginPage } from './pages/LoginPage'
 import { FirstLoginPage } from './pages/FirstLoginPage'
@@ -19,12 +19,8 @@ function AuthInit() {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, isLoading, isFirstLogin } = useAuthStore()
-  if (isLoading) return (
-    <div className="min-h-screen bg-[#1D1D1B] flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
-    </div>
-  )
-  if (session) return <Navigate to={isFirstLogin ? ROUTES.FIRST_LOGIN : ROUTES.GESTION} replace />
+  if (isLoading) return null
+  if (session) return <Navigate to={isFirstLogin ? ROUTES.FIRST_LOGIN : ROUTES.BANDEJA} replace />
   return <>{children}</>
 }
 
@@ -32,42 +28,47 @@ function FirstLoginRoute() {
   const { session, isLoading, isFirstLogin } = useAuthStore()
   if (isLoading) return null
   if (!session) return <Navigate to={ROUTES.LOGIN} replace />
-  if (!isFirstLogin) return <Navigate to={ROUTES.GESTION} replace />
+  if (!isFirstLogin) return <Navigate to={ROUTES.BANDEJA} replace />
   return <FirstLoginPage />
 }
 
-function App() {
+export default function App() {
+  const { isLoading } = useAuthStore()
+
   return (
     <BrowserRouter>
       <AuthInit />
-      <Routes>
-        <Route
-          path={ROUTES.LOGIN}
-          element={<PublicRoute><LoginPage /></PublicRoute>}
-        />
-        <Route path={ROUTES.FIRST_LOGIN} element={<FirstLoginRoute />} />
 
-        {/* Protected routes — any role */}
-        <Route element={<ProtectedRoute />}>
-          <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
-          <Route path={ROUTES.CHAT} element={<ChatPage />} />
-          <Route path="/historial" element={<HistorialPage />} />
-          <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
-        </Route>
+      {isLoading ? (
+        <div className="min-h-screen bg-[#1D1D1B] flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <Routes>
+          {/* Public routes */}
+          <Route
+            path={ROUTES.LOGIN}
+            element={<PublicRoute><LoginPage /></PublicRoute>}
+          />
+          <Route path={ROUTES.FIRST_LOGIN} element={<FirstLoginRoute />} />
 
-        {/* Protected routes — admin only */}
-        <Route
-          path={ROUTES.GESTION}
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <GestionPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected routes — any role */}
+          <Route element={<ProtectedRoute />}>
+            <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
+            <Route path={ROUTES.CHAT} element={<ChatPage />} />
+            <Route path="/historial" element={<HistorialPage />} />
+            <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
+          </Route>
 
-        <Route path="/" element={<Navigate to={ROUTES.LOGIN} replace />} />
-        <Route path="*" element={<Navigate to={ROUTES.LOGIN} replace />} />
-      </Routes>
+          {/* Protected routes — admin only */}
+          <Route element={<ProtectedRoute requiredRole="admin" />}>
+            <Route path={ROUTES.GESTION} element={<GestionPage />} />
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to={ROUTES.BANDEJA} replace />} />
+        </Routes>
+      )}
 
       <Toaster
         position="top-right"
@@ -82,5 +83,3 @@ function App() {
     </BrowserRouter>
   )
 }
-
-export default App
