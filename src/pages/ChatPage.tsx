@@ -106,6 +106,12 @@ const DEMO_MESSAGES: Message[] = [
   },
 ]
 
+// const DEMO_VARIANTS: { label: string; variant: ChatVariant }[] = [
+//   { label: 'Asignado a mí', variant: 'assigned' },
+//   { label: 'Sin asignar', variant: 'unassigned' },
+//   { label: 'Bot activo', variant: 'bot' },
+//   { label: 'Monitoreo (admin)', variant: 'monitoring' },
+// ]
 
 // ── Return-bot confirmation modal ─────────────────────────
 

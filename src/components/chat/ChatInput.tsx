@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { conversationsService } from '../../services/conversations'
+import AudioRecorder from './AudioRecorder'
 import type { Message } from '../../types'
 
 interface ChatInputProps {
@@ -9,35 +10,63 @@ interface ChatInputProps {
   waitMinutes: number | null
   onMessageSent: (message: Message) => void
   onError: () => void
+  variant?: string
 }
 
-type FileCategory = 'image' | 'document' | 'video'
+const FILE_TYPES = {
+  image: {
+    label: 'Imagen',
+    accept: 'image/jpeg,image/png,image/webp',
+    maxMB: 5,
+    iconColor: '#01A4E3',
+  },
+  document: {
+    label: 'Documento',
+    accept: 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    maxMB: 20,
+    iconColor: '#FFB84D',
+  },
+  video: {
+    label: 'Video',
+    accept: 'video/mp4,video/3gpp',
+    maxMB: 16,
+    iconColor: '#00D4AA',
+  },
+}
 
-const FILE_ICON_COLORS: Record<FileCategory, string> = {
+const FILE_ICON_COLORS: Record<keyof typeof FILE_TYPES, string> = {
   image:    'bg-[#01A4E3]/15 border-[#01A4E3]/30 text-[#01A4E3]',
   document: 'bg-[#FFB84D]/15 border-[#FFB84D]/30 text-[#FFB84D]',
   video:    'bg-[#00D4AA]/15 border-[#00D4AA]/30 text-[#00D4AA]',
 }
 
-const ACCEPT_MAP: Record<FileCategory, string> = {
-  image:    'image/jpeg,image/png,image/webp',
-  document: 'application/pdf,.docx,.doc',
-  video:    'video/mp4,video/webm',
-}
-
-function formatBytes(bytes: number): string {
+function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function getCategoryFromFile(file: File): FileCategory {
-  if (file.type.startsWith('image/')) return 'image'
-  if (file.type.startsWith('video/')) return 'video'
-  return 'document'
+function getFileLabel(mimeType: string): string {
+  if (mimeType.startsWith('image/')) {
+    return mimeType.split('/')[1].toUpperCase()  // JPEG, PNG
+  }
+  if (mimeType.includes('pdf')) return 'PDF'
+  if (mimeType.includes('wordprocessingml')) return 'DOCX'
+  if (mimeType.includes('spreadsheetml')) return 'XLSX'
+  if (mimeType.startsWith('video/')) return 'MP4'
+  return 'Archivo'
 }
 
-function FileIcon({ category }: { category: FileCategory }) {
+function getFileType(mimeType: string): keyof typeof FILE_TYPES | null {
+  if (mimeType.startsWith('image/')) return 'image'
+  if (mimeType.startsWith('video/')) return 'video'
+  if (mimeType.includes('pdf') ||
+      mimeType.includes('wordprocessingml') ||
+      mimeType.includes('spreadsheetml')) return 'document'
+  return null
+}
+
+function FileIcon({ category }: { category: keyof typeof FILE_TYPES }) {
   if (category === 'image') return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -62,81 +91,135 @@ export default function ChatInput({
   waitMinutes,
   onMessageSent,
   onError,
+  variant = 'assigned',
 }: ChatInputProps) {
   const [text, setText] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [fileCategory, setFileCategory] = useState<FileCategory>('document')
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [sending, setSending] = useState(false)
-  const [sendError, setSendError] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [recorderState, setRecorderState] = useState<string>('idle')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
 
-  // Close attach menu on outside click
+  // Cerrar al hacer clic fuera y con Escape
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (attachMenuRef.current && !attachMenuRef.current.contains(e.target as Node)) {
+    function handleClickOutside(e: MouseEvent) {
+      if (!attachMenuRef.current?.contains(e.target as Node)) {
         setAttachMenuOpen(false)
       }
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    function handleEscapeKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setAttachMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleEscapeKey)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleEscapeKey)
+    }
   }, [])
 
-  function openFilePicker(category: FileCategory) {
-    setFileCategory(category)
+  function toggleAttachMenu() {
+    setAttachMenuOpen((open) => !open)
+  }
+
+  function triggerFileInput(type: keyof typeof FILE_TYPES) {
     setAttachMenuOpen(false)
     if (fileInputRef.current) {
-      fileInputRef.current.accept = ACCEPT_MAP[category]
+      fileInputRef.current.accept = FILE_TYPES[type].accept
       fileInputRef.current.click()
     }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null
-    if (file) {
-      setSelectedFile(file)
-      setFileCategory(getCategoryFromFile(file))
+  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // Detectar el tipo según el mime
+    const type = getFileType(file.type)
+    if (!type) {
+      showError('Tipo de archivo no permitido')
+      return
     }
+    // Validar tamaño
+    const maxBytes = FILE_TYPES[type].maxMB * 1024 * 1024
+    if (file.size > maxBytes) {
+      showError(
+        `El archivo supera el límite de ${FILE_TYPES[type].maxMB}MB`
+      )
+      return
+    }
+    setSelectedFile(file)
+    // Limpiar el input para permitir seleccionar
+    // el mismo archivo dos veces
     e.target.value = ''
+  }
+
+  function removeSelectedFile() {
+    setSelectedFile(null)
+  }
+
+  function showError(message: string) {
+    setSendError(message)
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      sendMessage()
+      handleSend()
     }
   }
 
-  async function sendMessage() {
-    if (!text.trim() && !selectedFile) return
+  async function sendTextMessage() {
     setSending(true)
-    setSendError(false)
+    setSendError(null)
     try {
-      let message: Message
-      if (selectedFile) {
-        if (selectedFile.type.startsWith('audio/')) {
-          const { message: m } = await conversationsService.replyAudio(conversationId, selectedFile)
-          message = m
-        } else {
-          const { message: m } = await conversationsService.replyMedia(conversationId, selectedFile)
-          message = m
-        }
-      } else {
-        const { message: m } = await conversationsService.replyText(conversationId, text.trim())
-        message = m
-      }
-      setText('')
-      setSelectedFile(null)
+      const { message } = await conversationsService.replyText(conversationId, text.trim())
       onMessageSent(message)
+      setText('')
     } catch {
-      setSendError(true)
+      setSendError('No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.')
       onError()
     } finally {
       setSending(false)
     }
   }
+
+  async function handleSend() {
+    if (selectedFile) {
+      // PW-5 — enviar multimedia
+      setSending(true)
+      setSendError(null)
+      try {
+        const { message } = await conversationsService
+          .replyMedia(conversationId, selectedFile)
+        onMessageSent(message)
+        setSelectedFile(null)
+        setText('')
+      } catch (error: any) {
+        const code = error.response?.data?.detail?.code
+        if (code === 'FILE_TOO_LARGE') {
+          setSendError('El archivo es demasiado grande')
+        } else if (code === 'FILE_TYPE_NOT_ALLOWED') {
+          setSendError('Tipo de archivo no permitido')
+        } else {
+          setSendError('No se pudo enviar el archivo')
+        }
+      } finally {
+        setSending(false)
+      }
+      return
+    }
+    if (text.trim()) {
+      // PW-4 — enviar texto (flujo existente)
+      await sendTextMessage()
+    }
+  }
+
+  const activeCategory = selectedFile ? (getFileType(selectedFile.type) ?? 'document') : 'document'
 
   return (
     <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0 space-y-2">
@@ -170,11 +253,11 @@ export default function ChatInput({
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
-            <span>No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.</span>
+            <span>{sendError}</span>
           </span>
           <button
             type="button"
-            onClick={() => { setSendError(false); sendMessage() }}
+            onClick={() => { setSendError(null); handleSend() }}
             className="shrink-0 ml-3 bg-[#FF5B5B]/20 hover:bg-[#FF5B5B]/40 text-[#FF5B5B] px-3 py-1.5 rounded font-bold text-[10px] uppercase border border-[#FF5B5B]/30 transition active:scale-95"
           >
             Reintentar
@@ -189,17 +272,32 @@ export default function ChatInput({
           className="flex items-center justify-between p-2 bg-[#252522] border border-[#3A3A37] rounded text-xs"
         >
           <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded border flex items-center justify-center ${FILE_ICON_COLORS[fileCategory]}`}>
-              <FileIcon category={fileCategory} />
+            <div
+              id="file-preview-icon"
+              className={`w-8 h-8 rounded border overflow-hidden flex items-center justify-center ${FILE_ICON_COLORS[activeCategory]}`}
+            >
+              {activeCategory === 'image' ? (
+                <img
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <FileIcon category={activeCategory} />
+              )}
             </div>
             <div>
-              <p className="text-white font-semibold truncate max-w-[180px]">{selectedFile.name}</p>
-              <p className="text-[#8B8FA8] text-[10px]">{formatBytes(selectedFile.size)}</p>
+              <p className="text-white font-semibold truncate max-w-[180px]" id="file-preview-name">
+                {selectedFile.name}
+              </p>
+              <p className="text-[#8B8FA8] text-[10px]" id="file-preview-size">
+                {formatFileSize(selectedFile.size)} • {getFileLabel(selectedFile.type)}
+              </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setSelectedFile(null)}
+            onClick={removeSelectedFile}
             className="text-[#8B8FA8] hover:text-[#FF5B5B] transition p-1 rounded hover:bg-[#FF5B5B]/10"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,93 +313,110 @@ export default function ChatInput({
         className="relative flex items-start bg-[#2E2E2B] border border-[#3A3A37] rounded focus-within:border-[#01A4E3] transition p-2 gap-2"
       >
         {/* Attach button + dropdown */}
-        <div ref={attachMenuRef} className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setAttachMenuOpen((o) => !o)}
-            className="p-2 text-[#8B8FA8] hover:text-white hover:bg-[#3A3A37] rounded transition"
-            title="Adjuntar archivo"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
-          </button>
-
-          {attachMenuOpen && (
-            <div
-              id="attach-menu"
-              className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-lg shadow-xl z-50 w-44 overflow-hidden"
+        {recorderState === 'idle' && (
+          <div ref={attachMenuRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={toggleAttachMenu}
+              disabled={variant !== 'assigned' || sending || selectedFile !== null}
+              className="p-2 text-[#8B8FA8] hover:text-white hover:bg-[#3A3A37] rounded transition disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+              title="Adjuntar archivo"
             >
-              <button
-                type="button"
-                onClick={() => openFilePicker('image')}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition"
-              >
-                <svg className="w-4 h-4 text-[#01A4E3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                <span>Imagen</span>
-                <span className="text-[#8B8FA8] text-[10px] ml-auto">JPG, PNG</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openFilePicker('document')}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition border-t border-[#3A3A37]"
-              >
-                <svg className="w-4 h-4 text-[#FFB84D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                </svg>
-                <span>Documento</span>
-                <span className="text-[#8B8FA8] text-[10px] ml-auto">PDF, DOCX</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openFilePicker('video')}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition border-t border-[#3A3A37]"
-              >
-                <svg className="w-4 h-4 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                <span>Video</span>
-                <span className="text-[#8B8FA8] text-[10px] ml-auto">MP4</span>
-              </button>
-            </div>
-          )}
-        </div>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+            </button>
 
-        {/* Textarea */}
-        <textarea
-          value={text}
-          onChange={(e) => {
-            if (e.target.value.length <= 2000) setText(e.target.value)
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)"
-          className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-[#8B8FA8] resize-none h-11 px-1 py-1 max-h-32"
+            {attachMenuOpen && (
+              <div
+                id="attach-menu"
+                className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-lg shadow-xl z-50 w-36 overflow-hidden"
+              >
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('image')}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition"
+                >
+                  <svg className="w-4 h-4 text-[#01A4E3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Imagen</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('document')}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition border-t border-[#3A3A37]"
+                >
+                  <svg className="w-4 h-4 text-[#FFB84D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <span>Documento</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerFileInput('video')}
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition border-t border-[#3A3A37]"
+                >
+                  <svg className="w-4 h-4 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <span>Video</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Audio recording mechanism */}
+        <AudioRecorder
+          conversationId={conversationId}
+          onAudioSent={onMessageSent}
+          disabled={variant !== 'assigned'}
+          onStateChange={setRecorderState}
         />
 
-        {/* Counter + send */}
-        <div className="flex items-center space-x-2 pl-2 border-l border-[#3A3A37] shrink-0">
-          <span className="text-[10px] text-[#8B8FA8] font-mono">{text.length}/2000</span>
-          <button
-            type="button"
-            onClick={sendMessage}
-            disabled={sending || (!text.trim() && !selectedFile)}
-            className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white p-2 rounded transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {sending ? (
-              <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg className="w-3.5 h-3.5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-            )}
-          </button>
-        </div>
+        {recorderState === 'idle' && (
+          <>
+            {/* Textarea */}
+            <textarea
+              value={text}
+              disabled={selectedFile !== null || sending || variant !== 'assigned'}
+              onChange={(e) => {
+                if (e.target.value.length <= 2000) setText(e.target.value)
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                selectedFile
+                  ? 'Archivo seleccionado para enviar'
+                  : 'Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)'
+              }
+              className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-[#8B8FA8] resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+            />
+
+            {/* Counter + send */}
+            <div className="flex items-center space-x-2 pl-2 border-l border-[#3A3A37] shrink-0">
+              <span className="text-[10px] text-[#8B8FA8] font-mono">{text.length}/2000</span>
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending || variant !== 'assigned' || (!text.trim() && !selectedFile)}
+                className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white p-2 rounded transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? (
+                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-3.5 h-3.5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Hidden file input */}
-      <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
+      <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} />
     </div>
   )
 }

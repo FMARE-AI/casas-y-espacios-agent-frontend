@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { conversationsService } from '../services'
 import type { Conversation } from '../types'
@@ -132,6 +133,7 @@ function TakeModal({
 // --- MAIN PAGE COMPONENT ---
 
 export default function BandejaPage() {
+  const navigate = useNavigate()
   const { advisor, role } = useAuthStore() as { advisor: { max_conversations?: number, active_conversations?: number } | null, role: string | null }
 
   // Datos del servidor
@@ -289,7 +291,7 @@ export default function BandejaPage() {
                 advisorMaxConversations={advisorMaxConv}
                 advisorActiveConversations={advisorActiveConv}
                 onTake={setTakeTarget}
-                onView={(id) => console.log('View conversation', id)}
+                onView={(id) => navigate(`/chat/${id}`)}
               />
             ))
           )}

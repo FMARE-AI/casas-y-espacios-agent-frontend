@@ -23,7 +23,20 @@ function formatBytes(bytes: number | null): string {
 
 // ── Media placeholders ────────────────────────────────────
 
-function ImagePlaceholder({ caption }: { caption: string | null }) {
+function ImageBubble({ msg }: { msg: Message }) {
+  if (msg.media_url) {
+    return (
+      <div className="rounded overflow-hidden border border-[#3A3A37] max-w-[240px]">
+        <img
+          src={msg.media_url}
+          alt={msg.content ?? 'Imagen'}
+          className="w-full h-auto max-h-48 object-cover cursor-pointer hover:opacity-90 transition"
+          onClick={() => window.open(msg.media_url!, '_blank')}
+        />
+        {msg.content && <p className="text-[#F0F0F5] text-xs p-2">{msg.content}</p>}
+      </div>
+    )
+  }
   return (
     <div className="rounded overflow-hidden border border-[#3A3A37]">
       <div className="w-48 h-32 bg-[#3A3A37] flex items-center justify-center">
@@ -31,7 +44,7 @@ function ImagePlaceholder({ caption }: { caption: string | null }) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
-      {caption && <p className="text-[#F0F0F5] text-xs p-2">{caption}</p>}
+      {msg.content && <p className="text-[#F0F0F5] text-xs p-2">{msg.content}</p>}
     </div>
   )
 }
@@ -68,7 +81,19 @@ function DocumentBubble({ msg }: { msg: Message }) {
   )
 }
 
-function AudioPlaceholder() {
+function AudioBubble({ msg }: { msg: Message }) {
+  if (msg.media_url) {
+    return (
+      <div className="p-1 min-w-[200px] flex items-center justify-center">
+        <audio
+          src={msg.media_url}
+          controls
+          className="h-8 w-full max-w-[240px]"
+          style={{ accentColor: '#01A4E3' }}
+        />
+      </div>
+    )
+  }
   return (
     <div className="flex items-center gap-2 px-3 py-2">
       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +104,19 @@ function AudioPlaceholder() {
   )
 }
 
-function VideoPlaceholder() {
+function VideoBubble({ msg }: { msg: Message }) {
+  if (msg.media_url) {
+    return (
+      <div className="rounded overflow-hidden border border-[#3A3A37] max-w-[240px]">
+        <video
+          src={msg.media_url}
+          controls
+          className="w-full h-auto max-h-48 object-cover"
+        />
+        {msg.content && <p className="text-[#F0F0F5] text-xs p-2">{msg.content}</p>}
+      </div>
+    )
+  }
   return (
     <div className="w-48 h-32 bg-[#3A3A37] rounded flex items-center justify-center">
       <svg className="w-10 h-10 text-[#8B8FA8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,9 +132,9 @@ function VideoPlaceholder() {
 function BubbleContent({ msg, isDocument }: { msg: Message; isDocument: boolean }) {
   if (isDocument) return <DocumentBubble msg={msg} />
   switch (msg.msg_type) {
-    case 'image': return <ImagePlaceholder caption={msg.content} />
-    case 'audio': return <AudioPlaceholder />
-    case 'video': return <VideoPlaceholder />
+    case 'image': return <ImageBubble msg={msg} />
+    case 'audio': return <AudioBubble msg={msg} />
+    case 'video': return <VideoBubble msg={msg} />
     default: return (
       <p className="text-xs leading-relaxed">{msg.content}</p>
     )
