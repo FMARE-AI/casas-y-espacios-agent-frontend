@@ -68,7 +68,19 @@ function DocumentBubble({ msg }: { msg: Message }) {
   )
 }
 
-function AudioPlaceholder() {
+function AudioBubble({ msg }: { msg: Message }) {
+  if (msg.media_url) {
+    return (
+      <div className="p-1 min-w-[200px] flex items-center justify-center">
+        <audio
+          src={msg.media_url}
+          controls
+          className="h-8 w-full max-w-[240px]"
+          style={{ accentColor: '#01A4E3' }}
+        />
+      </div>
+    )
+  }
   return (
     <div className="flex items-center gap-2 px-3 py-2">
       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -96,7 +108,7 @@ function BubbleContent({ msg, isDocument }: { msg: Message; isDocument: boolean 
   if (isDocument) return <DocumentBubble msg={msg} />
   switch (msg.msg_type) {
     case 'image': return <ImagePlaceholder caption={msg.content} />
-    case 'audio': return <AudioPlaceholder />
+    case 'audio': return <AudioBubble msg={msg} />
     case 'video': return <VideoPlaceholder />
     default: return (
       <p className="text-xs leading-relaxed">{msg.content}</p>
