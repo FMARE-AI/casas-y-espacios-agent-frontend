@@ -274,9 +274,17 @@ export default function ChatInput({
           <div className="flex items-center gap-2.5">
             <div
               id="file-preview-icon"
-              className={`w-8 h-8 rounded border flex items-center justify-center ${FILE_ICON_COLORS[activeCategory]}`}
+              className={`w-8 h-8 rounded border overflow-hidden flex items-center justify-center ${FILE_ICON_COLORS[activeCategory]}`}
             >
-              <FileIcon category={activeCategory} />
+              {activeCategory === 'image' ? (
+                <img
+                  src={URL.createObjectURL(selectedFile)}
+                  alt="preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <FileIcon category={activeCategory} />
+              )}
             </div>
             <div>
               <p className="text-white font-semibold truncate max-w-[180px]" id="file-preview-name">
@@ -322,7 +330,7 @@ export default function ChatInput({
             {attachMenuOpen && (
               <div
                 id="attach-menu"
-                className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-lg shadow-xl z-50 w-44 overflow-hidden"
+                className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-lg shadow-xl z-50 w-36 overflow-hidden"
               >
                 <button
                   type="button"
@@ -333,7 +341,6 @@ export default function ChatInput({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span>Imagen</span>
-                  <span className="text-[#8B8FA8] text-[10px] ml-auto">JPG, PNG</span>
                 </button>
                 <button
                   type="button"
@@ -344,7 +351,6 @@ export default function ChatInput({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                   <span>Documento</span>
-                  <span className="text-[#8B8FA8] text-[10px] ml-auto">PDF, DOCX</span>
                 </button>
                 <button
                   type="button"
@@ -355,7 +361,6 @@ export default function ChatInput({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   <span>Video</span>
-                  <span className="text-[#8B8FA8] text-[10px] ml-auto">MP4</span>
                 </button>
               </div>
             )}
