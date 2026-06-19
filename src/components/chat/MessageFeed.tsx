@@ -108,7 +108,7 @@ interface MessageFeedProps {
   showReturnedEvent: boolean
   advisorName?: string
   onScrollTop: () => void
-  feedRef: React.RefObject<HTMLDivElement>
+  feedRef: React.RefObject<HTMLDivElement | null>
 }
 
 export default function MessageFeed({
