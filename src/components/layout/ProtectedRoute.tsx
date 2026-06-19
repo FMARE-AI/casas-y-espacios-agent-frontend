@@ -4,6 +4,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
 import Sidebar from './Sidebar'
 import SessionExpiredModal from '../shared/SessionExpiredModal'
+import SuccessToast from '../shared/SuccessToast'
 import type { AdvisorRole, WSStatus } from '../../types'
 
 interface Props {
@@ -36,6 +37,7 @@ export default function ProtectedRoute({ requiredRole }: Props) {
       </div>
 
       {sessionExpired && <SessionExpiredModal />}
+      <SuccessToast />
     </div>
   )
 }
