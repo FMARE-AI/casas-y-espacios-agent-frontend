@@ -209,6 +209,17 @@
                 <button onclick="switchScreen('gestion')" id="btn-gestion" class="screen-btn px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#F0F0F5] rounded font-medium transition">4. Gestión Asesores</button>
                 <button onclick="switchScreen('specs')" id="btn-specs" class="screen-btn px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#F0F0F5] rounded font-medium transition">5. Specs</button>
                 <button onclick="triggerExpiredSession()" class="px-2 py-1 bg-red-950/40 hover:bg-red-900/60 border border-red-800 text-red-200 rounded font-semibold transition" title="Simular sesión expirada">6. Expira Sesión</button>
+                <div class="w-px h-4 bg-[#3A3A37] hidden md:block mx-0.5"></div>
+                <button onclick="setRoleAndSwitch('Admin','gestion'); setTimeout(()=>toggleBehaviorAlerts(false),100)" class="screen-btn px-2 py-1 bg-[#FF5B5B]/10 hover:bg-[#FF5B5B]/20 text-[#FF5B5B] border border-[#FF5B5B]/30 rounded font-medium transition text-[10px]">Alertas datos</button>
+                <button onclick="setRoleAndSwitch('Admin','gestion'); setTimeout(()=>toggleBehaviorAlerts(true),100)" class="screen-btn px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#8B8FA8] border border-[#3A3A37] rounded font-medium transition text-[10px]">Alertas vacío</button>
+                <button onclick="setSidebarAlertsBadge(3)" class="px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#FF5B5B] border border-[#3A3A37] rounded font-medium transition text-[10px]">Badge 3</button>
+                <button onclick="setSidebarAlertsBadge(0)" class="px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#8B8FA8] border border-[#3A3A37] rounded font-medium transition text-[10px]">Badge 0</button>
+                <button onclick="switchScreen('perfil')" class="screen-btn px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#F0F0F5] rounded font-medium transition text-[10px]">Perfil+Horarios</button>
+                <button onclick="switchScreen('perfil'); setTimeout(()=>setAvailability('available'),100)" class="px-2 py-1 bg-[#00D4AA]/10 hover:bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/30 rounded font-medium transition text-[10px]">Disp: Available</button>
+                <button onclick="switchScreen('perfil'); setTimeout(()=>setAvailability('break'),100)" class="px-2 py-1 bg-[#FFB84D]/10 hover:bg-[#FFB84D]/20 text-[#FFB84D] border border-[#FFB84D]/30 rounded font-medium transition text-[10px]">Disp: Break</button>
+                <button onclick="switchScreen('perfil'); setTimeout(()=>setAvailability('offline'),100)" class="px-2 py-1 bg-[#FF5B5B]/10 hover:bg-[#FF5B5B]/20 text-[#FF5B5B] border border-[#FF5B5B]/30 rounded font-medium transition text-[10px]">Disp: Offline</button>
+                <button onclick="document.getElementById('modal-add-schedule').classList.remove('hidden')" class="px-2 py-1 bg-[#2E2E2B] hover:bg-[#3A3A37] text-[#01A4E3] border border-[#01A4E3]/30 rounded font-medium transition text-[10px]">Modal Horario</button>
+                <button onclick="switchScreen('chat'); simulatedChatScenario('assigned'); setTimeout(()=>document.getElementById('modal-confirm-close').classList.remove('hidden'),100)" class="px-2 py-1 bg-[#FF5B5B]/10 hover:bg-[#FF5B5B]/20 text-[#FF5B5B] border border-[#FF5B5B]/30 rounded font-medium transition text-[10px]">Modal Cerrar Conv.</button>
             </div>
 
             <!-- Global simulation trigger controls (Collapsible on mobile) -->
@@ -284,7 +295,7 @@
                             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                             <span class="sidebar-full-only">Gestión Asesores</span>
                         </span>
-                        <span class="sidebar-full-only"></span>
+                        <span id="sidebar-alerts-badge" class="hidden bg-[#FF5B5B] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold sidebar-full-only">3</span>
                     </button>
 
                     <button onclick="switchScreen('perfil')" id="sidebar-nav-profile" class="w-full flex items-center justify-between px-3.5 py-2.5 text-[#8B8FA8] hover:text-white hover:bg-[#2E2E2B]/50 rounded-md text-xs font-semibold transition">
@@ -1082,6 +1093,12 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             <span>Devolver al Bot</span>
                         </button>
+
+                        <!-- Botón Cerrar Conversación -->
+                        <button id="btn-close-conversation" onclick="document.getElementById('modal-confirm-close').classList.remove('hidden')" class="w-full flex items-center justify-center gap-2 px-4 py-2 border border-[#FF5B5B]/20 text-[#FF5B5B]/60 hover:border-[#FF5B5B]/40 hover:text-[#FF5B5B]/80 rounded-lg text-xs font-semibold transition">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                          Cerrar conversación
+                        </button>
                     </div>
                 </aside>
             </section>
@@ -1280,6 +1297,99 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- ALERTAS DE COMPORTAMIENTO -->
+                <div class="mt-6 max-w-5xl w-full bg-[#252522] border border-[#3A3A37] rounded-xl p-5" id="behavior-alerts-section">
+                  <!-- Header -->
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-2.5">
+                      <h3 class="text-sm font-bold text-white">Alertas de Comportamiento</h3>
+                      <span id="alerts-badge-count" class="bg-[#FF5B5B] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">3</span>
+                    </div>
+                    <div class="flex gap-2">
+                      <select class="bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded px-2.5 py-1.5 focus:border-[#01A4E3] outline-none">
+                        <option value="">Todos los asesores</option>
+                        <option>Andrés Castro</option>
+                        <option>Diana Ospina</option>
+                      </select>
+                      <select class="bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded px-2.5 py-1.5 focus:border-[#01A4E3] outline-none">
+                        <option value="">Todas las severidades</option>
+                        <option>Alta</option>
+                        <option>Media</option>
+                        <option>Baja</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Lista de alertas -->
+                  <div id="alerts-list" class="space-y-3">
+                    <!-- Alerta 1: Alta -->
+                    <div class="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-4">
+                      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-xs font-bold text-white">Andrés Castro</span>
+                            <span class="bg-[#FF5B5B]/15 text-[#FF5B5B] text-[9px] px-2 py-0.5 rounded font-bold">lenguaje_inapropiado</span>
+                            <span class="bg-[#FF5B5B]/15 text-[#FF5B5B] text-[9px] px-2 py-0.5 rounded font-bold uppercase">Alta</span>
+                          </div>
+                          <p class="text-[11px] text-[#F0F0F5]/80 italic font-mono bg-[#1D1D1B] px-3 py-2 rounded border border-[#3A3A37]/50 mb-2">"Le dije que se callara porque ya me tiene harto con las mismas quejas..."</p>
+                          <span class="text-[10px] text-[#8B8FA8]">Hoy, 10:23 AM</span>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                          <button onclick="switchScreen('chat')" class="px-3 py-1.5 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded text-[10px] font-semibold transition">Ver conversación</button>
+                          <button class="px-3 py-1.5 border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#8B8FA8] rounded text-[10px] font-semibold transition">Marcar revisada</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Alerta 2: Media -->
+                    <div class="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-4">
+                      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-xs font-bold text-white">Diana Ospina</span>
+                            <span class="bg-[#FFB84D]/15 text-[#FFB84D] text-[9px] px-2 py-0.5 rounded font-bold">tono_agresivo</span>
+                            <span class="bg-[#FFB84D]/15 text-[#FFB84D] text-[9px] px-2 py-0.5 rounded font-bold uppercase">Media</span>
+                          </div>
+                          <p class="text-[11px] text-[#F0F0F5]/80 italic font-mono bg-[#1D1D1B] px-3 py-2 rounded border border-[#3A3A37]/50 mb-2">"Si no entiende lo que le explico no sé qué más decirle, lea bien..."</p>
+                          <span class="text-[10px] text-[#8B8FA8]">Ayer, 3:47 PM</span>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                          <button onclick="switchScreen('chat')" class="px-3 py-1.5 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded text-[10px] font-semibold transition">Ver conversación</button>
+                          <button class="px-3 py-1.5 border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#8B8FA8] rounded text-[10px] font-semibold transition">Marcar revisada</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Alerta 3: Baja -->
+                    <div class="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-4">
+                      <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                          <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-xs font-bold text-white">Andrés Castro</span>
+                            <span class="bg-[#8B8FA8]/15 text-[#8B8FA8] text-[9px] px-2 py-0.5 rounded font-bold">comportamiento_inadecuado</span>
+                            <span class="bg-[#8B8FA8]/15 text-[#8B8FA8] text-[9px] px-2 py-0.5 rounded font-bold uppercase">Baja</span>
+                          </div>
+                          <p class="text-[11px] text-[#F0F0F5]/80 italic font-mono bg-[#1D1D1B] px-3 py-2 rounded border border-[#3A3A37]/50 mb-2">"Bueno, como usted quiera, total a mí no me importa si firma o no..."</p>
+                          <span class="text-[10px] text-[#8B8FA8]">Hace 2 días</span>
+                        </div>
+                        <div class="flex gap-2 shrink-0">
+                          <button onclick="switchScreen('chat')" class="px-3 py-1.5 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded text-[10px] font-semibold transition">Ver conversación</button>
+                          <button class="px-3 py-1.5 border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#8B8FA8] rounded text-[10px] font-semibold transition">Marcar revisada</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Estado vacío (oculto por defecto) -->
+                  <div id="alerts-empty-state" class="hidden flex flex-col items-center justify-center py-10 gap-3">
+                    <div class="w-12 h-12 rounded-full bg-[#00D4AA]/10 border border-[#00D4AA]/30 flex items-center justify-center">
+                      <svg class="w-6 h-6 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <p class="text-sm font-semibold text-white">No hay alertas pendientes</p>
+                    <p class="text-xs text-[#8B8FA8]">No hay alertas pendientes de revisión</p>
+                  </div>
+                </div>
             </section>
 
             <!-- ==================== PANTALLA 5: PERFIL DEL ASESOR ==================== -->
@@ -1309,6 +1419,42 @@
                                     <span id="perfil-role-badge" class="bg-[#01A4E3]/10 text-[#01A4E3] text-[10px] px-2 py-0.5 rounded font-black uppercase">Asesor Senior</span>
                                     <span id="perfil-area-badge" class="bg-[#3A3A37] text-[#8B8FA8] text-[10px] px-2 py-0.5 rounded font-bold cursor-help" title="Solo el admin puede cambiar esto">Área: Comercial</span>
                                 </div>
+
+                                <!-- Mi Disponibilidad -->
+                                <div class="mt-4 pt-4 border-t border-[#3A3A37]">
+                                  <h4 class="text-xs font-bold text-white mb-3">Mi Disponibilidad</h4>
+
+                                  <!-- Estado actual -->
+                                  <div id="availability-status-display" class="flex items-center gap-2 mb-3">
+                                    <span id="avail-dot" class="w-2.5 h-2.5 rounded-full bg-[#00D4AA]"></span>
+                                    <span id="avail-label" class="text-xs font-semibold text-[#00D4AA]">Disponible</span>
+                                  </div>
+
+                                  <!-- Pill buttons -->
+                                  <div class="flex flex-wrap gap-2 mb-3">
+                                    <button id="avail-btn-available" onclick="setAvailability('available')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/40 transition">
+                                      <span class="w-2 h-2 rounded-full bg-[#00D4AA]"></span>Disponible
+                                    </button>
+                                    <button id="avail-btn-break" onclick="setAvailability('break')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[#3A3A37] text-[#8B8FA8] hover:border-[#FFB84D]/40 hover:text-[#FFB84D] transition">
+                                      <span>&#9646;</span>En descanso
+                                    </button>
+                                    <button id="avail-btn-offline" onclick="setAvailability('offline')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[#3A3A37] text-[#8B8FA8] hover:border-[#FF5B5B]/40 hover:text-[#FF5B5B] transition">
+                                      <span>&#10005;</span>No disponible
+                                    </button>
+                                  </div>
+
+                                  <!-- Duration picker (hidden by default) -->
+                                  <div id="avail-duration-picker" class="hidden">
+                                    <p class="text-[11px] text-[#8B8FA8] mb-2">¿Por cuánto tiempo?</p>
+                                    <div class="flex flex-wrap gap-1.5 mb-3">
+                                      <button onclick="selectDuration(this)" class="avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#01A4E3] transition">15 min</button>
+                                      <button onclick="selectDuration(this)" class="avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border border-[#01A4E3] text-[#01A4E3] bg-[#01A4E3]/10">30 min</button>
+                                      <button onclick="selectDuration(this)" class="avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#01A4E3] transition">1 hora</button>
+                                      <button onclick="selectDuration(this)" class="avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#01A4E3] transition">Sin límite</button>
+                                    </div>
+                                    <button class="bg-[#01A4E3] hover:bg-[#0190C8] text-white px-4 py-2 rounded-lg text-xs font-bold transition" onclick="showSystemNotification('Disponibilidad actualizada', 'success')">Aplicar</button>
+                                  </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1331,6 +1477,79 @@
                                 Actualizar contraseña
                             </button>
                         </div>
+                    </div>
+
+                    <!-- CARD: Intervalos de Inactividad -->
+                    <div class="bg-[#252522] border border-[#3A3A37] rounded-xl p-5">
+                      <div class="flex items-start justify-between mb-1">
+                        <h3 class="text-sm font-bold text-white">Intervalos de Inactividad</h3>
+                      </div>
+                      <p class="text-xs text-[#8B8FA8] mb-4">El sistema te marcará automáticamente como <strong class="text-[#FFB84D]">En descanso</strong> durante estos intervalos</p>
+
+                      <div class="space-y-3" id="schedule-list">
+                        <!-- Intervalo 1: Almuerzo -->
+                        <div class="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-3">
+                          <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-center gap-2 mb-1.5">
+                                <span class="text-xs font-bold text-white">Almuerzo</span>
+                                <span class="text-[10px] text-[#8B8FA8] font-mono bg-[#1D1D1B] px-2 py-0.5 rounded border border-[#3A3A37]">12:00 – 13:30</span>
+                              </div>
+                              <div class="flex gap-1">
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">L</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">M</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">X</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">J</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">V</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#2E2E2B] text-[#3A3A37] border border-[#3A3A37]">S</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#2E2E2B] text-[#3A3A37] border border-[#3A3A37]">D</span>
+                              </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                              <button onclick="this.classList.toggle('bg-[#01A4E3]'); this.classList.toggle('bg-[#3A3A37]'); this.querySelector('span').classList.toggle('translate-x-4'); this.querySelector('span').classList.toggle('translate-x-0')" class="relative w-9 h-5 bg-[#01A4E3] rounded-full transition-colors duration-200 focus:outline-none">
+                                <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 translate-x-4"></span>
+                              </button>
+                              <button class="text-[#8B8FA8] hover:text-[#FF5B5B] transition p-1" title="Eliminar intervalo">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- Intervalo 2: Descanso tarde -->
+                        <div class="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-3">
+                          <div class="flex items-center justify-between gap-3 flex-wrap">
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-center gap-2 mb-1.5">
+                                <span class="text-xs font-bold text-white">Descanso tarde</span>
+                                <span class="text-[10px] text-[#8B8FA8] font-mono bg-[#1D1D1B] px-2 py-0.5 rounded border border-[#3A3A37]">16:00 – 16:30</span>
+                              </div>
+                              <div class="flex gap-1">
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">L</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">M</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">X</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">J</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">V</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#01A4E3]/15 text-[#01A4E3]">S</span>
+                                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold bg-[#2E2E2B] text-[#3A3A37] border border-[#3A3A37]">D</span>
+                              </div>
+                            </div>
+                            <div class="flex items-center gap-2 shrink-0">
+                              <button onclick="this.classList.toggle('bg-[#01A4E3]'); this.classList.toggle('bg-[#3A3A37]'); this.querySelector('span').classList.toggle('translate-x-4'); this.querySelector('span').classList.toggle('translate-x-0')" class="relative w-9 h-5 bg-[#3A3A37] rounded-full transition-colors duration-200 focus:outline-none">
+                                <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 translate-x-0"></span>
+                              </button>
+                              <button class="text-[#8B8FA8] hover:text-[#FF5B5B] transition p-1" title="Eliminar intervalo">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <button onclick="document.getElementById('modal-add-schedule').classList.remove('hidden')" class="mt-4 flex items-center gap-2 px-4 py-2 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded-lg text-xs font-semibold transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Agregar intervalo
+                      </button>
                     </div>
                 </div>
             </section>
@@ -1482,12 +1701,22 @@ Bandeja Admin (2B)
                     </div>
                     <div class="space-y-1">
                         <label class="text-[#8B8FA8] block">Área</label>
-                        <select id="new-adv-area" class="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded p-2 text-white outline-none">
+                        <select id="new-adv-area" onchange="updateEspecialidadOptions(this.value, 'advisor-especialidad-new')" class="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded p-2 text-white outline-none">
                             <option value="Administrativa">Administrativa</option>
                             <option value="Comercial">Comercial</option>
                             <option value="Ambas">Ambas Áreas</option>
                         </select>
                     </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">Especialidad</label>
+                  <select id="advisor-especialidad-new" class="w-full bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded px-3 py-2 focus:border-[#01A4E3] outline-none">
+                    <option value="General">General</option>
+                    <option value="Financiera">Financiera</option>
+                    <option value="Mantenimiento y Contratos">Mantenimiento y Contratos</option>
+                    <option value="Comercial">Comercial</option>
+                  </select>
                 </div>
 
                 <div class="space-y-1 text-xs">
@@ -1543,12 +1772,22 @@ Bandeja Admin (2B)
                     </div>
                     <div class="space-y-1">
                         <label class="text-[#8B8FA8] block">Área</label>
-                        <select id="edit-adv-area" class="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded p-2 text-white outline-none">
+                        <select id="edit-adv-area" onchange="updateEspecialidadOptions(this.value, 'advisor-especialidad-edit')" class="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded p-2 text-white outline-none">
                             <option value="Administrativa">Administrativa</option>
                             <option value="Comercial">Comercial</option>
                             <option value="Ambas">Ambas Áreas</option>
                         </select>
                     </div>
+                </div>
+
+                <div>
+                  <label class="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">Especialidad</label>
+                  <select id="advisor-especialidad-edit" class="w-full bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded px-3 py-2 focus:border-[#01A4E3] outline-none">
+                    <option value="General">General</option>
+                    <option value="Financiera">Financiera</option>
+                    <option value="Mantenimiento y Contratos">Mantenimiento y Contratos</option>
+                    <option value="Comercial">Comercial</option>
+                  </select>
                 </div>
 
                 <div class="space-y-1 text-xs">
@@ -2655,7 +2894,195 @@ Bandeja Admin (2B)
         window.onload = () => {
             setRoleAndSwitch('Asesor', 'bandeja');
         };
+        // Toggle alertas de comportamiento (Feature 1)
+        function toggleBehaviorAlerts(showEmpty) {
+          const list = document.getElementById('alerts-list');
+          const empty = document.getElementById('alerts-empty-state');
+          const badge = document.getElementById('alerts-badge-count');
+          if (showEmpty) {
+            list.classList.add('hidden');
+            empty.classList.remove('hidden');
+            badge.classList.add('hidden');
+          } else {
+            list.classList.remove('hidden');
+            empty.classList.add('hidden');
+            badge.classList.remove('hidden');
+            badge.textContent = '3';
+          }
+        }
+
+        // Toggle badge alertas en sidebar (Feature 2)
+        function setSidebarAlertsBadge(count) {
+          const badge = document.getElementById('sidebar-alerts-badge');
+          if (!badge) return;
+          if (count > 0) {
+            badge.textContent = count;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+
+        // Selector de disponibilidad (Feature 4)
+        function setAvailability(state) {
+          const dot = document.getElementById('avail-dot');
+          const label = document.getElementById('avail-label');
+          const picker = document.getElementById('avail-duration-picker');
+          const btnAvail = document.getElementById('avail-btn-available');
+          const btnBreak = document.getElementById('avail-btn-break');
+          const btnOffline = document.getElementById('avail-btn-offline');
+
+          [btnAvail, btnBreak, btnOffline].forEach(b => {
+            b.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[#3A3A37] text-[#8B8FA8] transition';
+          });
+
+          if (state === 'available') {
+            dot.className = 'w-2.5 h-2.5 rounded-full bg-[#00D4AA]';
+            label.className = 'text-xs font-semibold text-[#00D4AA]';
+            label.textContent = 'Disponible';
+            btnAvail.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#00D4AA]/20 text-[#00D4AA] border border-[#00D4AA]/40 transition';
+            picker.classList.add('hidden');
+          } else if (state === 'break') {
+            dot.className = 'w-2.5 h-2.5 rounded-full bg-[#FFB84D]';
+            label.className = 'text-xs font-semibold text-[#FFB84D]';
+            label.textContent = 'En descanso';
+            btnBreak.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#FFB84D]/20 text-[#FFB84D] border border-[#FFB84D]/40 transition';
+            picker.classList.remove('hidden');
+          } else if (state === 'offline') {
+            dot.className = 'w-2.5 h-2.5 rounded-full bg-[#FF5B5B]';
+            label.className = 'text-xs font-semibold text-[#FF5B5B]';
+            label.textContent = 'No disponible';
+            btnOffline.className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold bg-[#FF5B5B]/20 text-[#FF5B5B] border border-[#FF5B5B]/40 transition';
+            picker.classList.remove('hidden');
+          }
+        }
+
+        function selectDuration(btn) {
+          document.querySelectorAll('.avail-dur-btn').forEach(b => {
+            b.className = 'avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#01A4E3] transition';
+          });
+          btn.className = 'avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border border-[#01A4E3] text-[#01A4E3] bg-[#01A4E3]/10';
+        }
+
+        // Validar horario (Feature 3)
+        function validateScheduleTime() {
+          const start = document.getElementById('schedule-time-start').value;
+          const end = document.getElementById('schedule-time-end').value;
+          const err = document.getElementById('schedule-time-error');
+          if (start && end && end <= start) {
+            err.classList.remove('hidden');
+          } else {
+            err.classList.add('hidden');
+          }
+        }
+
+        // Especialidad dinámica (Feature 7)
+        function updateEspecialidadOptions(areaValue, selectId) {
+          const sel = document.getElementById(selectId);
+          if (!sel) return;
+          sel.innerHTML = '';
+          let opts = [];
+          if (areaValue === 'Administrativa') {
+            opts = ['Financiera', 'Mantenimiento y Contratos', 'General'];
+          } else if (areaValue === 'Comercial') {
+            opts = ['Comercial', 'General'];
+          } else {
+            opts = ['General'];
+          }
+          opts.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o; opt.textContent = o;
+            sel.appendChild(opt);
+          });
+        }
+
+        // Simular adjunto de archivo (Feature 9)
+        function simulateFileAttach(type) {
+          document.getElementById('attach-menu').classList.add('hidden');
+          const bar = document.getElementById('file-preview-bar');
+          const icon = document.getElementById('file-preview-icon');
+          const name = document.getElementById('file-preview-name');
+          const meta = document.getElementById('file-preview-size') || document.getElementById('file-preview-meta');
+
+          const configs = {
+            image: { name: 'foto_inmueble.jpg', meta: '2.4 MB · JPG', color: '#01A4E3' },
+            document: { name: 'contrato_arrendamiento.pdf', meta: '840 KB · PDF', color: '#FFB84D' },
+            video: { name: 'video_recorrido.mp4', meta: '18.2 MB · MP4', color: '#00D4AA' }
+          };
+
+          const cfg = configs[type];
+          icon.style.backgroundColor = cfg.color + '1a';
+          icon.style.borderColor = cfg.color + '50';
+          icon.style.color = cfg.color;
+          if (name) name.textContent = cfg.name;
+          if (meta) meta.textContent = cfg.meta;
+          bar.classList.remove('hidden');
+        }
     </script>
+
+    <!-- MODAL: Confirmar cierre de conversación (Feature 8) -->
+    <div id="modal-confirm-close" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+      <div class="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="flex flex-col items-center text-center gap-4">
+          <div class="w-12 h-12 rounded-full bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 flex items-center justify-center">
+            <svg class="w-6 h-6 text-[#FF5B5B]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold text-white mb-1">¿Cerrar esta conversación?</h3>
+            <p class="text-xs text-[#8B8FA8] leading-relaxed">La conversación pasará al historial y el cliente no podrá continuar por este hilo.</p>
+          </div>
+          <div class="flex gap-3 w-full">
+            <button onclick="document.getElementById('modal-confirm-close').classList.add('hidden')" class="flex-1 px-4 py-2 border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#8B8FA8] rounded-lg text-xs font-semibold transition">Cancelar</button>
+            <button onclick="document.getElementById('modal-confirm-close').classList.add('hidden'); showSystemNotification('Conversación cerrada exitosamente', 'success');" class="flex-1 px-4 py-2 bg-[#FF5B5B] hover:bg-[#e04f4f] text-white rounded-lg text-xs font-bold transition">Confirmar cierre</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Agregar Intervalo de Horario (Feature 3) -->
+    <div id="modal-add-schedule" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+      <div class="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 w-full max-w-md shadow-2xl">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-sm font-bold text-white">Agregar Intervalo de Inactividad</h3>
+          <button onclick="document.getElementById('modal-add-schedule').classList.add('hidden')" class="text-[#8B8FA8] hover:text-white transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">Nombre del intervalo</label>
+            <input type="text" placeholder="Ej: Almuerzo" class="w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg px-3 py-2 text-xs outline-none transition" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">Inicio</label>
+              <input type="time" id="schedule-time-start" onchange="validateScheduleTime()" value="12:00" class="w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg px-3 py-2 text-xs outline-none transition" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">Fin</label>
+              <input type="time" id="schedule-time-end" onchange="validateScheduleTime()" value="13:00" class="w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg px-3 py-2 text-xs outline-none transition" />
+            </div>
+          </div>
+          <div id="schedule-time-error" class="hidden text-[10px] text-[#FF5B5B] bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 px-3 py-1.5 rounded">La hora de fin debe ser posterior a la de inicio.</div>
+          <div>
+            <label class="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-2">Días activos</label>
+            <div class="flex gap-1.5 flex-wrap">
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked class="accent-[#01A4E3]" /><span class="text-xs text-white">L</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked class="accent-[#01A4E3]" /><span class="text-xs text-white">M</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked class="accent-[#01A4E3]" /><span class="text-xs text-white">X</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked class="accent-[#01A4E3]" /><span class="text-xs text-white">J</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked class="accent-[#01A4E3]" /><span class="text-xs text-white">V</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="accent-[#01A4E3]" /><span class="text-xs text-white">S</span></label>
+              <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" class="accent-[#01A4E3]" /><span class="text-xs text-white">D</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button onclick="document.getElementById('modal-add-schedule').classList.add('hidden')" class="flex-1 px-4 py-2 border border-[#3A3A37] text-[#8B8FA8] hover:text-white rounded-lg text-xs font-semibold transition">Cancelar</button>
+          <button onclick="document.getElementById('modal-add-schedule').classList.add('hidden'); showSystemNotification('Intervalo guardado', 'success');" class="flex-1 px-4 py-2 bg-[#01A4E3] hover:bg-[#0190C8] text-white rounded-lg text-xs font-bold transition">Guardar</button>
+        </div>
+      </div>
+    </div>
 
 </body>
 </html>
