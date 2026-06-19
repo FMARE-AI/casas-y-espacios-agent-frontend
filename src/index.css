@@ -118,3 +118,27 @@
     text-rendering: optimizeLegibility;
   }
 }
+
+@layer utilities {
+  @keyframes criticalPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255,91,91,0.4);
+           border-color: rgba(255,91,91,0.8); }
+    50%  { box-shadow: 0 0 16px 4px rgba(255,91,91,0.25);
+           border-color: rgba(255,91,91,1); }
+    100% { box-shadow: 0 0 0 0 rgba(255,91,91,0);
+           border-color: rgba(255,91,91,0.6); }
+  }
+  .critical-pulse-card {
+    animation: criticalPulse 2s infinite ease-in-out;
+    border-left: 4px solid #FF5B5B !important;
+  }
+
+  @keyframes wsPulse {
+    0%   { transform: scale(0.9); opacity: 0.6; }
+    50%  { transform: scale(1.25); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.6; }
+  }
+  .ws-pulse-dot {
+    animation: wsPulse 1.6s infinite ease-in-out;
+  }
+}
