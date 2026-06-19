@@ -18,6 +18,9 @@ dist
 dist-ssr
 *.local
 
+# Local mockups
+mockup.html
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
