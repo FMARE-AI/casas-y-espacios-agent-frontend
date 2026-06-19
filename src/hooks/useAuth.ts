@@ -10,12 +10,25 @@ export function useAuth() {
   const store = useAuthStore()
   const navigate = useNavigate()
 
-  // TODO: llamar getMe() cuando el backend esté disponible
-  // async function loadAdvisor() { ... }
+  // TODO: replace with getMe() when backend is connected
+  function setHardcodedAdvisor() {
+    store.setAdvisor({
+      id: 'hardcoded',
+      email: 'admin@casasyespacios.co',
+      full_name: 'Admin',
+      role: 'admin',
+      area: 'ambas',
+      max_conversations: 10,
+      active_conversations: 0,
+      availability_status: 'available',
+      is_active: true,
+    })
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       store.setSession(session)
+      if (session) setHardcodedAdvisor()
       store.setLoading(false)
     })
 
@@ -24,6 +37,7 @@ export function useAuth() {
         store.setSession(session)
 
         if (event === 'SIGNED_IN') {
+          setHardcodedAdvisor()
           store.setLoading(false)
         }
 
