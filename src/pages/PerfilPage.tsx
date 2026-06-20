@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { advisorsService } from '../services/advisors'
 import { useAuthStore } from '../store/authStore'
 import type { Advisor, AdvisorRole } from '../types'
+import ScheduleManager from '../components/perfil/ScheduleManager'
 
 // ── Schema contraseña ─────────────────────────────────────
 
@@ -62,13 +63,13 @@ function ProfileSkeleton() {
 // ── Page ���─────────────────────────────────────────────────
 
 export default function PerfilPage() {
-  useAuthStore() // keep subscription alive
+  const { advisor: storeAdvisor } = useAuthStore()
 
-  const [advisor, setAdvisor] = useState<Advisor | null>(null)
+  const [advisor, setAdvisor] = useState<Advisor | null>(storeAdvisor)
   const [isLoading, setIsLoading] = useState(true)
 
   const [editingName, setEditingName] = useState(false)
-  const [nameValue, setNameValue] = useState('')
+  const [nameValue, setNameValue] = useState(storeAdvisor?.full_name ?? '')
   const [isSavingName, setIsSavingName] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
@@ -328,6 +329,8 @@ export default function PerfilPage() {
 
           </div>
         )}
+
+        <ScheduleManager />
       </div>
     </section>
   )
