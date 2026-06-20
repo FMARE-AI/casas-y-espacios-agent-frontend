@@ -63,15 +63,47 @@ export function useAuth() {
   }, [])
 
   async function signIn(email: string, password: string) {
-    if (email === 'hola@mail.com' && password === '123') {
+    const mockCredentials: Record<string, { token: string; advisor: import('../types').Advisor }> = {
+      'asesor@mock.com': {
+        token: 'mock-token-asesor',
+        advisor: {
+          id: 'mock-asesor',
+          email: 'asesor@mock.com',
+          full_name: 'Diana Ospina',
+          role: 'asesor',
+          area: 'ambas',
+          max_conversations: 3,
+          active_conversations: 1,
+          availability_status: 'available',
+          is_active: true,
+        },
+      },
+      'admin@mock.com': {
+        token: 'mock-token-admin',
+        advisor: {
+          id: 'mock-admin',
+          email: 'admin@mock.com',
+          full_name: 'Jorge Ramírez',
+          role: 'admin',
+          area: 'ambas',
+          max_conversations: 10,
+          active_conversations: 0,
+          availability_status: 'available',
+          is_active: true,
+        },
+      },
+    }
+
+    const mock = password === '123' ? mockCredentials[email] : undefined
+    if (mock) {
       const mockSession = {
-        access_token: 'mock-token',
+        access_token: mock.token,
         token_type: 'bearer',
         expires_in: 3600,
-        refresh_token: 'mock-refresh',
+        refresh_token: `${mock.token}-refresh`,
         user: {
-          id: 'mock-user-id',
-          email: 'hola@mail.com',
+          id: mock.advisor.id,
+          email: mock.advisor.email,
           aud: 'authenticated',
           role: 'authenticated',
           created_at: new Date().toISOString(),
@@ -80,20 +112,11 @@ export function useAuth() {
         },
       } as unknown as Session
       useAuthStore.getState().setSession(mockSession)
-      useAuthStore.getState().setAdvisor({
-        id: 'hardcoded',
-        email: 'admin@casasyespacios.co',
-        full_name: 'Diana Ospina',
-        role: 'asesor',
-        area: 'ambas',
-        max_conversations: 10,
-        active_conversations: 0,
-        availability_status: 'available',
-        is_active: true,
-      })
+      useAuthStore.getState().setAdvisor(mock.advisor)
       navigate('/')
       return
     }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
   }
