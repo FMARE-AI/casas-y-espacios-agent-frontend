@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { conversationsService } from '../services/conversations'
@@ -7,6 +7,7 @@ import type { Conversation, Message } from '../types'
 import MessageFeed from '../components/chat/MessageFeed'
 import ChatInput from '../components/chat/ChatInput'
 import ClientPanel, { type ChatVariant } from '../components/chat/ClientPanel'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 // ── Demo data (visible at /chat/demo) ────────────────────
 
@@ -202,32 +203,14 @@ export default function ChatPage() {
   const isDemo = conversationId === 'demo'
   const feedRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (isDemo) {
-      setConversation(DEMO_CONVERSATION)
-      setMessages(DEMO_MESSAGES)
-      setTotalMessages(DEMO_MESSAGES.length)
-      setIsLoading(false)
-      return
-    }
+  const loadConversation = useCallback(async () => {
     if (!conversationId) return
-    loadConversation()
-  }, [conversationId])
-
-  // Scroll to bottom after initial load
-  useEffect(() => {
-    if (!isLoading && feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight
-    }
-  }, [isLoading])
-
-  async function loadConversation() {
     setIsLoading(true)
     try {
-      const { conversation: conv } = await conversationsService.getById(conversationId!)
+      const { conversation: conv } = await conversationsService.getById(conversationId)
       setConversation(conv)
       const { messages: msgs, total } = await conversationsService.getMessages(
-        conversationId!,
+        conversationId,
         { limit: 50, offset: 0 }
       )
       setMessages(msgs)
@@ -237,7 +220,30 @@ export default function ChatPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [conversationId])
+
+  useEffect(() => {
+    if (isDemo) {
+      const timer = setTimeout(() => {
+        setConversation(DEMO_CONVERSATION)
+        setMessages(DEMO_MESSAGES)
+        setTotalMessages(DEMO_MESSAGES.length)
+        setIsLoading(false)
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+    const timer = setTimeout(() => {
+      loadConversation()
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [isDemo, loadConversation])
+
+  // Scroll to bottom after initial load
+  useEffect(() => {
+    if (!isLoading && feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight
+    }
+  }, [isLoading])
 
   async function loadMoreMessages() {
     if (isLoadingMore || messages.length >= totalMessages) return
@@ -268,9 +274,11 @@ export default function ChatPage() {
     }
   }
 
-  // Expose handlers for FE-10 to wire up
-  void onNewMessage
-  void onConversationReturned
+  // Hook up real-time websocket updates
+  useWebSocket({
+    onMessageNew: onNewMessage,
+    onConversationReturned: onConversationReturned,
+  })
 
   async function handleTake() {
     if (!conversationId) return

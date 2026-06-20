@@ -5,6 +5,8 @@ import { useWSStore } from '../../store/wsStore'
 import Sidebar from './Sidebar'
 import SessionExpiredModal from '../shared/SessionExpiredModal'
 import SuccessToast from '../shared/SuccessToast'
+import EscalationToast from '../shared/EscalationToast'
+import { useWebSocket } from '../../hooks/useWebSocket'
 import type { AdvisorRole, WSStatus } from '../../types'
 
 interface Props {
@@ -14,6 +16,7 @@ interface Props {
 export default function ProtectedRoute({ requiredRole }: Props) {
   const { session, role, isFirstLogin, sessionExpired } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { reconnect } = useWebSocket()
 
   if (!session) return <Navigate to="/login" replace />
   if (isFirstLogin) return <Navigate to="/first-login" replace />
@@ -30,13 +33,14 @@ export default function ProtectedRoute({ requiredRole }: Props) {
 
       <div className="flex-1 flex flex-col min-w-0">
         <MobileHeader onOpenSidebar={() => setMobileOpen(true)} />
-        <WSDisconnectedBanner />
+        <WSDisconnectedBanner onReconnect={reconnect} />
         <main className="flex-1 flex flex-col min-w-0">
           <Outlet />
         </main>
       </div>
 
       {sessionExpired && <SessionExpiredModal />}
+      <EscalationToast />
       <SuccessToast />
     </div>
   )
@@ -91,7 +95,7 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   )
 }
 
-function WSDisconnectedBanner() {
+function WSDisconnectedBanner({ onReconnect }: { onReconnect: () => void }) {
   const { status } = useWSStore()
 
   if (status !== 'disconnected') return null
@@ -111,7 +115,10 @@ function WSDisconnectedBanner() {
           <strong>Se perdió la conexión en tiempo real.</strong> El canal WebSocket está inactivo y el monitoreo se encuentra en pausa. ¿Deseas reestablecer el túnel?
         </span>
       </div>
-      <button className="bg-white hover:bg-slate-100 text-black font-bold px-4 py-2 rounded shadow-md hover:shadow-lg transition active:scale-95 text-[10px] uppercase tracking-wide shrink-0">
+      <button
+        onClick={onReconnect}
+        className="bg-white hover:bg-slate-100 text-black font-bold px-4 py-2 rounded shadow-md hover:shadow-lg transition active:scale-95 text-[10px] uppercase tracking-wide shrink-0"
+      >
         Reconectar Canal
       </button>
     </div>

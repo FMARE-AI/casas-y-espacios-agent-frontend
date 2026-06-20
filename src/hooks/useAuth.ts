@@ -1,17 +1,18 @@
 // Hook principal de autenticación.
 // Sincroniza Supabase Auth con el authStore.
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/authStore'
+import type { Session } from '@supabase/supabase-js'
 
 export function useAuth() {
   const store = useAuthStore()
   const navigate = useNavigate()
 
   // TODO: replace with getMe() when backend is connected
-  function setHardcodedAdvisor() {
+  const setHardcodedAdvisor = useCallback(() => {
     store.setAdvisor({
       id: 'hardcoded',
       email: 'admin@casasyespacios.co',
@@ -23,7 +24,7 @@ export function useAuth() {
       availability_status: 'available',
       is_active: true,
     })
-  }
+  }, [store])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -59,7 +60,7 @@ export function useAuth() {
       subscription.unsubscribe()
       window.removeEventListener('session-expired', handleExpired)
     }
-  }, [])
+  }, [store, setHardcodedAdvisor])
 
   async function signIn(email: string, password: string) {
     if (email === 'hola@mail.com' && password === '123') {
@@ -77,7 +78,7 @@ export function useAuth() {
           app_metadata: {},
           user_metadata: {},
         },
-      } as any
+      } as unknown as Session
       store.setSession(mockSession)
       setHardcodedAdvisor()
       navigate('/')

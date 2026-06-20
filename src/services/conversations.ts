@@ -104,7 +104,7 @@ export const conversationsService = {
 
   async replyMedia(id: string, file: File): Promise<{ message: Message }> {
     if (id === 'demo') {
-      const type = file.type.startsWith('image/')
+      const type: 'image' | 'video' | 'document' = file.type.startsWith('image/')
         ? 'image'
         : file.type.startsWith('video/')
         ? 'video'
@@ -114,7 +114,7 @@ export const conversationsService = {
           id: `msg-mock-${Date.now()}`,
           wam_id: null,
           direction: 'outbound_advisor',
-          msg_type: type as any,
+          msg_type: type,
           content: file.name,
           media_url: URL.createObjectURL(file),
           media_mime_type: file.type,

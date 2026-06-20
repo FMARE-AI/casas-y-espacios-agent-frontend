@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { conversationsService } from '../services'
-import type { Conversation } from '../types'
+import type { Conversation, WSEscalationNew } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
+import { useWebSocket } from '../hooks/useWebSocket'
 
 // --- LOCAL COMPONENTS ---
 
@@ -224,25 +225,26 @@ export default function BandejaPage() {
     }
   }
 
-  // Event handlers placeholder for Websockets
-  const handleEscalationNew = (data: unknown) => {
+  // Event handlers for Websockets
+  const handleEscalationNew = (data: WSEscalationNew) => {
     if (data) {
       // Future FE-10 optimization: append card without reloading
     }
     loadConversations()
   }
 
-  const handleEscalationAssigned = (data: unknown) => {
+  const handleEscalationAssigned = (data: { conversation_id: string; advisor_id: string }) => {
     if (data) {
       // Future FE-10 optimization: update card directly
     }
     loadConversations()
   }
 
-  // WebSocket placeholder references to avoid unused locals compiler errors
-  if (false as boolean) {
-    console.log(handleEscalationNew, handleEscalationAssigned)
-  }
+  // Hook up real-time websocket updates
+  useWebSocket({
+    onEscalationNew: handleEscalationNew,
+    onEscalationAssigned: handleEscalationAssigned,
+  })
 
   const advisorMaxConv = advisor?.max_conversations ?? 3
   const advisorActiveConv = advisor?.active_conversations ?? 0
