@@ -349,7 +349,7 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 | Grafo completo                                | ⬜ Bloqueado hasta credenciales SIMI |
 | Integración SIMI real                         | ⬜ Bloqueado (sin credenciales)      |
 
-### Panel Web Interno (Bloque PW)
+### Panel Web Interno — Backend (Bloque PW)
 
 | Componente                         | Estado               |
 | ---------------------------------- | -------------------- |
@@ -358,6 +358,27 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 | get_current_advisor / require_role | ✅                   |
 | Endpoints PW-2 a PW-22             | ⬜ Pendientes        |
 | WebSocketManager                   | ⬜ Pendiente (PW-19) |
+
+### Panel Web Interno — Frontend (React)
+
+| Componente                                          | Estado                                    |
+| --------------------------------------------------- | ----------------------------------------- |
+| Auth (Supabase + mock login)                        | ✅ mock: `hola@mail.com` / `123`          |
+| authStore (session, advisor, role, isLoading)       | ✅                                        |
+| wsStore (status, reconnectAttempt, escalation)      | ✅                                        |
+| useWebSocket (singleton, backoff exponencial)       | ✅                                        |
+| EscalationToast + sonido Web Audio API              | ✅                                        |
+| ProtectedRoute (guard + WS init + toasts)           | ✅                                        |
+| BandejaPage (lista + filtros + modal tomar)         | ✅ con fallback mock                      |
+| ChatPage (historial + reply texto)                  | ✅                                        |
+| ChatInput (texto + adjuntos + audio)                | ✅                                        |
+| AudioRecorder (MediaRecorder API, webm)             | ✅                                        |
+| MessageBubble (text/image/video/document/audio)     | ✅                                        |
+| conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback      |
+| Conexión real WebSocket con backend                 | ⬜ Pendiente (token mock rechazado)       |
+| GestionPage (admin)                                 | ⬜ Pendiente                              |
+| HistorialPage                                       | ⬜ Pendiente                              |
+| PerfilPage                                          | ⬜ Pendiente                              |
 
 ### Servicios
 
@@ -513,3 +534,251 @@ ngrok http 8000
 # https://xxxx.ngrok-free.app/api/v1/webhook
 # Verify Token: valor de META_VERIFY_TOKEN en .env
 ```
+
+---
+
+## 12. Frontend — Stack y Estructura
+
+Este repositorio es el **panel web interno** (React). Vive separado del backend FastAPI.
+
+```
+React 18 + TypeScript + Vite
+Zustand                     (estado global — authStore, wsStore)
+React Router v6             (enrutamiento)
+Supabase JS v2              (auth)
+Tailwind CSS                (estilos)
+sonner                      (toasts)
+Web Audio API               (sonido de notificaciones — sin assets externos)
+MediaRecorder API           (grabación de audio)
+```
+
+**Gestor de paquetes:** `npm`. No usar `yarn` ni `pnpm`.
+
+---
+
+## 13. Frontend — Mapa de Módulos
+
+```
+src/
+  App.tsx                    — Root: AuthInit + gate isLoading + Routes
+  main.tsx                   — Entry point
+
+  hooks/
+    useAuth.ts               — Sync Supabase Auth ↔ authStore; mock login; deps: []
+    useWebSocket.ts          — Ciclo de vida WS; backoff exponencial; socket singleton global
+
+  store/
+    authStore.ts             — session, advisor, role, isLoading, isFirstLogin, sessionExpired
+    wsStore.ts               — status, reconnectAttempt, pendingEscalation, unreadAlerts
+
+  pages/
+    BandejaPage.tsx          — Lista de conversaciones; handlers WS para escalation.new
+    ChatPage.tsx             — Vista de chat; adjuntos; grabación de audio
+    LoginPage.tsx            — Login real (Supabase) + mock (hola@mail.com / 123)
+    HistorialPage.tsx
+    PerfilPage.tsx
+    GestionPage.tsx          — Solo role=admin
+
+  components/
+    layout/
+      ProtectedRoute.tsx     — Guard de sesión; inicializa WS; monta EscalationToast
+      Sidebar.tsx
+    chat/
+      AudioRecorder.tsx      — Graba audio via MediaRecorder; emite Blob webm
+      ChatInput.tsx          — Input compuesto: texto + adjunto + audio
+      MessageBubble.tsx      — Renderiza text/image/video/document/audio
+    bandeja/
+      ConversationCard.tsx
+      FilterBar.tsx
+      MetricsDashboard.tsx
+    shared/
+      EscalationToast.tsx    — Toast de nueva escalación + sonido (Web Audio API)
+      SuccessToast.tsx       — Toast de operaciones exitosas
+      SessionExpiredModal.tsx
+
+  services/
+    conversations.ts         — Todas las llamadas HTTP al backend + fallback mock
+    index.ts                 — Re-exporta conversationsService
+
+  lib/
+    supabase.ts              — Cliente Supabase (singleton)
+    axios.ts                 — Axios con header Authorization automático
+
+  types/                     — Tipos TypeScript compartidos (Conversation, Message, etc.)
+  constants/
+    routes.ts                — ROUTES object (evita strings hardcodeados en navegación)
+```
+
+---
+
+## 14. Frontend — Capa de Mocks (mientras el backend no está conectado)
+
+### Login mock
+
+Mientras el backend no tenga auth real, se usa:
+
+| Campo | Valor |
+|---|---|
+| Email | `hola@mail.com` |
+| Password | `123` |
+| Token | `mock-token` (no válido en Supabase) |
+| Rol | `asesor` |
+
+La sesión mock **solo vive en el store de Zustand** — no se persiste en Supabase. Al refrescar la página se pierde y hay que volver a hacer login.
+
+### API mock
+
+`conversationsService.list()` devuelve una conversación demo hardcodeada si la llamada al backend falla. El resto de endpoints (`getById`, `replyText`, `assign`, etc.) **no tienen fallback** — fallarán explícitamente si el backend no está disponible.
+
+Para `replyText`, `replyMedia` y `replyAudio`, si el `id === 'demo'` se devuelve un mensaje local sin llamar al backend.
+
+### WebSocket mock
+
+El hook `useWebSocket` siempre intenta conectar a `VITE_WS_BASE_URL`. Si no está configurada, usa `wss://casasyespaciosagent.up.railway.app/...`. Con token mock la conexión será rechazada y el hook activará el backoff exponencial normalmente. El banner "Reconectar Canal" aparecerá — es el comportamiento esperado en desarrollo.
+
+---
+
+## 15. Frontend — Reglas de Hooks y Estado Global
+
+Estas reglas existen porque **dos bugs críticos** fueron introducidos por violarlas. Leerlas antes de tocar cualquier hook o store.
+
+### Regla 1 — Zustand: nunca uses el store completo como dependencia
+
+`useAuthStore()` sin selector devuelve el **objeto de estado entero**. Cada vez que cualquier campo cambia, el objeto es nuevo. Usarlo como dependencia de `useCallback` o `useEffect` crea un loop infinito.
+
+```tsx
+// ❌ NUNCA — store cambia en cada render que modifica cualquier campo
+const store = useAuthStore()
+const fn = useCallback(() => {
+  store.setAdvisor(...)
+}, [store])   // <- nueva ref en cada estado → loop
+
+useEffect(() => { ... }, [store, fn])  // <- re-corre en cada cambio de estado
+```
+
+```tsx
+// ✅ CORRECTO — selector fino o getState() para writes dentro de effects
+const session = useAuthStore((s) => s.session)       // selector fino para lectura reactiva
+useAuthStore.getState().setAdvisor(...)              // imperativo para writes en effects
+```
+
+### Regla 2 — Nunca pongas en deps un valor del store que escribes dentro del effect
+
+Si un `useEffect` llama a `setReconnectAttempt(n + 1)` y `reconnectAttempt` está en sus deps, el effect se re-ejecuta en cada incremento — el backoff queda anulado.
+
+```tsx
+// ❌ NUNCA — setReconnectAttempt está dentro del effect y reconnectAttempt en las deps
+const reconnectAttempt = useWSStore((s) => s.reconnectAttempt)
+useEffect(() => {
+  ws.onclose = () => {
+    setReconnectAttempt(reconnectAttempt + 1)  // cambia el store
+    setTimeout(connect, delay)
+  }
+  connect()
+}, [reconnectAttempt])  // <- re-corre inmediatamente, saltea el setTimeout
+```
+
+```tsx
+// ✅ CORRECTO — leer con getState() dentro del callback, fuera de las deps
+useEffect(() => {
+  ws.onclose = () => {
+    const attempt = useWSStore.getState().reconnectAttempt  // lectura imperativa
+    setReconnectAttempt(attempt + 1)
+    setTimeout(connect, delay)
+  }
+  connect()
+}, [])  // <- no depende del valor que se escribe
+```
+
+### Regla 3 — useAuth tiene deps vacíos: no los toques
+
+`src/hooks/useAuth.ts` tiene `useEffect(..., [])`. Esta es una decisión intencional. El effect:
+- Se suscribe a `supabase.auth.onAuthStateChange` una sola vez
+- Llama `getSession()` una sola vez al montar
+
+Si agregas deps al array, `getSession()` se vuelve a llamar en cada cambio de estado, lo que borra la sesión mock (Supabase devuelve `null` para tokens fake) y expulsa al usuario al login.
+
+**Todas las escrituras al store dentro de este effect usan `useAuthStore.getState()`** — no el `store` del closure.
+
+### Regla 4 — useWebSocket tiene un socket global: no lo dupliques
+
+`socket`, `isConnecting` y `reconnectTimeout` son variables de **módulo** (fuera del hook). Hay exactamente **un** socket activo en toda la app. El hook tiene un guard `if (socket || isConnecting) return` para evitar conexiones duplicadas.
+
+No llames `new WebSocket(...)` directamente fuera de `useWebSocket`. No montes `useWebSocket` en más de un lugar con lógica de conexión (solo en `ProtectedRoute` para la conexión base).
+
+### Regla 5 — Handlers de WS: useCallback con deps estables
+
+Al pasar `handlers` a `useWebSocket({ onEscalationNew: fn })`, si `fn` es una función creada inline en cada render, el effect de registro se re-ejecuta en cada render. Usar `useCallback` o definir la función fuera del componente.
+
+```tsx
+// ❌ NUNCA — nueva referencia en cada render
+useWebSocket({
+  onEscalationNew: (data) => { loadConversations() }
+})
+
+// ✅ CORRECTO — función estable
+const handleEscalation = useCallback((data: WSEscalationNew) => {
+  loadConversations()
+}, [loadConversations])
+
+useWebSocket({ onEscalationNew: handleEscalation })
+```
+
+---
+
+## 16. Frontend — Lo que NUNCA Debes Hacer
+
+```tsx
+// ❌ Store completo como dependencia de hook
+const store = useAuthStore()
+useEffect(() => { ... }, [store])
+useCallback(() => { ... }, [store])
+
+// ✅ Selector fino o getState()
+const session = useAuthStore((s) => s.session)
+useEffect(() => { useAuthStore.getState().setLoading(false) }, [])
+```
+
+```tsx
+// ❌ Valor del store que se escribe dentro del effect, puesto en las deps
+const attempt = useWSStore((s) => s.reconnectAttempt)
+useEffect(() => {
+  setReconnectAttempt(attempt + 1)
+}, [attempt])
+
+// ✅ Leer con getState() dentro del callback
+useEffect(() => {
+  const attempt = useWSStore.getState().reconnectAttempt
+  setReconnectAttempt(attempt + 1)
+}, [])
+```
+
+```tsx
+// ❌ Agregar deps al useEffect de useAuth.ts
+useEffect(() => { ... }, [store, setHardcodedAdvisor])  // rompe el login mock
+
+// ✅ Mantener deps vacíos — es intencional
+useEffect(() => { ... }, [])
+```
+
+```tsx
+// ❌ Instanciar WebSocket fuera del hook
+const ws = new WebSocket(url)  // duplica el socket global
+
+// ✅ Solo a través de useWebSocket()
+const { reconnect } = useWebSocket()
+```
+
+```tsx
+// ❌ Navegar a rutas hardcodeadas
+navigate('/bandeja')
+
+// ✅ Usar las constantes
+import { ROUTES } from '../constants/routes'
+navigate(ROUTES.BANDEJA)
+```
+
+- No hacer llamadas HTTP directas con `fetch` — siempre usar `conversationsService` (que usa el `apiClient` de axios con auth automática).
+- No mezclar lógica de presentación con llamadas a la API — la lógica de fetch va en el `useEffect` de la página, no dentro de componentes hijo.
+- No usar `localStorage` directamente para guardar la sesión — Supabase Auth lo maneja internamente.
+- No importar `socket` del módulo `useWebSocket` — es una variable privada del módulo.

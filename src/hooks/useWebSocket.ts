@@ -68,7 +68,6 @@ export function useWebSocket(handlers?: WSHandlers) {
   // Destructure individual slices to keep useEffect dependencies stable
   const setStatus = useWSStore((s) => s.setStatus)
   const setReconnectAttempt = useWSStore((s) => s.setReconnectAttempt)
-  const reconnectAttempt = useWSStore((s) => s.reconnectAttempt)
   const setPendingEscalation = useWSStore((s) => s.setPendingEscalation)
   const incrementAlerts = useWSStore((s) => s.incrementAlerts)
 
@@ -195,8 +194,9 @@ export function useWebSocket(handlers?: WSHandlers) {
           socket = null
           setStatus('disconnected')
 
-          // Dynamic exponential backoff reconnect delay
-          const attempt = reconnectAttempt
+          // Read attempt directly from store to avoid adding it as a useEffect dependency
+          // (which would bypass the backoff by re-running the effect on every increment)
+          const attempt = useWSStore.getState().reconnectAttempt
           setReconnectAttempt(attempt + 1)
           const delay = Math.min(1000 * Math.pow(2, attempt), 30000)
 
@@ -221,7 +221,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     return () => {
       // Don't close connection on unmount to keep socket connection shared
     }
-  }, [accessToken, setStatus, setReconnectAttempt, reconnectAttempt, handleEvent])
+  }, [accessToken, setStatus, setReconnectAttempt, handleEvent])
 
   const reconnect = useCallback(() => {
     if (socket) {

@@ -1,7 +1,7 @@
 // Hook principal de autenticación.
 // Sincroniza Supabase Auth con el authStore.
 
-import { useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuthStore } from '../store/authStore'
@@ -11,56 +11,56 @@ export function useAuth() {
   const store = useAuthStore()
   const navigate = useNavigate()
 
-  // TODO: replace with getMe() when backend is connected
-  const setHardcodedAdvisor = useCallback(() => {
-    store.setAdvisor({
-      id: 'hardcoded',
-      email: 'admin@casasyespacios.co',
-      full_name: 'Diana Ospina',
-      role: 'asesor',
-      area: 'ambas',
-      max_conversations: 10,
-      active_conversations: 0,
-      availability_status: 'available',
-      is_active: true,
-    })
-  }, [store])
-
   useEffect(() => {
+    // TODO: replace with getMe() when backend is connected
+    function setHardcodedAdvisor() {
+      useAuthStore.getState().setAdvisor({
+        id: 'hardcoded',
+        email: 'admin@casasyespacios.co',
+        full_name: 'Diana Ospina',
+        role: 'asesor',
+        area: 'ambas',
+        max_conversations: 10,
+        active_conversations: 0,
+        availability_status: 'available',
+        is_active: true,
+      })
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      store.setSession(session)
+      useAuthStore.getState().setSession(session)
       if (session) setHardcodedAdvisor()
-      store.setLoading(false)
+      useAuthStore.getState().setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        store.setSession(session)
+        useAuthStore.getState().setSession(session)
 
         if (event === 'SIGNED_IN') {
           setHardcodedAdvisor()
-          store.setLoading(false)
+          useAuthStore.getState().setLoading(false)
         }
 
         if (event === 'SIGNED_OUT') {
-          store.reset()
-          store.setLoading(false)
+          useAuthStore.getState().reset()
+          useAuthStore.getState().setLoading(false)
         }
 
         if (event === 'TOKEN_REFRESHED') {
-          store.setSession(session)
+          useAuthStore.getState().setSession(session)
         }
       }
     )
 
-    const handleExpired = () => store.setSessionExpired(true)
+    const handleExpired = () => useAuthStore.getState().setSessionExpired(true)
     window.addEventListener('session-expired', handleExpired)
 
     return () => {
       subscription.unsubscribe()
       window.removeEventListener('session-expired', handleExpired)
     }
-  }, [store, setHardcodedAdvisor])
+  }, [])
 
   async function signIn(email: string, password: string) {
     if (email === 'hola@mail.com' && password === '123') {
@@ -79,8 +79,18 @@ export function useAuth() {
           user_metadata: {},
         },
       } as unknown as Session
-      store.setSession(mockSession)
-      setHardcodedAdvisor()
+      useAuthStore.getState().setSession(mockSession)
+      useAuthStore.getState().setAdvisor({
+        id: 'hardcoded',
+        email: 'admin@casasyespacios.co',
+        full_name: 'Diana Ospina',
+        role: 'asesor',
+        area: 'ambas',
+        max_conversations: 10,
+        active_conversations: 0,
+        availability_status: 'available',
+        is_active: true,
+      })
       navigate('/')
       return
     }
@@ -90,7 +100,7 @@ export function useAuth() {
 
   async function signOut() {
     await supabase.auth.signOut().catch(() => {})
-    store.reset()
+    useAuthStore.getState().reset()
     navigate('/login')
   }
 
