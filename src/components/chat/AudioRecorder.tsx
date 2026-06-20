@@ -68,8 +68,9 @@ export default function AudioRecorder({
       recorder.start(100) // chunk every 100ms
       setState('recording')
       startTimer()
-    } catch (error: any) {
-      if (error.name === 'NotAllowedError') {
+    } catch (error) {
+      const err = error as { name?: string }
+      if (err.name === 'NotAllowedError') {
         setErrorMessage('Debes permitir el acceso al micrófono para enviar audios')
       } else {
         setErrorMessage('No se pudo acceder al micrófono')

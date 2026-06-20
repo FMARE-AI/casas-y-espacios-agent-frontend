@@ -199,8 +199,9 @@ export default function ChatInput({
         onMessageSent(message)
         setSelectedFile(null)
         setText('')
-      } catch (error: any) {
-        const code = error.response?.data?.detail?.code
+      } catch (error) {
+        const err = error as { response?: { data?: { detail?: { code?: string } } } }
+        const code = err.response?.data?.detail?.code
         if (code === 'FILE_TOO_LARGE') {
           setSendError('El archivo es demasiado grande')
         } else if (code === 'FILE_TYPE_NOT_ALLOWED') {

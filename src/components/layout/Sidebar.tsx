@@ -81,7 +81,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
   useEffect(() => {
     onClose()
-  }, [location.pathname])
+  }, [location.pathname, onClose])
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
