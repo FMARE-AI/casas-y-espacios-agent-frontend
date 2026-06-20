@@ -35,28 +35,36 @@ export function playNotificationSound() {
     const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AudioContextClass) return
     const ctx = new AudioContextClass()
-    
-    // Play double chime (D5 then A5)
-    const playChime = (time: number, freq: number, duration: number) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      
-      osc.type = 'sine'
-      osc.frequency.setValueAtTime(freq, time)
-      
-      gain.gain.setValueAtTime(0.15, time)
-      gain.gain.exponentialRampToValueAtTime(0.0001, time + duration)
-      
-      osc.connect(gain)
-      gain.connect(ctx.destination)
-      
-      osc.start(time)
-      osc.stop(time + duration)
+
+    const scheduleChimes = () => {
+      const playChime = (time: number, freq: number, duration: number) => {
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+
+        osc.type = 'sine'
+        osc.frequency.setValueAtTime(freq, time)
+
+        gain.gain.setValueAtTime(0.15, time)
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration)
+
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+
+        osc.start(time)
+        osc.stop(time + duration)
+      }
+
+      const now = ctx.currentTime
+      playChime(now, 587.33, 0.4)        // D5
+      playChime(now + 0.12, 880, 0.5)   // A5
     }
-    
-    const now = ctx.currentTime
-    playChime(now, 587.33, 0.4) // D5
-    playChime(now + 0.12, 880, 0.5) // A5
+
+    // AudioContext starts suspended in Chrome until a user gesture unlocks it
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(scheduleChimes).catch(() => {})
+    } else {
+      scheduleChimes()
+    }
   } catch (e) {
     console.error('Failed to play notification sound', e)
   }
