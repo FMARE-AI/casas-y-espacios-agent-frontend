@@ -2,7 +2,21 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
 import { useAuthStore } from './store/authStore'
+import { useWSStore } from './store/wsStore'
+import { useToastStore } from './store/toastStore'
+import { playNotificationSound } from './hooks/useWebSocket'
 import { ROUTES } from './constants/routes'
+
+// Debug helpers — available in all non-production environments via window.__debug
+if (import.meta.env.MODE !== 'production') {
+  (window as Window & { __debug?: object }).__debug = {
+    escalation: (clientName = 'Carlos Mendoza', reason = 'frustracion_detectada', conversationId = 'demo') =>
+      useWSStore.getState().setPendingEscalation({ clientName, reason, conversationId }),
+    clearEscalation: () => useWSStore.getState().clearPendingEscalation(),
+    toast: (message = 'Operación exitosa') => useToastStore.getState().showToast(message),
+    sound: () => playNotificationSound(),
+  }
+}
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import { GestionPage } from './pages/GestionPage'
 import { LoginPage } from './pages/LoginPage'
