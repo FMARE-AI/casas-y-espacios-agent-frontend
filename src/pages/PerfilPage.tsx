@@ -5,8 +5,11 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { advisorsService } from '../services/advisors'
 import { useAuthStore } from '../store/authStore'
+import { supabase } from '../lib/supabase'
 import type { Advisor, AdvisorRole, AvailabilityStatus } from '../types'
 import ScheduleManager from '../components/perfil/ScheduleManager'
+
+const STORAGE_BUCKET = import.meta.env.VITE_SUPABAS_BUCKET_NAME as string
 
 // ── Schema contraseña ─────────────────────────────────────
 
@@ -32,6 +35,42 @@ function getInitials(name: string | null | undefined): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
+}
+
+// ── AdvisorAvatar ─────────────────────────────────────────
+
+const AVATAR_SIZE_CLASSES = {
+  sm: 'w-8 h-8 text-[10px]',
+  md: 'w-10 h-10 text-xs',
+  lg: 'w-20 h-20 text-lg',
+}
+
+function AdvisorAvatar({
+  avatarUrl,
+  fullName,
+  size = 'md',
+}: {
+  avatarUrl: string | null
+  fullName: string
+  size?: 'sm' | 'md' | 'lg'
+}) {
+  const sizeClass = AVATAR_SIZE_CLASSES[size]
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={fullName}
+        className={`${sizeClass} rounded-full border-2 border-[#01A4E3] object-cover`}
+      />
+    )
+  }
+  return (
+    <div
+      className={`${sizeClass} rounded-full bg-[#01A4E3]/25 border-2 border-[#01A4E3] flex items-center justify-center text-[#01A4E3] font-bold`}
+    >
+      {getInitials(fullName)}
+    </div>
+  )
 }
 
 // ── Availability constants ─────────────────────────────────
@@ -137,6 +176,9 @@ export default function PerfilPage() {
   const [selectedMinutes, setSelectedMinutes] = useState<number | null>(null)
   const [isSavingStatus, setIsSavingStatus] = useState(false)
 
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
@@ -167,6 +209,48 @@ export default function PerfilPage() {
     }
     loadProfile()
   }, [])
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !advisor) return
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Solo se permiten imágenes JPG, PNG o WEBP')
+      e.target.value = ''
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('La imagen no debe superar 2MB')
+      e.target.value = ''
+      return
+    }
+
+    setUploadingAvatar(true)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `avatars/${advisor.id}.${ext}`
+
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(path, file, { upsert: true, contentType: file.type })
+
+      if (uploadError) throw uploadError
+
+      const { data: urlData } = supabase.storage
+        .from(STORAGE_BUCKET)
+        .getPublicUrl(path)
+
+      await advisorsService.updateMe({ avatar_url: urlData.publicUrl })
+
+      setAdvisor((prev) => (prev ? { ...prev, avatar_url: urlData.publicUrl } : prev))
+    } catch {
+      toast.error('No se pudo subir la imagen')
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ''
+    }
+  }
 
   async function handleApplyStatus() {
     setIsSavingStatus(true)
@@ -262,23 +346,35 @@ export default function PerfilPage() {
 
               {/* Avatar */}
               <div className="relative group shrink-0">
-                <div
-                  id="perfil-avatar-img"
-                  className="w-20 h-20 rounded-full border-2 border-[#01A4E3] bg-[#01A4E3]/25 flex items-center justify-center"
-                >
-                  <span className="text-xl font-bold text-[#01A4E3]">
-                    {getInitials(advisor?.full_name)}
-                  </span>
+                <div id="perfil-avatar-img">
+                  <AdvisorAvatar
+                    avatarUrl={advisor?.avatar_url ?? null}
+                    fullName={advisor?.full_name ?? ''}
+                    size="lg"
+                  />
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
                 <button
                   type="button"
-                  className="absolute bottom-0 right-0 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-1.5 rounded-full transition shadow-lg"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute bottom-0 right-0 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-1.5 rounded-full transition shadow-lg disabled:opacity-50"
                   aria-label="Cambiar foto de perfil"
                 >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
+                  {uploadingAvatar ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  )}
                 </button>
               </div>
 

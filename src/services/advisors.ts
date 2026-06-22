@@ -12,6 +12,7 @@ export const advisorsService = {
     full_name?: string
     current_password?: string
     new_password?: string
+    avatar_url?: string
   }): Promise<{ advisor: Advisor }> {
     const { data } = await apiClient.patch('/api/v1/panel/advisors/me', payload)
     return data.data

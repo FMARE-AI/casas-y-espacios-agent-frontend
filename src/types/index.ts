@@ -35,6 +35,7 @@ export interface Advisor {
   availability_status: AvailabilityStatus
   status_until?: string | null
   is_active: boolean
+  avatar_url: string | null
 }
 
 export interface Client {
