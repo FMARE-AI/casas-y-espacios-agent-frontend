@@ -365,7 +365,7 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 | --------------------------------------------------- | ----------------------------------------- |
 | Auth (Supabase + mock login)                        | ✅ mock: `hola@mail.com` / `123`          |
 | authStore (session, advisor, role, isLoading)       | ✅                                        |
-| wsStore (status, reconnectAttempt, escalation)      | ✅                                        |
+| wsStore (status, reconnectAttempt, escalation, alerts) | ✅ + decrementAlerts (FE-12)             |
 | useWebSocket (singleton, backoff exponencial)       | ✅                                        |
 | EscalationToast + sonido Web Audio API              | ✅                                        |
 | ProtectedRoute (guard + WS init + toasts)           | ✅                                        |
@@ -375,8 +375,10 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 | AudioRecorder (MediaRecorder API, webm)             | ✅                                        |
 | MessageBubble (text/image/video/document/audio)     | ✅                                        |
 | conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback      |
+| alertsService (list, markReviewed)                  | ✅ sin fallback mock en markReviewed      |
+| GestionPage (admin) — tabla asesores + CRUD         | ✅ FE-11                                  |
+| BehaviorAlertsPanel (admin-only, FE-12)             | ✅ filtros, WS reload, mock fallback      |
 | Conexión real WebSocket con backend                 | ⬜ Pendiente (token mock rechazado)       |
-| GestionPage (admin)                                 | ⬜ Pendiente                              |
 | HistorialPage                                       | ⬜ Pendiente                              |
 | PerfilPage                                          | ⬜ Pendiente                              |
 
@@ -569,7 +571,8 @@ src/
 
   store/
     authStore.ts             — session, advisor, role, isLoading, isFirstLogin, sessionExpired
-    wsStore.ts               — status, reconnectAttempt, pendingEscalation, unreadAlerts
+    wsStore.ts               — status, reconnectAttempt, pendingEscalation, unreadAlerts;
+                               incrementAlerts / decrementAlerts / resetAlerts
 
   pages/
     BandejaPage.tsx          — Lista de conversaciones; handlers WS para escalation.new
@@ -577,7 +580,7 @@ src/
     LoginPage.tsx            — Login real (Supabase) + mock (hola@mail.com / 123)
     HistorialPage.tsx
     PerfilPage.tsx
-    GestionPage.tsx          — Solo role=admin
+    GestionPage.tsx          — Solo role=admin; tabla asesores + CRUD + BehaviorAlertsPanel
 
   components/
     layout/
@@ -591,6 +594,9 @@ src/
       ConversationCard.tsx
       FilterBar.tsx
       MetricsDashboard.tsx
+    gestion/
+      BehaviorAlertsPanel.tsx — Panel alertas comportamiento (admin-only); filtros por asesor
+                                y severidad; reload silencioso por WS; mock fallback en mount
     shared/
       EscalationToast.tsx    — Toast de nueva escalación + sonido (Web Audio API)
       SuccessToast.tsx       — Toast de operaciones exitosas
@@ -598,6 +604,7 @@ src/
 
   services/
     conversations.ts         — Todas las llamadas HTTP al backend + fallback mock
+    alerts.ts                — alertsService: list({ reviewed, limit }) + markReviewed(id)
     index.ts                 — Re-exporta conversationsService
 
   lib/
