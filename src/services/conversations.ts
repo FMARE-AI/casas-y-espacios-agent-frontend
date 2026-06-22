@@ -45,6 +45,7 @@ export const conversationsService = {
             max_conversations: 10,
             active_conversations: 1,
             availability_status: 'available',
+            avatar_url: null,
             is_active: true,
           },
         },
