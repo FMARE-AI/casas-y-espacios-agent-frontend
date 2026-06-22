@@ -39,7 +39,7 @@ const MOCK_SCHEDULES: AdvisorSchedule[] = [
     id: 'mock-3',
     label: 'Fin de semana',
     start_time: '08:00',
-    end_time: '23:59',
+    end_time: '18:00',
     days_of_week: [6, 7],
     is_active: true,
   },
@@ -107,7 +107,6 @@ function ScheduleFormModal({
   onCreated: (schedule: AdvisorSchedule) => void
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isIndefinite, setIsIndefinite] = useState(false)
 
   const {
     register,
@@ -130,7 +129,7 @@ function ScheduleFormModal({
       const { schedule } = await schedulesService.create({
         label: data.label,
         start_time: data.startTime,
-        end_time: isIndefinite ? '23:59' : data.endTime,
+        end_time: data.endTime,
         days_of_week: data.daysOfWeek,
       })
       onCreated(schedule)
@@ -179,55 +178,34 @@ function ScheduleFormModal({
           </div>
 
           {/* Time range */}
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-                  Inicio
-                </label>
-                <input
-                  type="time"
-                  {...register('startTime')}
-                  className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
-                />
-                {errors.startTime && (
-                  <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.startTime.message}</p>
-                )}
-              </div>
-
-              {!isIndefinite && (
-                <div>
-                  <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-                    Fin
-                  </label>
-                  <input
-                    type="time"
-                    {...register('endTime')}
-                    className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
-                  />
-                  {errors.endTime && (
-                    <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.endTime.message}</p>
-                  )}
-                </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
+                Inicio
+              </label>
+              <input
+                type="time"
+                {...register('startTime')}
+                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
+              />
+              {errors.startTime && (
+                <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.startTime.message}</p>
               )}
             </div>
 
-            {/* Indefinite toggle */}
-            <button
-              type="button"
-              onClick={() => setIsIndefinite((v) => !v)}
-              className={[
-                'flex items-center gap-2 text-[11px] font-semibold px-3 py-1.5 rounded-md border transition',
-                isIndefinite
-                  ? 'bg-[#FFB84D]/10 border-[#FFB84D]/40 text-[#FFB84D]'
-                  : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:text-white',
-              ].join(' ')}
-            >
-              <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {isIndefinite ? 'Tiempo indefinido activo' : 'Sin hora de fin (tiempo indefinido)'}
-            </button>
+            <div>
+              <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
+                Fin
+              </label>
+              <input
+                type="time"
+                {...register('endTime')}
+                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
+              />
+              {errors.endTime && (
+                <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.endTime.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Days checkboxes */}
@@ -444,9 +422,7 @@ export default function ScheduleManager() {
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="text-xs font-bold text-white">{schedule.label}</span>
                     <span className="text-[10px] text-[#8B8FA8] font-mono bg-[#1D1D1B] px-2 py-0.5 rounded border border-[#3A3A37]">
-                      {schedule.end_time === '23:59'
-                        ? `${schedule.start_time} – Sin límite`
-                        : `${schedule.start_time} – ${schedule.end_time}`}
+                      {schedule.start_time} – {schedule.end_time}
                     </span>
                   </div>
 
