@@ -15,6 +15,9 @@ if (import.meta.env.MODE !== 'production') {
     clearEscalation: () => useWSStore.getState().clearPendingEscalation(),
     toast: (message = 'Operación exitosa') => useToastStore.getState().showToast(message),
     sound: () => playNotificationSound(),
+    // Equivalent of mockup's setSidebarAlertsBadge(n) — Badge 3 / Badge 0
+    alerts: (n = 3) => useWSStore.getState().setUnreadAlerts(n),
+    clearAlerts: () => useWSStore.getState().resetAlerts(),
   }
 }
 import ProtectedRoute from './components/layout/ProtectedRoute'
