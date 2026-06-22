@@ -151,30 +151,35 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
 
   const [alerts, setAlerts] = useState<BehaviorAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [advisorFilter, setAdvisorFilter] = useState('todos')
   const [severityFilter, setSeverityFilter] = useState('todos')
   const [reviewingIds, setReviewingIds] = useState<Set<string>>(new Set())
 
-  async function loadAlerts() {
-    setIsLoading(true)
+  const loadAlerts = useCallback(async (silent = false) => {
+    if (silent) {
+      setIsRefreshing(true)
+    } else {
+      setIsLoading(true)
+    }
     try {
       const result = await alertsService.list({ reviewed: false, limit: 50 })
       setAlerts(result.alerts)
     } catch {
-      setAlerts(MOCK_ALERTS)
+      if (!silent) setAlerts(MOCK_ALERTS)
     } finally {
       setIsLoading(false)
+      setIsRefreshing(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     loadAlerts()
-  }, [])
+  }, [loadAlerts])
 
-  // Stable callback — no deps — reads nothing from component scope that changes
   const handleBehaviorAlert = useCallback(() => {
-    loadAlerts()
-  }, [])
+    loadAlerts(true)
+  }, [loadAlerts])
 
   useWebSocket({ onBehaviorAlert: handleBehaviorAlert })
 
@@ -214,6 +219,9 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
             <span className="bg-[#FF5B5B] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
               {alerts.length}
             </span>
+          )}
+          {isRefreshing && (
+            <div className="w-3.5 h-3.5 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
           )}
         </div>
 
@@ -275,7 +283,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
           {filteredAlerts.map((alert) => (
             <div
               key={alert.id}
-              id="behavior-alert-item"
+              id={`behavior-alert-item-${alert.id}`}
               className="bg-[#252522]/65 border border-[#3A3A37]/50 rounded-lg p-4 flex items-start gap-3 hover:border-[#FF5B5B]/30 transition"
             >
               {/* Initials avatar */}
@@ -290,13 +298,11 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
                     {alert.advisor.full_name}
                   </span>
                   <span
-                    id="alert-type-chip"
                     className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${ALERT_TYPE_STYLES[alert.alert_type]}`}
                   >
                     {ALERT_TYPE_LABELS[alert.alert_type]}
                   </span>
                   <span
-                    id="alert-severity-chip"
                     className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${SEVERITY_STYLES[alert.severity]}`}
                   >
                     {alert.severity}
