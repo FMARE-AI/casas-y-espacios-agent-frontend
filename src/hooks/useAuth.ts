@@ -24,6 +24,7 @@ export function useAuth() {
         active_conversations: 0,
         availability_status: 'available',
         is_active: true,
+        avatar_url: null,
       })
     }
 
@@ -76,6 +77,7 @@ export function useAuth() {
           active_conversations: 1,
           availability_status: 'available',
           is_active: true,
+          avatar_url: null,
         },
       },
       'admin@mock.com': {
@@ -90,6 +92,7 @@ export function useAuth() {
           active_conversations: 0,
           availability_status: 'available',
           is_active: true,
+          avatar_url: null,
         },
       },
     }

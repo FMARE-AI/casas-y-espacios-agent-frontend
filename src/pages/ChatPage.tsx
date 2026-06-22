@@ -40,6 +40,7 @@ const DEMO_CONVERSATION: Conversation = {
       active_conversations: 1,
       availability_status: 'available',
       is_active: true,
+      avatar_url: null,
     },
   },
 }
