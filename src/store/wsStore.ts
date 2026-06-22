@@ -16,6 +16,7 @@ interface WSState {
   setStatus: (status: WSStatus) => void
   setReconnectAttempt: (attempt: number) => void
   incrementAlerts: () => void
+  decrementAlerts: () => void
   resetAlerts: () => void
   setPendingEscalation: (data: {
     clientName: string
@@ -34,6 +35,7 @@ export const useWSStore = create<WSState>((set) => ({
   setStatus: (status) => set({ status }),
   setReconnectAttempt: (reconnectAttempt) => set({ reconnectAttempt }),
   incrementAlerts: () => set((s) => ({ unreadAlerts: s.unreadAlerts + 1 })),
+  decrementAlerts: () => set((s) => ({ unreadAlerts: Math.max(0, s.unreadAlerts - 1) })),
   resetAlerts: () => set({ unreadAlerts: 0 }),
   setPendingEscalation: (data) => set({ pendingEscalation: data }),
   clearPendingEscalation: () => set({ pendingEscalation: null }),

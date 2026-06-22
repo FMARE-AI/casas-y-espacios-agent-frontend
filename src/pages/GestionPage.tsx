@@ -3,6 +3,7 @@ import { advisorsService } from '../services/advisors'
 import type { Advisor } from '../types'
 import { AdvisorsTable } from '../components/management/AdvisorsTable'
 import { AdvisorModal } from '../components/management/AdvisorModal'
+import BehaviorAlertsPanel from '../components/gestion/BehaviorAlertsPanel'
 import { Plus, Search, AlertTriangle, Shield } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -256,7 +257,7 @@ export const GestionPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Advisors table */}
       <AdvisorsTable
         advisors={filteredAdvisors}
         isLoading={isLoading}
@@ -266,6 +267,10 @@ export const GestionPage: React.FC = () => {
         }}
         onToggleActive={handleToggleActive}
       />
+
+      {/* Behavior alerts — admin only (panel guards internally) */}
+      <div className="border-t border-[#3A3A37]" />
+      <BehaviorAlertsPanel advisors={advisors} />
 
       {/* Modales */}
       {(modal.type === 'create' || modal.type === 'edit') && (
