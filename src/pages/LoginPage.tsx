@@ -88,21 +88,23 @@ export function LoginPage() {
           style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(1,164,227,0.06) inset' }}
         >
           {/* Logo */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="relative mb-4">
+          <div className="flex flex-col items-center mb-5">
+            <div className="relative mb-5">
               <div
-                className="absolute inset-0 pointer-events-none"
-                style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(1,164,227,0.15), transparent 70%)' }}
+                className="absolute inset-0 pointer-events-none scale-150"
+                style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(1,164,227,0.18), transparent 70%)' }}
               />
               <img
                 src={logoSrc}
                 alt="Casas y Espacios"
-                className="relative z-10 h-14 w-auto object-contain"
-                style={{ filter: 'drop-shadow(0 0 12px rgba(1,164,227,0.3))' }}
+                className="relative z-10 h-20 w-auto object-contain"
+                style={{ filter: 'drop-shadow(0 0 16px rgba(1,164,227,0.4))' }}
               />
             </div>
-            <p className="text-xs text-[#8B8FA8] tracking-wide">
-              Panel de Atención — Acceso exclusivo para el equipo
+            <p className="text-xs text-[#8B8FA8] tracking-wide text-center leading-relaxed">
+              Panel de Atención
+              <span className="mx-2 text-[#3A3A37]">·</span>
+              Acceso exclusivo para el equipo
             </p>
           </div>
 
@@ -230,10 +232,10 @@ export function LoginPage() {
 
           {/* Footer */}
           <div className="mt-7 pt-5 border-t border-[#3A3A37]/50 flex items-center justify-between">
-            <span className="text-[10px] text-[#3A3A37] uppercase tracking-widest font-semibold">
+            <span className="text-[10px] text-[#6B6F7E] uppercase tracking-widest font-semibold">
               © 2026 Casas y Espacios S.A.S.
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] text-[#8B8FA8]">
+            <span className="flex items-center gap-1.5 text-[10px] text-[#6B6F7E] font-medium">
               <svg className="w-3 h-3 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
