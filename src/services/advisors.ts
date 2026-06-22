@@ -18,11 +18,12 @@ export const advisorsService = {
   },
 
   async updateAvailability(
-    status: AvailabilityStatus
+    status: AvailabilityStatus,
+    minutesUntil?: number | null
   ): Promise<{ availability_status: AvailabilityStatus }> {
     const { data } = await apiClient.patch(
       '/api/v1/panel/advisors/me/availability',
-      { availability_status: status }
+      { availability_status: status, minutes_until: minutesUntil ?? null }
     )
     return data.data
   },

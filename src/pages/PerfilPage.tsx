@@ -2,9 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { toast } from 'sonner'
 import { advisorsService } from '../services/advisors'
 import { useAuthStore } from '../store/authStore'
-import type { Advisor, AdvisorRole } from '../types'
+import type { Advisor, AdvisorRole, AvailabilityStatus } from '../types'
 import ScheduleManager from '../components/perfil/ScheduleManager'
 
 // ── Schema contraseña ─────────────────────────────────────
@@ -32,6 +33,63 @@ function getInitials(name: string | null | undefined): string {
     .join('')
     .toUpperCase()
 }
+
+// ── Availability constants ─────────────────────────────────
+
+const STATUS_OPTIONS = [
+  {
+    value: 'available' as const,
+    label: 'Disponible',
+    color: '#00D4AA',
+    activeClass: 'bg-[#00D4AA]/15 border-[#00D4AA] text-[#00D4AA]',
+  },
+  {
+    value: 'break' as const,
+    label: 'En descanso',
+    color: '#FFB84D',
+    activeClass: 'bg-[#FFB84D]/15 border-[#FFB84D] text-[#FFB84D]',
+  },
+  {
+    value: 'offline' as const,
+    label: 'No disponible',
+    color: '#FF5B5B',
+    activeClass: 'bg-[#FF5B5B]/15 border-[#FF5B5B] text-[#FF5B5B]',
+  },
+]
+
+const TIMER_OPTIONS: { value: number | null; label: string }[] = [
+  { value: 15, label: '15 min' },
+  { value: 30, label: '30 min' },
+  { value: 60, label: '1 hora' },
+  { value: null, label: 'Indefinido' },
+]
+
+const STATUS_LABELS: Record<AvailabilityStatus, string> = {
+  available: 'Disponible',
+  break: 'En descanso',
+  offline: 'No disponible',
+}
+
+const STATUS_COLORS: Record<AvailabilityStatus, string> = {
+  available: '#00D4AA',
+  break: '#FFB84D',
+  offline: '#FF5B5B',
+}
+
+function formatStatusUntil(statusUntil: string): string {
+  try {
+    return new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }).format(new Date(statusUntil))
+  } catch {
+    return '--:--'
+  }
+}
+
+// ── Role badge constants ───────────────────────────────────
 
 const ROLE_BADGE_STYLES: Record<AdvisorRole, string> = {
   asesor: 'bg-[#01A4E3]/10 text-[#01A4E3]',
@@ -73,6 +131,12 @@ export default function PerfilPage() {
   const [isSavingName, setIsSavingName] = useState(false)
   const nameInputRef = useRef<HTMLInputElement>(null)
 
+  const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus>(
+    storeAdvisor?.availability_status ?? 'available'
+  )
+  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(null)
+  const [isSavingStatus, setIsSavingStatus] = useState(false)
+
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const [passwordSuccess, setPasswordSuccess] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
@@ -93,6 +157,8 @@ export default function PerfilPage() {
         const { advisor: fetched } = await advisorsService.getMe()
         setAdvisor(fetched)
         setNameValue(fetched.full_name)
+        setSelectedStatus(fetched.availability_status)
+        setSelectedMinutes(fetched.availability_status === 'available' ? null : 15)
       } catch {
         // network unavailable — silently fail; skeleton stays hidden
       } finally {
@@ -101,6 +167,23 @@ export default function PerfilPage() {
     }
     loadProfile()
   }, [])
+
+  async function handleApplyStatus() {
+    setIsSavingStatus(true)
+    try {
+      await advisorsService.updateAvailability(
+        selectedStatus,
+        selectedStatus === 'available' ? null : selectedMinutes
+      )
+      setAdvisor((prev) =>
+        prev ? { ...prev, availability_status: selectedStatus } : prev
+      )
+    } catch {
+      toast.error('No se pudo actualizar la disponibilidad')
+    } finally {
+      setIsSavingStatus(false)
+    }
+  }
 
   function handleNameKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') {
@@ -264,6 +347,123 @@ export default function PerfilPage() {
                     Área: {advisor?.area}
                   </span>
                 </div>
+
+                {/* ── Mi Disponibilidad ── */}
+                <div
+                  id="availability-section"
+                  className="mt-4 pt-4 border-t border-[#3A3A37]"
+                >
+                  <p className="text-xs font-semibold text-[#8B8FA8] uppercase tracking-wider mb-3">
+                    Mi Disponibilidad
+                  </p>
+
+                  {/* Estado actual */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{
+                        backgroundColor:
+                          STATUS_COLORS[advisor?.availability_status ?? 'available'],
+                      }}
+                    />
+                    <span
+                      className="text-xs font-semibold"
+                      style={{
+                        color: STATUS_COLORS[advisor?.availability_status ?? 'available'],
+                      }}
+                    >
+                      {STATUS_LABELS[advisor?.availability_status ?? 'available']}
+                    </span>
+                    {advisor?.status_until && (
+                      <span className="text-[10px] text-[#8B8FA8]">
+                        · Disponible a las {formatStatusUntil(advisor.status_until)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Selector de estado */}
+                  <div
+                    id="availability-status-pills"
+                    className="flex items-center gap-2 mb-3 flex-wrap"
+                  >
+                    {STATUS_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setSelectedStatus(option.value)
+                          if (option.value === 'available') {
+                            setSelectedMinutes(null)
+                          } else {
+                            setSelectedMinutes(15)
+                          }
+                        }}
+                        className={[
+                          'text-xs px-3 py-1.5 rounded-full border transition',
+                          selectedStatus === option.value
+                            ? option.activeClass
+                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
+                        ].join(' ')}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Selector de timer — solo para break y offline */}
+                  {selectedStatus !== 'available' && (
+                    <div
+                      id="availability-timer-options"
+                      className="mb-4"
+                    >
+                      <p className="text-[10px] text-[#8B8FA8] mb-2">¿Por cuánto tiempo?</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {TIMER_OPTIONS.map((option) => (
+                          <button
+                            key={String(option.value)}
+                            type="button"
+                            onClick={() => setSelectedMinutes(option.value)}
+                            className={[
+                              'text-[10px] px-2.5 py-1 rounded border transition',
+                              selectedMinutes === option.value
+                                ? 'bg-[#2E2E2B] border-[#8B8FA8] text-[#F0F0F5]'
+                                : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
+                            ].join(' ')}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Texto informativo */}
+                      <p id="availability-info-text" className="text-[10px] mt-2">
+                        {selectedMinutes !== null ? (
+                          <span className="text-[#00D4AA]">
+                            ✓ Volverás a Disponible automáticamente en {selectedMinutes} minutos
+                          </span>
+                        ) : (
+                          <span className="text-[#FFB84D]">
+                            ⚠️ Deberás activar tu disponibilidad manualmente cuando estés listo para atender
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Botón Aplicar */}
+                  <button
+                    type="button"
+                    onClick={handleApplyStatus}
+                    disabled={isSavingStatus}
+                    className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-xs font-semibold py-2.5 rounded transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isSavingStatus && (
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    Aplicar
+                  </button>
+                </div>
+
               </div>
             </div>
 
