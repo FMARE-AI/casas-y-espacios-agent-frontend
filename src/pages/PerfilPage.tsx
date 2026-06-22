@@ -175,6 +175,9 @@ export default function PerfilPage() {
         selectedStatus,
         selectedStatus === 'available' ? null : selectedMinutes
       )
+      setAdvisor((prev) =>
+        prev ? { ...prev, availability_status: selectedStatus } : prev
+      )
     } catch {
       toast.error('No se pudo actualizar la disponibilidad')
     } finally {

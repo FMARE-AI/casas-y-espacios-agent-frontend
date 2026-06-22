@@ -32,7 +32,7 @@ const TIMER_OPTIONS = [
   { value: 15, label: '15 min' },
   { value: 30, label: '30 min' },
   { value: 60, label: '1 hora' },
-  { value: null, label: 'Sin límite' },
+  { value: null, label: 'Indefinido' },
 ]
 
 const STATUS_LABELS: Record<AvailabilityStatus, string> = { ... }
