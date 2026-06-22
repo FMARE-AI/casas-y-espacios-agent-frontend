@@ -33,6 +33,7 @@ export interface Advisor {
   max_conversations: number
   active_conversations: number
   availability_status: AvailabilityStatus
+  status_until?: string | null
   is_active: boolean
 }
 
