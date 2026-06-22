@@ -18,6 +18,7 @@ interface WSState {
   incrementAlerts: () => void
   decrementAlerts: () => void
   resetAlerts: () => void
+  setUnreadAlerts: (count: number) => void
   setPendingEscalation: (data: {
     clientName: string
     reason: string
@@ -37,6 +38,7 @@ export const useWSStore = create<WSState>((set) => ({
   incrementAlerts: () => set((s) => ({ unreadAlerts: s.unreadAlerts + 1 })),
   decrementAlerts: () => set((s) => ({ unreadAlerts: Math.max(0, s.unreadAlerts - 1) })),
   resetAlerts: () => set({ unreadAlerts: 0 }),
+  setUnreadAlerts: (unreadAlerts) => set({ unreadAlerts }),
   setPendingEscalation: (data) => set({ pendingEscalation: data }),
   clearPendingEscalation: () => set({ pendingEscalation: null }),
 }))

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
+import { alertsService } from '../../services/alerts'
 import type { WSStatus } from '../../types'
 
 export interface SidebarProps {
@@ -38,9 +39,10 @@ interface NavItemProps {
   label: string
   icon: React.ReactNode
   badge?: number
+  badgeId?: string
 }
 
-function NavItem({ to, active, label, icon, badge }: NavItemProps) {
+function NavItem({ to, active, label, icon, badge, badgeId }: NavItemProps) {
   return (
     <Link
       to={to}
@@ -65,8 +67,11 @@ function NavItem({ to, active, label, icon, badge }: NavItemProps) {
         <span>{label}</span>
       </span>
       {badge !== undefined && badge > 0 && (
-        <span className="bg-[#FF5B5B] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-          {badge}
+        <span
+          id={badgeId}
+          className="bg-[#FF5B5B] text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center"
+        >
+          {badge > 99 ? '99+' : badge}
         </span>
       )}
     </Link>
@@ -76,12 +81,35 @@ function NavItem({ to, active, label, icon, badge }: NavItemProps) {
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const { advisor, role, reset } = useAuthStore()
-  const { status: wsStatus, unreadAlerts } = useWSStore()
+  
+  // Zustand selectors (Rule 1: no usar el store completo como dependencia para evitar re-renders)
+  const advisor = useAuthStore((s) => s.advisor)
+  const role = useAuthStore((s) => s.role)
+  const reset = useAuthStore((s) => s.reset)
+  
+  const wsStatus = useWSStore((s) => s.status)
+  const unreadAlerts = useWSStore((s) => s.unreadAlerts)
 
   useEffect(() => {
     onClose()
   }, [location.pathname, onClose])
+
+  // Carga inicial de alertas sin revisar desde BD al montar o cambiar rol (solo admin)
+  useEffect(() => {
+    if (role !== 'admin') {
+      useWSStore.getState().setUnreadAlerts(0)
+      return
+    }
+
+    alertsService
+      .list({ reviewed: false, limit: 1 })
+      .then((result) => {
+        useWSStore.getState().setUnreadAlerts(result.total)
+      })
+      .catch(() => {
+        // Fallar silenciosamente en caso de error
+      })
+  }, [role])
 
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
@@ -166,7 +194,6 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               to="/"
               active={isActive('/')}
               label="Bandeja de Entrada"
-              badge={unreadAlerts}
               icon={
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -185,11 +212,19 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               }
             />
 
+            {/* 
+              NOTA: El badge de "Gestión Asesores" muestra unreadAlerts (alertas de comportamiento sin revisar).
+              Zustand se encarga de incrementarlo por WebSocket (evento behavior.alert).
+              Se debe llamar a useWSStore.getState().decrementAlerts() en GestionPage.tsx 
+              cuando el admin marque una alerta como revisada (alertsService.markReviewed).
+            */}
             {role === 'admin' && (
               <NavItem
                 to="/gestion"
                 active={isActive('/gestion')}
                 label="Gestión Asesores"
+                badge={unreadAlerts}
+                badgeId="sidebar-gestion-badge"
                 icon={
                   <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
