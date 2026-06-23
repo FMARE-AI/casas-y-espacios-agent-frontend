@@ -204,7 +204,7 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
         />
         <label
           htmlFor={id}
-          className="absolute text-[10px] text-[#8B8FA8] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none uppercase font-bold tracking-wider"
+          className="absolute text-xs text-[#8B8FA8] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none uppercase font-bold tracking-wider"
         >
           {label}
         </label>
@@ -227,10 +227,10 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
         </button>
       </div>
       {error ? (
-        <p className="text-[#FF5B5B] text-[10px] mt-1 pl-1">{error}</p>
+        <p className="text-[#FF5B5B] text-xs mt-1 pl-1">{error}</p>
       ) : (
         placeholder && (
-          <p className="text-[#8B8FA8] text-[10px] mt-1 pl-1">{placeholder}</p>
+          <p className="text-[#8B8FA8] text-xs mt-1 pl-1">{placeholder}</p>
         )
       )}
     </div>
@@ -522,7 +522,7 @@ export default function PerfilPage() {
                   <span
                     id="perfil-role-badge"
                     className={[
-                      'text-[10px] px-2.5 py-0.5 rounded font-black uppercase tracking-wider',
+                      'text-xs px-2.5 py-0.5 rounded font-black uppercase tracking-wider',
                       advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
                     ].join(' ')}
                   >
@@ -530,7 +530,7 @@ export default function PerfilPage() {
                   </span>
                   <span
                     id="perfil-area-badge"
-                    className="bg-[#2E2E2B]/85 text-[#8B8FA8] text-[10px] px-2.5 py-0.5 rounded font-bold border border-[#3A3A37] cursor-help"
+                    className="bg-[#2E2E2B]/85 text-[#8B8FA8] text-xs px-2.5 py-0.5 rounded font-bold border border-[#3A3A37] cursor-help"
                     title="Solo el admin puede cambiar esto"
                   >
                     Área: {advisor?.area}
@@ -551,13 +551,13 @@ export default function PerfilPage() {
                     />
                     <span
                       id="avail-label"
-                      className="text-[9px] font-semibold uppercase tracking-wider"
+                      className="text-[11px] font-semibold uppercase tracking-wider"
                       style={{ color: STATUS_COLORS[currentStatus] }}
                     >
                       {STATUS_LABELS[currentStatus]}
                     </span>
                     {advisor?.status_until && (
-                      <span className="text-[9px] text-[#8B8FA8]">
+                      <span className="text-[11px] text-[#8B8FA8]">
                         · {formatStatusUntil(advisor.status_until)}
                       </span>
                     )}
@@ -572,51 +572,58 @@ export default function PerfilPage() {
               {/* Columna Izquierda: Mi Disponibilidad */}
               <div
                 id="availability-section"
-                className="bg-[#252522] border border-white/[0.07] rounded-xl p-6 flex flex-col justify-between shadow-xl"
+                className="bg-[#252522] border border-white/[0.07] rounded-xl p-6 flex flex-col gap-4 shadow-xl"
                 style={{ background: 'rgba(37,37,34,0.65)', backdropFilter: 'blur(12px)' }}
               >
-                <div>
-                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-l-4 border-[#01A4E3] pl-3">
-                    Mi Disponibilidad
-                  </h4>
+                <h4 className="text-sm font-semibold text-white uppercase tracking-wider border-l-4 border-[#01A4E3] pl-3">
+                  Mi Disponibilidad
+                </h4>
 
-                  {/* Selector de estado: 3 pills seleccionables */}
-                  <div
-                    id="availability-status-pills"
-                    className="grid grid-cols-3 gap-2 mb-4"
-                  >
-                    {STATUS_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={async () => {
-                          setSelectedStatus(option.value)
-                          if (option.value === 'available') {
-                            setSelectedMinutes(null)
-                            await handleApplyStatusDirectly('available', null)
-                          } else {
-                            setSelectedMinutes(15)
-                          }
-                        }}
-                        className={[
-                          'text-xs py-2.5 rounded-lg border transition-all duration-200 text-center font-bold font-sans active:scale-[0.98]',
-                          selectedStatus === option.value
-                            ? option.activeClass
-                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/30',
-                        ].join(' ')}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Selector de timer — solo para break y offline */}
-                  {selectedStatus !== 'available' && (
-                    <div
-                      id="availability-timer-options"
-                      className="mb-4 space-y-2 border-t border-white/5 pt-3"
+                {/* Selector de estado: 3 pills seleccionables */}
+                <div id="availability-status-pills" className="grid grid-cols-3 gap-2">
+                  {STATUS_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      id={option.id}
+                      type="button"
+                      onClick={async () => {
+                        setSelectedStatus(option.value)
+                        if (option.value === 'available') {
+                          setSelectedMinutes(null)
+                          await handleApplyStatusDirectly('available', null)
+                        } else {
+                          setSelectedMinutes(15)
+                        }
+                      }}
+                      className={[
+                        'text-xs py-2.5 rounded-lg border transition-all duration-200 text-center font-bold active:scale-[0.98]',
+                        selectedStatus === option.value
+                          ? option.activeClass
+                          : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/30',
+                      ].join(' ')}
                     >
-                      <p className="text-[10px] text-[#8B8FA8] uppercase font-bold tracking-wider">¿Por cuánto tiempo?</p>
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Estado disponible — bloque informativo */}
+                {selectedStatus === 'available' ? (
+                  <div className="rounded-xl border border-[#00D4AA]/20 bg-[#00D4AA]/5 p-4 flex items-center gap-4">
+                    <div className="relative shrink-0">
+                      <span className="absolute inset-0 rounded-full bg-[#00D4AA]/20 animate-ping" />
+                      <span className="relative w-3 h-3 rounded-full bg-[#00D4AA] block" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-[#00D4AA]">En línea</p>
+                      <p className="text-xs text-[#8B8FA8] mt-0.5">Recibiendo conversaciones normalmente</p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Timer + botón — solo para break y offline */
+                  <div id="availability-timer-options" className="flex flex-col gap-3">
+                    <div className="border-t border-white/5 pt-1">
+                      <p className="text-xs text-[#8B8FA8] uppercase font-bold tracking-wider mb-2">¿Por cuánto tiempo?</p>
                       <div className="grid grid-cols-4 gap-1.5">
                         {TIMER_OPTIONS.map((option) => (
                           <button
@@ -624,7 +631,7 @@ export default function PerfilPage() {
                             type="button"
                             onClick={() => setSelectedMinutes(option.value)}
                             className={[
-                              'text-[10px] py-2 rounded-md border transition-all duration-150 font-semibold',
+                              'text-xs py-2 rounded-md border transition-all duration-150 font-semibold',
                               selectedMinutes === option.value
                                 ? 'bg-[#2E2E2B] border-[#8B8FA8] text-white shadow-md'
                                 : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/10',
@@ -634,35 +641,39 @@ export default function PerfilPage() {
                           </button>
                         ))}
                       </div>
-
-                      {/* Texto informativo */}
-                      <p id="availability-info-text" className="text-[10px] leading-relaxed pt-1">
-                        {selectedMinutes !== null ? (
-                          <span className="text-[#00D4AA] font-medium flex items-center gap-1">
-                            ✓ Volverás a Disponible automáticamente en {selectedMinutes} minutos
-                          </span>
-                        ) : (
-                          <span className="text-[#FFB84D] font-medium flex items-center gap-1">
-                            ⚠️ Deberás activar tu disponibilidad manualmente cuando estés listo para atender
-                          </span>
-                        )}
-                      </p>
                     </div>
-                  )}
-                </div>
 
-                {/* Botón Aplicar */}
-                <button
-                  type="button"
-                  onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
-                  disabled={isSavingStatus}
-                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-xs font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 active:scale-95 shadow-md"
-                >
-                  {isSavingStatus && (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  )}
-                  <span>Aplicar Disponibilidad</span>
-                </button>
+                    {/* Texto informativo */}
+                    <p id="availability-info-text" className="text-xs leading-relaxed">
+                      {selectedMinutes !== null ? (
+                        <span className="text-[#00D4AA] font-medium flex items-center gap-1.5">
+                          <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Volverás a Disponible en {selectedMinutes >= 60 ? `${selectedMinutes / 60} hora` : `${selectedMinutes} min`}
+                        </span>
+                      ) : (
+                        <span className="text-[#FFB84D] font-medium flex items-start gap-1.5">
+                          <span className="shrink-0 mt-px">⚠️</span>
+                          <span>Deberás activar tu disponibilidad manualmente cuando estés listo</span>
+                        </span>
+                      )}
+                    </p>
+
+                    {/* Botón Aplicar — solo visible en break/offline */}
+                    <button
+                      type="button"
+                      onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
+                      disabled={isSavingStatus}
+                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-xs font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 shadow-md"
+                    >
+                      {isSavingStatus && (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      )}
+                      <span>Aplicar Disponibilidad</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Columna Derecha: Cambiar Contraseña */}
