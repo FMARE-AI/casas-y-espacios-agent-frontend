@@ -141,6 +141,7 @@ export default function BandejaPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0 })
 
   // Filtros activos
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
@@ -150,10 +151,24 @@ export default function BandejaPage() {
   const [takeTarget, setTakeTarget] = useState<Conversation | null>(null)
   const [isTaking, setIsTaking] = useState(false)
 
-  // Extraemos el refetching hacia un efecto seguro para el Linter
+  const refreshCounts = async (channel?: string) => {
+    try {
+      const result = await conversationsService.list({ channel, limit: 200, offset: 0 })
+      const all = result.conversations || []
+      setStatusCounts({
+        all: result.total || all.length,
+        escaladas: all.filter(c => c.status === 'escalada').length,
+        activas: all.filter(c => c.status === 'activa').length,
+        cerradas: all.filter(c => c.status === 'cerrada').length,
+      })
+    } catch (err) {
+      console.error('Error fetching counts', err)
+    }
+  }
+
   useEffect(() => {
     let isMounted = true
-    
+
     const fetchConversations = async () => {
       setIsLoading(true)
       try {
@@ -175,15 +190,19 @@ export default function BandejaPage() {
         }
       }
     }
-    
+
     fetchConversations()
-    
+
     return () => {
       isMounted = false
     }
   }, [statusFilter, channelFilter])
 
-  // Refetch manual para el botón Refresh y el WebSocket temporal
+  useEffect(() => {
+    refreshCounts(channelFilter ?? undefined)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [channelFilter])
+
   const loadConversations = async () => {
     setIsLoading(true)
     try {
@@ -200,6 +219,7 @@ export default function BandejaPage() {
     } finally {
       setIsLoading(false)
     }
+    refreshCounts(channelFilter ?? undefined)
   }
 
   const confirmTake = async () => {
@@ -265,8 +285,8 @@ export default function BandejaPage() {
         {role === 'admin' && <MetricsDashboard conversations={conversations} />}
       </div>
 
-      <FilterBar 
-        conversations={conversations}
+      <FilterBar
+        statusCounts={statusCounts}
         activeStatus={statusFilter}
         activeChannel={channelFilter}
         onStatusChange={setStatusFilter}
