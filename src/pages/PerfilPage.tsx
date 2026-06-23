@@ -151,32 +151,7 @@ const ROLE_BADGE_TEXT: Record<AdvisorRole, string> = {
   admin:  'Administrador Global',
 }
 
-// ── Card wrapper ──────────────────────────────────────────
 
-function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={[
-        'bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-6',
-        'transition-all duration-300 hover:-translate-y-[2px] hover:border-[#01A4E3]/40 hover:shadow-lg hover:shadow-[#01A4E3]/8',
-        className,
-      ].join(' ')}
-    >
-      {children}
-    </div>
-  )
-}
-
-// ── Section label ─────────────────────────────────────────
-
-function SectionLabel({ children, accent = '#01A4E3' }: { children: React.ReactNode; accent?: string }) {
-  return (
-    <div className="flex items-center gap-2.5 mb-5">
-      <span className="w-[3px] h-5 rounded-full shrink-0" style={{ backgroundColor: accent }} />
-      <h4 className="text-sm font-bold text-white">{children}</h4>
-    </div>
-  )
-}
 
 // ── Skeleton ──────────────────────────────────────────────
 
@@ -205,7 +180,64 @@ function ProfileSkeleton() {
   )
 }
 
-// ── Page ──────────────────────────────────────────────────
+// ── PasswordInput ──────────────────────────────────────────
+
+interface PasswordInputProps {
+  id: string
+  label: string
+  register: any
+  error?: string
+  placeholder?: string
+}
+
+function PasswordInput({ id, label, register, error, placeholder }: PasswordInputProps) {
+  const [show, setShow] = useState(false)
+  return (
+    <div>
+      <div className="relative mt-2">
+        <input
+          type={show ? 'text' : 'password'}
+          id={id}
+          {...register}
+          placeholder=" "
+          className="peer w-full bg-[#2E2E2B]/60 border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3.5 pr-10 pt-5 pb-1.5 text-xs outline-none transition-all duration-200 focus:ring-1 focus:ring-[#01A4E3]/20"
+        />
+        <label
+          htmlFor={id}
+          className="absolute text-[10px] text-[#8B8FA8] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3.5 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none uppercase font-bold tracking-wider"
+        >
+          {label}
+        </label>
+        <button
+          type="button"
+          onClick={() => setShow((v) => !v)}
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8B8FA8] hover:text-white transition-colors"
+          aria-label="Mostrar contraseña"
+        >
+          {show ? (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          )}
+        </button>
+      </div>
+      {error ? (
+        <p className="text-[#FF5B5B] text-[10px] mt-1 pl-1">{error}</p>
+      ) : (
+        placeholder && (
+          <p className="text-[#8B8FA8] text-[10px] mt-1 pl-1">{placeholder}</p>
+        )
+      )}
+    </div>
+  )
+}
+
+// ── Page ──
 
 export default function PerfilPage() {
   const { advisor: storeAdvisor, setAdvisor: setStoreAdvisor } = useAuthStore()
@@ -317,6 +349,14 @@ export default function PerfilPage() {
     }
   }
 
+  function handleStartEdit() {
+    setEditingName(true)
+    setTimeout(() => {
+      nameInputRef.current?.focus()
+      nameInputRef.current?.select()
+    }, 50)
+  }
+
   function handleNameKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'Enter') {
       e.preventDefault()
@@ -382,170 +422,196 @@ export default function PerfilPage() {
   return (
     <section
       id="screen-perfil"
-      className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"
+      className="flex-1 flex flex-col items-start p-4 md:p-6 space-y-6 w-full"
     >
-      <div className="max-w-4xl w-full mx-auto space-y-5">
-
-        <h2 className="text-xl font-bold text-white">Mi Perfil Profesional</h2>
+      <div className="max-w-4xl w-full space-y-6 mx-auto">
+        <h2 className="text-xl font-bold text-white tracking-tight">Mi Perfil Profesional</h2>
 
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <>
-            {/* ── Hero card ────────────────────────────────── */}
-            <Card>
-              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+          <div className="space-y-6 w-full">
 
-                {/* Avatar with glow + camera button */}
-                <div className="relative group shrink-0">
-                  <div className="absolute inset-0 rounded-full bg-[#01A4E3]/15 blur-xl scale-125 group-hover:bg-[#01A4E3]/25 transition-all duration-500 pointer-events-none" />
-                  <div className="relative">
-                    <AdvisorAvatar
-                      id="perfil-avatar-img"
-                      avatarUrl={advisor?.avatar_url ?? null}
-                      fullName={advisor?.full_name ?? ''}
-                      size="xl"
-                    />
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="hidden"
-                      onChange={handleAvatarUpload}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingAvatar}
-                      className="absolute bottom-1 right-1 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-2 rounded-full transition shadow-lg shadow-[#01A4E3]/30 disabled:opacity-50 border-2 border-[#252522]"
-                      aria-label="Cambiar foto de perfil"
-                    >
-                      {uploadingAvatar ? (
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
+            {/* ── Tarjeta Hero del Perfil ── */}
+            <div className="bg-[#252522]/95 border border-[#3A3A37] rounded-xl p-6 relative flex flex-col sm:flex-row items-center gap-6 shadow-xl" style={{ background: 'rgba(37,37,34,0.65)', backdropFilter: 'blur(12px)' }}>
+              
+              {/* Avatar */}
+              <div className="relative group shrink-0">
+                <div id="perfil-avatar-img">
+                  <AdvisorAvatar
+                    avatarUrl={advisor?.avatar_url ?? null}
+                    fullName={advisor?.full_name ?? ''}
+                    size="lg"
+                  />
                 </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="absolute bottom-0 right-0 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-1.5 rounded-full transition shadow-lg disabled:opacity-50"
+                  aria-label="Cambiar foto de perfil"
+                >
+                  {uploadingAvatar ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
 
-                {/* Identity + status */}
-                <div className="flex-1 min-w-0 text-center sm:text-left space-y-2.5">
-
-                  {/* Name editable */}
-                  <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <input
-                      ref={nameInputRef}
-                      id="perfil-name"
-                      type="text"
-                      value={nameValue}
-                      onChange={(e) => setNameValue(e.target.value)}
-                      onFocus={() => setEditingName(true)}
-                      onBlur={handleNameBlur}
-                      onKeyDown={handleNameKeyDown}
-                      className={[
-                        'bg-transparent border-b text-xl font-bold text-white',
-                        'pb-0.5 max-w-[260px] outline-none transition-colors',
-                        editingName
-                          ? 'border-[#01A4E3]'
-                          : 'border-transparent hover:border-[#3A3A37]',
-                      ].join(' ')}
-                    />
-                    {isSavingName ? (
-                      <div className="w-3.5 h-3.5 border border-[#01A4E3] border-t-transparent rounded-full animate-spin shrink-0" />
-                    ) : (
+              {/* Datos en el centro */}
+              <div className="text-center sm:text-left flex-1 space-y-2 min-w-0">
+                
+                {/* Nombre editable inline */}
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <input
+                    ref={nameInputRef}
+                    id="perfil-name"
+                    type="text"
+                    value={nameValue}
+                    onChange={(e) => setNameValue(e.target.value)}
+                    readOnly={!editingName}
+                    onBlur={handleNameBlur}
+                    onKeyDown={handleNameKeyDown}
+                    className={[
+                      'bg-transparent border-b text-xl font-semibold text-white',
+                      'pb-0.5 max-w-[280px] outline-none transition-colors w-full',
+                      editingName
+                        ? 'border-[#01A4E3] cursor-text'
+                        : 'border-transparent cursor-default',
+                    ].join(' ')}
+                  />
+                  {isSavingName ? (
+                    <div className="w-4 h-4 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    !editingName && (
                       <button
                         type="button"
-                        onClick={() => nameInputRef.current?.focus()}
-                        className="text-[#8B8FA8] hover:text-white transition shrink-0"
+                        onClick={handleStartEdit}
+                        className="text-[#8B8FA8] hover:text-[#01A4E3] transition p-1 shrink-0"
                         aria-label="Editar nombre"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
                       </button>
-                    )}
-                  </div>
+                    )
+                  )}
+                </div>
 
-                  {/* Email */}
-                  <p className="text-sm text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1.5">
-                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                    <span id="perfil-email-txt">{advisor?.email}</span>
-                  </p>
+                {/* Email */}
+                <p className="text-xs text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1">
+                  <svg className="w-3.5 h-3.5 shrink-0 text-[#8B8FA8]/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  <span id="perfil-email-txt">{advisor?.email}</span>
+                </p>
 
-                  {/* Role + area badges */}
-                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                    <span
-                      id="perfil-role-badge"
-                      className={[
-                        'text-[10px] px-2.5 py-1 rounded font-black uppercase tracking-wide',
-                        advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
-                      ].join(' ')}
-                    >
-                      {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : 'Asesor Senior'}
-                    </span>
-                    <span
-                      id="perfil-area-badge"
-                      className="bg-[#3A3A37] text-[#8B8FA8] text-[10px] px-2.5 py-1 rounded font-bold cursor-help"
-                      title="Solo el admin puede cambiar esto"
-                    >
-                      Área: {advisor?.area}
-                    </span>
-                  </div>
+                {/* Badges rol + área */}
+                <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start items-center">
+                  <span
+                    id="perfil-role-badge"
+                    className={[
+                      'text-[10px] px-2.5 py-0.5 rounded font-black uppercase tracking-wider',
+                      advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
+                    ].join(' ')}
+                  >
+                    {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : 'Asesor Senior'}
+                  </span>
+                  <span
+                    id="perfil-area-badge"
+                    className="bg-[#2E2E2B]/85 text-[#8B8FA8] text-[10px] px-2.5 py-0.5 rounded font-bold border border-[#3A3A37] cursor-help"
+                    title="Solo el admin puede cambiar esto"
+                  >
+                    Área: {advisor?.area}
+                  </span>
 
-                  {/* Current availability status */}
+                  {/* Pastilla de estado actual en Hero */}
                   <div
                     id="availability-status-display"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border justify-center sm:justify-start"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border"
                     style={{
                       borderColor: `${STATUS_COLORS[currentStatus]}40`,
                       backgroundColor: `${STATUS_COLORS[currentStatus]}10`,
                     }}
                   >
                     <span
-                      id="avail-dot"
-                      className="w-2 h-2 rounded-full shrink-0"
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
                       style={{ backgroundColor: STATUS_COLORS[currentStatus] }}
                     />
                     <span
-                      id="avail-label"
-                      className="text-xs font-semibold"
+                      className="text-[9px] font-semibold uppercase tracking-wider"
                       style={{ color: STATUS_COLORS[currentStatus] }}
                     >
                       {STATUS_LABELS[currentStatus]}
                     </span>
                     {advisor?.status_until && (
-                      <span className="text-[10px] text-[#8B8FA8]">
-                        · hasta las {formatStatusUntil(advisor.status_until)}
+                      <span className="text-[9px] text-[#8B8FA8]">
+                        · {formatStatusUntil(advisor.status_until)}
                       </span>
                     )}
                   </div>
-
                 </div>
               </div>
-            </Card>
+            </div>
 
-            {/* ── Two-column grid ──────────────────────────── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* ── Grid del Perfil ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+              
+              {/* Columna Izquierda: Mi Disponibilidad */}
+              <div
+                id="availability-section"
+                className="bg-[#252522] border border-white/[0.07] rounded-xl p-6 flex flex-col justify-between shadow-xl"
+                style={{ background: 'rgba(37,37,34,0.65)', backdropFilter: 'blur(12px)' }}
+              >
+                <div>
+                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-l-4 border-[#01A4E3] pl-3">
+                    Mi Disponibilidad
+                  </h4>
 
-              {/* Availability control card */}
-              <Card>
-                <SectionLabel accent="#01A4E3">Mi Disponibilidad</SectionLabel>
+                  {/* Estado actual con borde izquierdo colored (cyan) */}
+                  <div className="flex items-center gap-3 p-3.5 bg-[#2E2E2B]/40 rounded-lg border-l-4 border-l-[#01A4E3] border border-white/[0.04] mb-4 shadow-inner">
+                    <span
+                      className="w-2 h-2 rounded-full animate-pulse"
+                      style={{
+                        backgroundColor: STATUS_COLORS[currentStatus],
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <span
+                        className="text-xs font-semibold block"
+                        style={{
+                          color: STATUS_COLORS[currentStatus],
+                        }}
+                      >
+                        {STATUS_LABELS[currentStatus]}
+                      </span>
+                      {advisor?.status_until && (
+                        <span className="text-[10px] text-[#8B8FA8] block mt-0.5">
+                          Disponible a las {formatStatusUntil(advisor.status_until)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Status tiles — 3 columns */}
-                <div id="availability-status-pills" className="grid grid-cols-3 gap-2">
-                  {STATUS_OPTIONS.map((option) => {
-                    const isActive = selectedStatus === option.value
-                    const color = STATUS_COLORS[option.value]
-                    return (
+                  {/* Selector de estado: 3 pills seleccionables */}
+                  <div
+                    id="availability-status-pills"
+                    className="grid grid-cols-3 gap-2 mb-4"
+                  >
+                    {STATUS_OPTIONS.map((option) => (
                       <button
                         key={option.value}
-                        id={option.id}
                         type="button"
                         onClick={async () => {
                           setSelectedStatus(option.value)
@@ -553,180 +619,123 @@ export default function PerfilPage() {
                             setSelectedMinutes(null)
                             await handleApplyStatusDirectly('available', null)
                           } else {
-                            setSelectedMinutes(30)
+                            setSelectedMinutes(15)
                           }
                         }}
-                        className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border transition-all duration-200 active:scale-[0.97]"
-                        style={
-                          isActive
-                            ? { backgroundColor: `${color}18`, borderColor: `${color}50` }
-                            : { borderColor: '#3A3A37', backgroundColor: 'transparent' }
-                        }
+                        className={[
+                          'text-xs py-2.5 rounded-lg border transition-all duration-200 text-center font-bold font-sans active:scale-[0.98]',
+                          selectedStatus === option.value
+                            ? option.activeClass
+                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/30',
+                        ].join(' ')}
                       >
-                        <span
-                          className="w-2.5 h-2.5 rounded-full transition-all duration-200"
-                          style={{ backgroundColor: isActive ? color : '#4A4A47' }}
-                        />
-                        <span
-                          className="text-[10px] font-bold leading-tight text-center transition-colors duration-200"
-                          style={{ color: isActive ? color : '#8B8FA8' }}
-                        >
-                          {option.label}
-                        </span>
+                        {option.label}
                       </button>
-                    )
-                  })}
-                </div>
+                    ))}
+                  </div>
 
-                {/* Contextual area */}
-                {selectedStatus !== 'available' ? (
-                  <div id="avail-duration-picker" className="mt-5 space-y-4">
-
-                    {/* Divider with label */}
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-px bg-[#3A3A37]" />
-                      <span className="text-[9px] text-[#8B8FA8] font-bold uppercase tracking-widest">Duración</span>
-                      <div className="flex-1 h-px bg-[#3A3A37]" />
-                    </div>
-
-                    {/* Timer tiles — 4 columns */}
-                    <div className="grid grid-cols-4 gap-2">
-                      {TIMER_OPTIONS.map((option) => {
-                        const isActive = selectedMinutes === option.value
-                        return (
+                  {/* Selector de timer — solo para break y offline */}
+                  {selectedStatus !== 'available' && (
+                    <div
+                      id="availability-timer-options"
+                      className="mb-4 space-y-2 border-t border-white/5 pt-3"
+                    >
+                      <p className="text-[10px] text-[#8B8FA8] uppercase font-bold tracking-wider">¿Por cuánto tiempo?</p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {TIMER_OPTIONS.map((option) => (
                           <button
                             key={String(option.value)}
                             type="button"
                             onClick={() => setSelectedMinutes(option.value)}
                             className={[
-                              'avail-dur-btn flex flex-col items-center justify-center py-3 rounded-xl border transition-all duration-200 active:scale-[0.97]',
-                              isActive
-                                ? 'border-[#01A4E3]/50 bg-[#01A4E3]/10 text-[#01A4E3]'
-                                : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#01A4E3]/40 hover:text-white',
+                              'text-[10px] py-2 rounded-md border transition-all duration-150 font-semibold',
+                              selectedMinutes === option.value
+                                ? 'bg-[#2E2E2B] border-[#8B8FA8] text-white shadow-md'
+                                : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/10',
                             ].join(' ')}
                           >
-                            <span className={['font-black transition-all leading-none', isActive ? 'text-base' : 'text-sm'].join(' ')}>
-                              {option.value === null
-                                ? '∞'
-                                : option.value >= 60
-                                  ? `${option.value / 60}h`
-                                  : option.value}
-                            </span>
-                            <span className="text-[9px] font-semibold mt-1 opacity-60">
-                              {option.value === null ? 'indef.' : option.value >= 60 ? 'hora' : 'min'}
-                            </span>
+                            {option.label}
                           </button>
-                        )
-                      })}
-                    </div>
-
-                    {/* Info box */}
-                    {selectedMinutes === null ? (
-                      <div className="flex items-start gap-2.5 px-3 py-2.5 bg-[#FFB84D]/8 border border-[#FFB84D]/25 rounded-lg">
-                        <span className="text-sm shrink-0 mt-px">⚠️</span>
-                        <div className="space-y-0.5">
-                          <p className="text-[10px] text-[#FFB84D] font-bold leading-snug">
-                            Sin retorno automático programado
-                          </p>
-                          <p className="text-[10px] text-[#FFB84D]/70 leading-snug">
-                            Deberás actualizar tu estado manualmente cuando vuelvas.
-                          </p>
-                        </div>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#00D4AA]/8 border border-[#00D4AA]/25 rounded-lg">
-                        <svg className="w-3.5 h-3.5 text-[#00D4AA] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span className="text-[10px] text-[#00D4AA] font-semibold leading-snug">
-                          Disponible automáticamente en{' '}
-                          {selectedMinutes >= 60 ? `${selectedMinutes / 60} hora` : `${selectedMinutes} min`}
-                        </span>
-                      </div>
-                    )}
 
-                    {/* Apply — full width */}
-                    <button
-                      type="button"
-                      onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
-                      disabled={isSavingStatus}
-                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-2.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98]"
-                    >
-                      {isSavingStatus ? (
-                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                      Aplicar cambios
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-4 flex items-center gap-3 px-4 py-3.5 bg-[#00D4AA]/6 border border-[#00D4AA]/20 rounded-xl">
-                    <span className="w-2 h-2 rounded-full bg-[#00D4AA] shrink-0 animate-pulse" />
-                    <div>
-                      <p className="text-xs font-bold text-[#00D4AA]">En línea</p>
-                      <p className="text-[10px] text-[#8B8FA8] mt-0.5">El agente recibe conversaciones normalmente</p>
+                      {/* Texto informativo */}
+                      <p id="availability-info-text" className="text-[10px] leading-relaxed pt-1">
+                        {selectedMinutes !== null ? (
+                          <span className="text-[#00D4AA] font-medium flex items-center gap-1">
+                            ✓ Volverás a Disponible automáticamente en {selectedMinutes} minutos
+                          </span>
+                        ) : (
+                          <span className="text-[#FFB84D] font-medium flex items-center gap-1">
+                            ⚠️ Deberás activar tu disponibilidad manualmente cuando estés listo para atender
+                          </span>
+                        )}
+                      </p>
                     </div>
-                  </div>
-                )}
-              </Card>
-
-              {/* Password card */}
-              <form
-                onSubmit={handleSubmit(onPasswordSubmit)}
-                className={[
-                  'bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-6',
-                  'transition-all duration-300 hover:-translate-y-[2px] hover:border-[#01A4E3]/40 hover:shadow-lg hover:shadow-[#01A4E3]/8',
-                ].join(' ')}
-              >
-                <SectionLabel accent="#FFB84D">Cambiar Contraseña</SectionLabel>
-
-                <div className="space-y-3 text-xs">
-                  <div className="space-y-1">
-                    <label className="text-[#8B8FA8] font-semibold block uppercase text-[10px] tracking-wide">
-                      Contraseña Actual
-                    </label>
-                    <input
-                      type="password"
-                      {...register('currentPassword')}
-                      className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-2.5 text-white outline-none focus:border-[#01A4E3] transition"
-                    />
-                    {errors.currentPassword && (
-                      <p className="text-[#FF5B5B] text-[10px]">{errors.currentPassword.message}</p>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[#8B8FA8] font-semibold block uppercase text-[10px] tracking-wide">
-                      Nueva Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      placeholder="Mínimo 8 caracteres"
-                      {...register('newPassword')}
-                      className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-2.5 text-white placeholder-[#8B8FA8]/40 outline-none focus:border-[#01A4E3] transition"
-                    />
-                    {errors.newPassword && (
-                      <p className="text-[#FF5B5B] text-[10px]">{errors.newPassword.message}</p>
-                    )}
-                  </div>
+                  )}
                 </div>
 
-                {passwordError && (
-                  <p className="text-[#FF5B5B] text-xs mt-3">{passwordError}</p>
-                )}
-                {passwordSuccess && (
-                  <p className="text-[#00D4AA] text-xs mt-3 flex items-center gap-1">
-                    ✓ Contraseña actualizada correctamente
-                  </p>
-                )}
+                {/* Botón Aplicar */}
+                <button
+                  type="button"
+                  onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
+                  disabled={isSavingStatus}
+                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-xs font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 active:scale-95 shadow-md"
+                >
+                  {isSavingStatus && (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  <span>Aplicar Disponibilidad</span>
+                </button>
+              </div>
+
+              {/* Columna Derecha: Cambiar Contraseña */}
+              <form
+                onSubmit={handleSubmit(onPasswordSubmit)}
+                className="bg-[#252522] border border-white/[0.07] rounded-xl p-6 flex flex-col justify-between shadow-xl"
+                style={{ background: 'rgba(37,37,34,0.65)', backdropFilter: 'blur(12px)' }}
+              >
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold text-white uppercase tracking-wider border-l-4 border-[#01A4E3] pl-3">
+                    Cambiar Contraseña
+                  </h4>
+
+                  {/* Input Contraseña Actual */}
+                  <div className="space-y-1">
+                    <PasswordInput
+                      id="current-password"
+                      label="Contraseña Actual"
+                      register={register('currentPassword')}
+                      error={errors.currentPassword?.message}
+                    />
+                  </div>
+
+                  {/* Input Nueva Contraseña */}
+                  <div className="space-y-1">
+                    <PasswordInput
+                      id="new-password"
+                      label="Nueva Contraseña"
+                      register={register('newPassword')}
+                      error={errors.newPassword?.message}
+                      placeholder="Mínimo 8 caracteres"
+                    />
+                  </div>
+
+                  {passwordError && (
+                    <p className="text-[#FF5B5B] text-xs pt-1">{passwordError}</p>
+                  )}
+
+                  {passwordSuccess && (
+                    <p className="text-[#00D4AA] text-xs flex items-center gap-1 font-semibold animate-pulse pt-1">
+                      ✓ Contraseña actualizada correctamente
+                    </p>
+                  )}
+                </div>
 
                 <button
                   type="submit"
                   disabled={isSavingPassword}
-                  className="mt-4 bg-[#01A4E3] hover:bg-[#0190C8] text-white py-2.5 px-5 rounded-lg text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-3 rounded-lg text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6 active:scale-95 shadow-md"
                 >
                   {isSavingPassword && (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -734,14 +743,12 @@ export default function PerfilPage() {
                   Actualizar contraseña
                 </button>
               </form>
-
             </div>
 
-            {/* ── Schedule — full width ─────────────────────── */}
-            <ScheduleManager />
-          </>
+          </div>
         )}
 
+        <ScheduleManager />
       </div>
     </section>
   )
