@@ -135,7 +135,7 @@ function TakeModal({
 
 export default function BandejaPage() {
   const navigate = useNavigate()
-  const { advisor, role } = useAuthStore() as { advisor: { max_conversations?: number, active_conversations?: number } | null, role: string | null }
+  const { advisor, role } = useAuthStore() as { advisor: { id?: string; max_conversations?: number; active_conversations?: number } | null, role: string | null }
 
   // Datos del servidor
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -143,8 +143,10 @@ export default function BandejaPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0 })
 
-  // Filtros activos
-  const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  // Filtros activos — asesor inicia en "mine", admin en todas
+  const [statusFilter, setStatusFilter] = useState<string | null>(() =>
+    role === 'asesor' ? 'mine' : null
+  )
   const [channelFilter, setChannelFilter] = useState<string | null>(null)
 
   // Modal tomar conversación
@@ -286,9 +288,12 @@ export default function BandejaPage() {
       </div>
 
       <FilterBar
+        conversations={conversations}
         statusCounts={statusCounts}
         activeStatus={statusFilter}
         activeChannel={channelFilter}
+        currentAdvisorId={advisor?.id ?? ''}
+        advisorRole={role}
         onStatusChange={setStatusFilter}
         onChannelChange={setChannelFilter}
         onRefresh={loadConversations}
@@ -310,6 +315,7 @@ export default function BandejaPage() {
               <ConversationCard
                 key={conv.id}
                 conversation={conv}
+                currentAdvisorId={advisor?.id ?? ''}
                 advisorMaxConversations={advisorMaxConv}
                 advisorActiveConversations={advisorActiveConv}
                 onTake={setTakeTarget}
