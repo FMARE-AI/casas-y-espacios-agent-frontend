@@ -126,6 +126,17 @@ function ReturnBotModal({
   onCancel: () => void
   isReturning: boolean
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown, true)
+    return () => document.removeEventListener('keydown', handleKeyDown, true)
+  }, [])
+
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div
@@ -144,7 +155,7 @@ function ReturnBotModal({
           </p>
         </div>
         <p className="text-[11px] text-[#8B8FA8] leading-relaxed">
-          Asegúrate de haber resuelto la consulta o agendado el requerimiento en SIMI antes
+          Asegúrate de haber resuelto la consulta comercial o administrativa o haber agendado el requerimiento en SIMI antes
           de liberar la atención.
         </p>
         <div className="pt-2 flex justify-end gap-2.5 text-xs">

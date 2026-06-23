@@ -350,7 +350,7 @@ export default function PerfilPage() {
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 space-y-6">
+          <div className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-6 space-y-6 transition-all duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10">
 
             {/* ── Avatar + datos ── */}
             <div className="flex flex-col sm:flex-row items-center gap-5">

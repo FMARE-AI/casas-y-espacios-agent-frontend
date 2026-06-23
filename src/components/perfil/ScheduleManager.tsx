@@ -373,7 +373,7 @@ export default function ScheduleManager() {
     <>
       <div
         id="schedules-card"
-        className="bg-[#252522] border border-[#3A3A37] rounded-xl p-5"
+        className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-5 transition-all duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10"
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-1">
