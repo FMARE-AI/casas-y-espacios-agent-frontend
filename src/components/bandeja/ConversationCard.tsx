@@ -66,27 +66,30 @@ export function ConversationCard({
     C: conversation.bot_activo ? 'Activa (Bot)' : 'Activa',
   }
 
-  const getMinutesAgo = () => {
+  const getElapsed = () => {
     const timestamp = (conversation.status === 'escalada' && conversation.escalation?.escalated_at)
       ? conversation.escalation.escalated_at
       : conversation.last_activity
-    const waitSeconds = timestamp
-      ? Math.floor((now - new Date(timestamp).getTime()) / 1000)
-      : 0
-    return Math.max(0, Math.floor(waitSeconds / 60))
+    const seconds = timestamp ? Math.max(0, Math.floor((now - new Date(timestamp).getTime()) / 1000)) : 0
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return { value: minutes, unit: 'min' }
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return { value: hours, unit: hours === 1 ? 'hora' : 'horas' }
+    const days = Math.floor(hours / 24)
+    return { value: days, unit: days === 1 ? 'día' : 'días' }
   }
 
   const renderTopRight = () => {
-    const waitMinutes = getMinutesAgo()
+    const { value, unit } = getElapsed()
     if (variant === 'A2') {
       return (
         <span className="text-[10px] text-[#FFB84D] font-black flex items-center gap-1">
           <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          ⚠️ {waitMinutes} min
+          ⚠️ {value} {unit}
         </span>
       )
     }
-    return <span className="text-[10px] text-[#8B8FA8]">hace {waitMinutes} min</span>
+    return <span className="text-[10px] text-[#8B8FA8]">hace {value} {unit}</span>
   }
 
   const clientName = conversation.client?.full_name || 'Desconocido'
