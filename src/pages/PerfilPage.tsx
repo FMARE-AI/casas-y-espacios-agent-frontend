@@ -536,7 +536,7 @@ export default function PerfilPage() {
                     Área: {advisor?.area}
                   </span>
 
-                  {/* Pastilla de estado actual en Hero */}
+                  {/* Estado de disponibilidad actual */}
                   <div
                     id="availability-status-display"
                     className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border"
@@ -550,6 +550,7 @@ export default function PerfilPage() {
                       style={{ backgroundColor: STATUS_COLORS[currentStatus] }}
                     />
                     <span
+                      id="avail-label"
                       className="text-[9px] font-semibold uppercase tracking-wider"
                       style={{ color: STATUS_COLORS[currentStatus] }}
                     >
@@ -578,31 +579,6 @@ export default function PerfilPage() {
                   <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4 border-l-4 border-[#01A4E3] pl-3">
                     Mi Disponibilidad
                   </h4>
-
-                  {/* Estado actual con borde izquierdo colored (cyan) */}
-                  <div className="flex items-center gap-3 p-3.5 bg-[#2E2E2B]/40 rounded-lg border-l-4 border-l-[#01A4E3] border border-white/[0.04] mb-4 shadow-inner">
-                    <span
-                      className="w-2 h-2 rounded-full animate-pulse"
-                      style={{
-                        backgroundColor: STATUS_COLORS[currentStatus],
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span
-                        className="text-xs font-semibold block"
-                        style={{
-                          color: STATUS_COLORS[currentStatus],
-                        }}
-                      >
-                        {STATUS_LABELS[currentStatus]}
-                      </span>
-                      {advisor?.status_until && (
-                        <span className="text-[10px] text-[#8B8FA8] block mt-0.5">
-                          Disponible a las {formatStatusUntil(advisor.status_until)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
 
                   {/* Selector de estado: 3 pills seleccionables */}
                   <div

@@ -328,16 +328,26 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
                     <button
                       type="button"
                       onClick={() => navigate(`${ROUTES.CHAT.replace(':id', alert.conversation_id)}`)}
-                      className="text-[10px] text-[#01A4E3] hover:underline"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-[#01A4E3] border border-[#01A4E3]/40 hover:border-[#01A4E3] hover:bg-[#01A4E3]/10 px-2.5 py-1 rounded transition active:scale-95"
                     >
                       Ver conversación
+                      <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
                     </button>
                     <button
                       type="button"
                       disabled={reviewingIds.has(alert.id)}
                       onClick={() => handleMarkReviewed(alert.id)}
-                      className="text-[10px] px-2 py-1 border border-[#3A3A37] text-[#8B8FA8] hover:border-[#00D4AA] hover:text-[#00D4AA] rounded transition disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border border-[#3A3A37] text-[#8B8FA8] hover:border-[#00D4AA] hover:text-[#00D4AA] rounded transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-95"
                     >
+                      {reviewingIds.has(alert.id) ? (
+                        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
                       Marcar revisada
                     </button>
                   </div>
