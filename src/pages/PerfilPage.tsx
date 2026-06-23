@@ -40,9 +40,10 @@ function getInitials(name: string | null | undefined): string {
 // ── AdvisorAvatar ─────────────────────────────────────────
 
 const AVATAR_SIZE_CLASSES = {
-  sm: 'w-8 h-8 text-[10px]',
-  md: 'w-10 h-10 text-xs',
-  lg: 'w-20 h-20 text-lg',
+  sm:  'w-8 h-8 text-[10px]',
+  md:  'w-10 h-10 text-xs',
+  lg:  'w-20 h-20 text-lg',
+  xl:  'w-28 h-28 text-2xl',
 }
 
 function AdvisorAvatar({
@@ -53,7 +54,7 @@ function AdvisorAvatar({
 }: {
   avatarUrl: string | null
   fullName: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   id?: string
 }) {
   const sizeClass = AVATAR_SIZE_CLASSES[size]
@@ -63,14 +64,14 @@ function AdvisorAvatar({
         id={id}
         src={avatarUrl}
         alt={fullName}
-        className={`${sizeClass} rounded-full border-2 border-[#01A4E3] object-cover`}
+        className={`${sizeClass} rounded-full border-[3px] border-[#01A4E3] object-cover`}
       />
     )
   }
   return (
     <div
       id={id}
-      className={`${sizeClass} rounded-full bg-[#01A4E3]/25 border-2 border-[#01A4E3] flex items-center justify-center text-[#01A4E3] font-bold`}
+      className={`${sizeClass} rounded-full bg-[#01A4E3]/20 border-[3px] border-[#01A4E3] flex items-center justify-center text-[#01A4E3] font-bold`}
     >
       {getInitials(fullName)}
     </div>
@@ -142,32 +143,69 @@ function formatStatusUntil(statusUntil: string): string {
 
 const ROLE_BADGE_STYLES: Record<AdvisorRole, string> = {
   asesor: 'bg-[#01A4E3]/10 text-[#01A4E3]',
-  admin: 'bg-[#FF5B5B]/15 text-[#FF5B5B]',
+  admin:  'bg-[#FF5B5B]/15 text-[#FF5B5B]',
 }
 
 const ROLE_BADGE_TEXT: Record<AdvisorRole, string> = {
   asesor: 'Asesor Senior',
-  admin: 'Administrador Global',
+  admin:  'Administrador Global',
 }
 
-// ── Skeleton ───────���──────────────────────────────────────
+// ── Card wrapper ──────────────────────────────────────────
+
+function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={[
+        'bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-6',
+        'transition-all duration-300 hover:-translate-y-[2px] hover:border-[#01A4E3]/40 hover:shadow-lg hover:shadow-[#01A4E3]/8',
+        className,
+      ].join(' ')}
+    >
+      {children}
+    </div>
+  )
+}
+
+// ── Section label ─────────────────────────────────────────
+
+function SectionLabel({ children, accent = '#01A4E3' }: { children: React.ReactNode; accent?: string }) {
+  return (
+    <div className="flex items-center gap-2.5 mb-5">
+      <span className="w-[3px] h-5 rounded-full shrink-0" style={{ backgroundColor: accent }} />
+      <h4 className="text-sm font-bold text-white">{children}</h4>
+    </div>
+  )
+}
+
+// ── Skeleton ──────────────────────────────────────────────
 
 function ProfileSkeleton() {
   return (
-    <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 animate-pulse space-y-4">
-      <div className="flex flex-col sm:flex-row items-center gap-5">
-        <div className="w-20 h-20 rounded-full bg-[#2E2E2B] shrink-0" />
-        <div className="space-y-2 flex-1 w-full">
-          <div className="h-5 bg-[#2E2E2B] rounded w-40" />
-          <div className="h-3 bg-[#2E2E2B] rounded w-56" />
-          <div className="h-4 bg-[#2E2E2B] rounded w-24" />
+    <div className="space-y-5 animate-pulse">
+      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="w-28 h-28 rounded-full bg-[#2E2E2B] shrink-0" />
+          <div className="space-y-3 flex-1 w-full">
+            <div className="h-6 bg-[#2E2E2B] rounded w-48" />
+            <div className="h-3 bg-[#2E2E2B] rounded w-64" />
+            <div className="flex gap-2">
+              <div className="h-5 bg-[#2E2E2B] rounded w-28" />
+              <div className="h-5 bg-[#2E2E2B] rounded w-20" />
+            </div>
+            <div className="h-6 bg-[#2E2E2B] rounded w-32 mt-2" />
+          </div>
         </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 h-40" />
+        <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 h-40" />
       </div>
     </div>
   )
 }
 
-// ── Page ���─────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────
 
 export default function PerfilPage() {
   const { advisor: storeAdvisor, setAdvisor: setStoreAdvisor } = useAuthStore()
@@ -339,299 +377,371 @@ export default function PerfilPage() {
     }
   }
 
+  const currentStatus = advisor?.availability_status ?? 'available'
+
   return (
     <section
       id="screen-perfil"
-      className="flex-1 flex flex-col items-start p-4 md:p-6 space-y-6"
+      className="flex-1 flex flex-col p-4 md:p-6 overflow-y-auto"
     >
-      <div className="max-w-xl w-full space-y-6">
+      <div className="max-w-4xl w-full mx-auto space-y-5">
+
         <h2 className="text-xl font-bold text-white">Mi Perfil Profesional</h2>
 
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <div className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-6 space-y-6 transition-all duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10">
+          <>
+            {/* ── Hero card ────────────────────────────────── */}
+            <Card>
+              <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
 
-            {/* ── Avatar + datos ── */}
-            <div className="flex flex-col sm:flex-row items-center gap-5">
-
-              {/* Avatar */}
-              <div className="relative group shrink-0">
-                <AdvisorAvatar
-                  id="perfil-avatar-img"
-                  avatarUrl={advisor?.avatar_url ?? null}
-                  fullName={advisor?.full_name ?? ''}
-                  size="lg"
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                  className="absolute bottom-0 right-0 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-1.5 rounded-full transition shadow-lg disabled:opacity-50"
-                  aria-label="Cambiar foto de perfil"
-                >
-                  {uploadingAvatar ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-
-              {/* Datos */}
-              <div className="text-center sm:text-left space-y-1">
-
-                {/* Nombre editable inline */}
-                <div className="flex items-center justify-center sm:justify-start gap-1.5">
-                  <input
-                    ref={nameInputRef}
-                    id="perfil-name"
-                    type="text"
-                    value={nameValue}
-                    onChange={(e) => setNameValue(e.target.value)}
-                    onFocus={() => setEditingName(true)}
-                    onBlur={handleNameBlur}
-                    onKeyDown={handleNameKeyDown}
-                    className={[
-                      'bg-transparent border-b text-base font-bold text-white',
-                      'pb-0.5 max-w-[200px] outline-none transition-colors',
-                      editingName
-                        ? 'border-[#01A4E3]'
-                        : 'border-transparent hover:border-[#3A3A37]',
-                    ].join(' ')}
-                  />
-                  {isSavingName ? (
-                    <div className="w-3 h-3 border border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
-                  ) : (
+                {/* Avatar with glow + camera button */}
+                <div className="relative group shrink-0">
+                  <div className="absolute inset-0 rounded-full bg-[#01A4E3]/15 blur-xl scale-125 group-hover:bg-[#01A4E3]/25 transition-all duration-500 pointer-events-none" />
+                  <div className="relative">
+                    <AdvisorAvatar
+                      id="perfil-avatar-img"
+                      avatarUrl={advisor?.avatar_url ?? null}
+                      fullName={advisor?.full_name ?? ''}
+                      size="xl"
+                    />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={handleAvatarUpload}
+                    />
                     <button
                       type="button"
-                      onClick={() => nameInputRef.current?.focus()}
-                      className="text-[#8B8FA8] hover:text-white transition"
-                      aria-label="Editar nombre"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                      className="absolute bottom-1 right-1 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-2 rounded-full transition shadow-lg shadow-[#01A4E3]/30 disabled:opacity-50 border-2 border-[#252522]"
+                      aria-label="Cambiar foto de perfil"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
+                      {uploadingAvatar ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
                     </button>
-                  )}
+                  </div>
                 </div>
 
-                {/* Email solo lectura */}
-                <p className="text-xs text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1">
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  <span id="perfil-email-txt">{advisor?.email}</span>
-                </p>
+                {/* Identity + status */}
+                <div className="flex-1 min-w-0 text-center sm:text-left space-y-2.5">
 
-                {/* Badges rol + área */}
-                <div className="flex flex-wrap gap-1.5 mt-2 justify-center sm:justify-start">
-                  <span
-                    id="perfil-role-badge"
-                    className={[
-                      'text-[10px] px-2 py-0.5 rounded font-black uppercase',
-                      advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
-                    ].join(' ')}
+                  {/* Name editable */}
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <input
+                      ref={nameInputRef}
+                      id="perfil-name"
+                      type="text"
+                      value={nameValue}
+                      onChange={(e) => setNameValue(e.target.value)}
+                      onFocus={() => setEditingName(true)}
+                      onBlur={handleNameBlur}
+                      onKeyDown={handleNameKeyDown}
+                      className={[
+                        'bg-transparent border-b text-xl font-bold text-white',
+                        'pb-0.5 max-w-[260px] outline-none transition-colors',
+                        editingName
+                          ? 'border-[#01A4E3]'
+                          : 'border-transparent hover:border-[#3A3A37]',
+                      ].join(' ')}
+                    />
+                    {isSavingName ? (
+                      <div className="w-3.5 h-3.5 border border-[#01A4E3] border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => nameInputRef.current?.focus()}
+                        className="text-[#8B8FA8] hover:text-white transition shrink-0"
+                        aria-label="Editar nombre"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <p className="text-sm text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1.5">
+                    <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    <span id="perfil-email-txt">{advisor?.email}</span>
+                  </p>
+
+                  {/* Role + area badges */}
+                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                    <span
+                      id="perfil-role-badge"
+                      className={[
+                        'text-[10px] px-2.5 py-1 rounded font-black uppercase tracking-wide',
+                        advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
+                      ].join(' ')}
+                    >
+                      {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : 'Asesor Senior'}
+                    </span>
+                    <span
+                      id="perfil-area-badge"
+                      className="bg-[#3A3A37] text-[#8B8FA8] text-[10px] px-2.5 py-1 rounded font-bold cursor-help"
+                      title="Solo el admin puede cambiar esto"
+                    >
+                      Área: {advisor?.area}
+                    </span>
+                  </div>
+
+                  {/* Current availability status */}
+                  <div
+                    id="availability-status-display"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border justify-center sm:justify-start"
+                    style={{
+                      borderColor: `${STATUS_COLORS[currentStatus]}40`,
+                      backgroundColor: `${STATUS_COLORS[currentStatus]}10`,
+                    }}
                   >
-                    {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : 'Asesor Senior'}
-                  </span>
-                  <span
-                    id="perfil-area-badge"
-                    className="bg-[#3A3A37] text-[#8B8FA8] text-[10px] px-2 py-0.5 rounded font-bold cursor-help"
-                    title="Solo el admin puede cambiar esto"
-                  >
-                    Área: {advisor?.area}
-                  </span>
-                </div>
-
-                {/* ── Mi Disponibilidad ── */}
-                <div
-                  id="availability-section"
-                  className="mt-4 pt-4 border-t border-[#3A3A37]"
-                >
-                  <h4 className="text-xs font-bold text-white mb-3">Mi Disponibilidad</h4>
-
-                  {/* Estado actual */}
-                  <div id="availability-status-display" className="flex items-center gap-2 mb-3">
                     <span
                       id="avail-dot"
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{
-                        backgroundColor:
-                          STATUS_COLORS[advisor?.availability_status ?? 'available'],
-                      }}
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: STATUS_COLORS[currentStatus] }}
                     />
                     <span
                       id="avail-label"
                       className="text-xs font-semibold"
-                      style={{
-                        color: STATUS_COLORS[advisor?.availability_status ?? 'available'],
-                      }}
+                      style={{ color: STATUS_COLORS[currentStatus] }}
                     >
-                      {STATUS_LABELS[advisor?.availability_status ?? 'available']}
+                      {STATUS_LABELS[currentStatus]}
                     </span>
                     {advisor?.status_until && (
                       <span className="text-[10px] text-[#8B8FA8]">
-                        · Disponible a las {formatStatusUntil(advisor.status_until)}
+                        · hasta las {formatStatusUntil(advisor.status_until)}
                       </span>
                     )}
                   </div>
 
-                  {/* Selector de estado */}
-                  <div
-                    id="availability-status-pills"
-                    className="flex flex-wrap gap-2 mb-3"
-                  >
-                    {STATUS_OPTIONS.map((option) => {
-                      const isActive = selectedStatus === option.value
-                      return (
-                        <button
-                          key={option.value}
-                          id={option.id}
-                          type="button"
-                          onClick={async () => {
-                            setSelectedStatus(option.value)
-                            if (option.value === 'available') {
-                              setSelectedMinutes(null)
-                              await handleApplyStatusDirectly('available', null)
-                            } else {
-                              setSelectedMinutes(30)
-                            }
-                          }}
-                          className={[
-                            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition',
-                            isActive ? option.activeClass : option.inactiveClass,
-                          ].join(' ')}
+                </div>
+              </div>
+            </Card>
+
+            {/* ── Two-column grid ──────────────────────────── */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+
+              {/* Availability control card */}
+              <Card>
+                <SectionLabel accent="#01A4E3">Mi Disponibilidad</SectionLabel>
+
+                {/* Status tiles — 3 columns */}
+                <div id="availability-status-pills" className="grid grid-cols-3 gap-2">
+                  {STATUS_OPTIONS.map((option) => {
+                    const isActive = selectedStatus === option.value
+                    const color = STATUS_COLORS[option.value]
+                    return (
+                      <button
+                        key={option.value}
+                        id={option.id}
+                        type="button"
+                        onClick={async () => {
+                          setSelectedStatus(option.value)
+                          if (option.value === 'available') {
+                            setSelectedMinutes(null)
+                            await handleApplyStatusDirectly('available', null)
+                          } else {
+                            setSelectedMinutes(30)
+                          }
+                        }}
+                        className="flex flex-col items-center gap-2 py-3.5 px-2 rounded-xl border transition-all duration-200 active:scale-[0.97]"
+                        style={
+                          isActive
+                            ? { backgroundColor: `${color}18`, borderColor: `${color}50` }
+                            : { borderColor: '#3A3A37', backgroundColor: 'transparent' }
+                        }
+                      >
+                        <span
+                          className="w-2.5 h-2.5 rounded-full transition-all duration-200"
+                          style={{ backgroundColor: isActive ? color : '#4A4A47' }}
+                        />
+                        <span
+                          className="text-[10px] font-bold leading-tight text-center transition-colors duration-200"
+                          style={{ color: isActive ? color : '#8B8FA8' }}
                         >
-                          {option.icon}
                           {option.label}
-                        </button>
-                      )
-                    })}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Contextual area */}
+                {selectedStatus !== 'available' ? (
+                  <div id="avail-duration-picker" className="mt-5 space-y-4">
+
+                    {/* Divider with label */}
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-px bg-[#3A3A37]" />
+                      <span className="text-[9px] text-[#8B8FA8] font-bold uppercase tracking-widest">Duración</span>
+                      <div className="flex-1 h-px bg-[#3A3A37]" />
+                    </div>
+
+                    {/* Timer tiles — 4 columns */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {TIMER_OPTIONS.map((option) => {
+                        const isActive = selectedMinutes === option.value
+                        return (
+                          <button
+                            key={String(option.value)}
+                            type="button"
+                            onClick={() => setSelectedMinutes(option.value)}
+                            className={[
+                              'avail-dur-btn flex flex-col items-center justify-center py-3 rounded-xl border transition-all duration-200 active:scale-[0.97]',
+                              isActive
+                                ? 'border-[#01A4E3]/50 bg-[#01A4E3]/10 text-[#01A4E3]'
+                                : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#01A4E3]/40 hover:text-white',
+                            ].join(' ')}
+                          >
+                            <span className={['font-black transition-all leading-none', isActive ? 'text-base' : 'text-sm'].join(' ')}>
+                              {option.value === null
+                                ? '∞'
+                                : option.value >= 60
+                                  ? `${option.value / 60}h`
+                                  : option.value}
+                            </span>
+                            <span className="text-[9px] font-semibold mt-1 opacity-60">
+                              {option.value === null ? 'indef.' : option.value >= 60 ? 'hora' : 'min'}
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* Info box */}
+                    {selectedMinutes === null ? (
+                      <div className="flex items-start gap-2.5 px-3 py-2.5 bg-[#FFB84D]/8 border border-[#FFB84D]/25 rounded-lg">
+                        <span className="text-sm shrink-0 mt-px">⚠️</span>
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] text-[#FFB84D] font-bold leading-snug">
+                            Sin retorno automático programado
+                          </p>
+                          <p className="text-[10px] text-[#FFB84D]/70 leading-snug">
+                            Deberás actualizar tu estado manualmente cuando vuelvas.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2.5 px-3 py-2.5 bg-[#00D4AA]/8 border border-[#00D4AA]/25 rounded-lg">
+                        <svg className="w-3.5 h-3.5 text-[#00D4AA] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-[10px] text-[#00D4AA] font-semibold leading-snug">
+                          Disponible automáticamente en{' '}
+                          {selectedMinutes >= 60 ? `${selectedMinutes / 60} hora` : `${selectedMinutes} min`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Apply — full width */}
+                    <button
+                      type="button"
+                      onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
+                      disabled={isSavingStatus}
+                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-2.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 active:scale-[0.98]"
+                    >
+                      {isSavingStatus ? (
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                      Aplicar cambios
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-4 flex items-center gap-3 px-4 py-3.5 bg-[#00D4AA]/6 border border-[#00D4AA]/20 rounded-xl">
+                    <span className="w-2 h-2 rounded-full bg-[#00D4AA] shrink-0 animate-pulse" />
+                    <div>
+                      <p className="text-xs font-bold text-[#00D4AA]">En línea</p>
+                      <p className="text-[10px] text-[#8B8FA8] mt-0.5">El agente recibe conversaciones normalmente</p>
+                    </div>
+                  </div>
+                )}
+              </Card>
+
+              {/* Password card */}
+              <form
+                onSubmit={handleSubmit(onPasswordSubmit)}
+                className={[
+                  'bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-6',
+                  'transition-all duration-300 hover:-translate-y-[2px] hover:border-[#01A4E3]/40 hover:shadow-lg hover:shadow-[#01A4E3]/8',
+                ].join(' ')}
+              >
+                <SectionLabel accent="#FFB84D">Cambiar Contraseña</SectionLabel>
+
+                <div className="space-y-3 text-xs">
+                  <div className="space-y-1">
+                    <label className="text-[#8B8FA8] font-semibold block uppercase text-[10px] tracking-wide">
+                      Contraseña Actual
+                    </label>
+                    <input
+                      type="password"
+                      {...register('currentPassword')}
+                      className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-2.5 text-white outline-none focus:border-[#01A4E3] transition"
+                    />
+                    {errors.currentPassword && (
+                      <p className="text-[#FF5B5B] text-[10px]">{errors.currentPassword.message}</p>
+                    )}
                   </div>
 
-                  {/* Duration picker (hidden by default) */}
-                  {selectedStatus !== 'available' && (
-                    <div
-                      id="avail-duration-picker"
-                      className="mt-4 pt-1 space-y-3"
-                    >
-                      <p className="text-[11px] text-[#8B8FA8]">¿Por cuánto tiempo?</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {TIMER_OPTIONS.map((option) => {
-                          const isMinutesActive = selectedMinutes === option.value
-                          return (
-                            <button
-                              key={String(option.value)}
-                              type="button"
-                              onClick={() => setSelectedMinutes(option.value)}
-                              className={[
-                                'avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border transition',
-                                isMinutesActive
-                                  ? 'border-[#01A4E3] text-[#01A4E3] bg-[#01A4E3]/10'
-                                  : 'border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#01A4E3]',
-                              ].join(' ')}
-                            >
-                              {option.label}
-                            </button>
-                          )
-                        })}
-                      </div>
-
-                      <div className="flex items-center gap-3 pt-1">
-                        <button
-                          type="button"
-                          onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
-                          disabled={isSavingStatus}
-                          className="bg-[#01A4E3] hover:bg-[#0190C8] text-white px-4 py-2 rounded-lg text-xs font-bold transition disabled:opacity-50 flex items-center gap-1.5"
-                        >
-                          {isSavingStatus && (
-                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          )}
-                          Aplicar
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    <label className="text-[#8B8FA8] font-semibold block uppercase text-[10px] tracking-wide">
+                      Nueva Contraseña
+                    </label>
+                    <input
+                      type="password"
+                      placeholder="Mínimo 8 caracteres"
+                      {...register('newPassword')}
+                      className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-2.5 text-white placeholder-[#8B8FA8]/40 outline-none focus:border-[#01A4E3] transition"
+                    />
+                    {errors.newPassword && (
+                      <p className="text-[#FF5B5B] text-[10px]">{errors.newPassword.message}</p>
+                    )}
+                  </div>
                 </div>
 
-              </div>
+                {passwordError && (
+                  <p className="text-[#FF5B5B] text-xs mt-3">{passwordError}</p>
+                )}
+                {passwordSuccess && (
+                  <p className="text-[#00D4AA] text-xs mt-3 flex items-center gap-1">
+                    ✓ Contraseña actualizada correctamente
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSavingPassword}
+                  className="mt-4 bg-[#01A4E3] hover:bg-[#0190C8] text-white py-2.5 px-5 rounded-lg text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
+                >
+                  {isSavingPassword && (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
+                  Actualizar contraseña
+                </button>
+              </form>
+
             </div>
 
-            {/* ── Cambio de contraseña ── */}
-            <form
-              onSubmit={handleSubmit(onPasswordSubmit)}
-              className="border-t border-[#3A3A37] pt-6 space-y-4"
-            >
-              <h4 className="text-sm font-semibold text-white">Cambiar Contraseña Acceso</h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div className="space-y-1">
-                  <label className="text-[#8B8FA8] font-semibold block uppercase text-[10px] tracking-wide">
-                    Contraseña Actual
-                  </label>
-                  <input
-                    type="password"
-                    {...register('currentPassword')}
-                    className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white outline-none focus:border-[#01A4E3] transition"
-                  />
-                  {errors.currentPassword && (
-                    <p className="text-[#FF5B5B] text-[10px]">{errors.currentPassword.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[#8B8FA8] font-semibold block uppercase text-[10px] tracking-wide">
-                    Nueva Contraseña
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Mínimo 8 caracteres"
-                    {...register('newPassword')}
-                    className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white placeholder-[#8B8FA8]/40 outline-none focus:border-[#01A4E3] transition"
-                  />
-                  {errors.newPassword && (
-                    <p className="text-[#FF5B5B] text-[10px]">{errors.newPassword.message}</p>
-                  )}
-                </div>
-              </div>
-
-              {passwordError && (
-                <p className="text-[#FF5B5B] text-xs">{passwordError}</p>
-              )}
-
-              {passwordSuccess && (
-                <p className="text-[#00D4AA] text-xs flex items-center gap-1">
-                  ✓ Contraseña actualizada correctamente
-                </p>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSavingPassword}
-                className="bg-[#01A4E3] hover:bg-[#0190C8] text-white py-2.5 px-4 rounded text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
-              >
-                {isSavingPassword && (
-                  <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
-                Actualizar contraseña
-              </button>
-            </form>
-
-          </div>
+            {/* ── Schedule — full width ─────────────────────── */}
+            <ScheduleManager />
+          </>
         )}
 
-        <ScheduleManager />
       </div>
     </section>
   )

@@ -207,7 +207,6 @@ export default function ChatPage() {
 
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [showReturnModal, setShowReturnModal] = useState(false)
-  const [sendError, setSendError] = useState(false)
   const [isAssigning, setIsAssigning] = useState(false)
   const [isReturning, setIsReturning] = useState(false)
   const [demoVariant] = useState<ChatVariant>('assigned')
@@ -219,12 +218,9 @@ export default function ChatPage() {
     if (!conversationId) return
     setIsLoading(true)
     try {
-      const { conversation: conv } = await conversationsService.getById(conversationId)
+      const { conversation: conv, messages: msgs, total_messages: total } =
+        await conversationsService.getById(conversationId)
       setConversation(conv)
-      const { messages: msgs, total } = await conversationsService.getMessages(
-        conversationId,
-        { limit: 50, offset: 0 }
-      )
       setMessages(msgs)
       setTotalMessages(total)
     } catch {
@@ -428,7 +424,7 @@ export default function ChatPage() {
             channel={channel}
             waitMinutes={waitMinutes}
             onMessageSent={(msg) => setMessages((prev) => [...prev, msg])}
-            onError={() => setSendError(true)}
+            onError={() => {}}
           />
         ) : (
           <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">
@@ -484,9 +480,7 @@ export default function ChatPage() {
         />
       )}
 
-      {/* Suppress unused warning — sendError state reserved for future use */}
-      {void sendError}
 
-    </section>
+</section>
   )
 }

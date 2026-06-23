@@ -162,11 +162,19 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           {/* User profile card */}
           <div className="flex items-center space-x-3 p-2 bg-[#2E2E2B]/50 rounded-lg border border-[#3A3A37]">
             <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-full border border-[#01A4E3] bg-[#01A4E3]/25 flex items-center justify-center">
-                <span className="text-xs font-bold text-[#01A4E3]">
-                  {getInitials(advisor?.full_name)}
-                </span>
-              </div>
+              {advisor?.avatar_url ? (
+                <img
+                  src={advisor.avatar_url}
+                  alt={advisor.full_name ?? 'Avatar'}
+                  className="w-10 h-10 rounded-full border border-[#01A4E3] object-cover"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-full border border-[#01A4E3] bg-[#01A4E3]/25 flex items-center justify-center">
+                  <span className="text-xs font-bold text-[#01A4E3]">
+                    {getInitials(advisor?.full_name)}
+                  </span>
+                </div>
+              )}
               <div
                 className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#252522] ${wsDotClass}`}
               />

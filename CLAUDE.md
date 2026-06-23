@@ -363,7 +363,7 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 
 | Componente                                          | Estado                                    |
 | --------------------------------------------------- | ----------------------------------------- |
-| Auth (Supabase + mock login)                        | ✅ mock: `hola@mail.com` / `123`          |
+| Auth (Supabase + mock login)                        | ✅ mock: `asesor@mock.com` o `admin@mock.com` / `123` |
 | authStore (session, advisor, role, isLoading)       | ✅                                        |
 | wsStore (status, reconnectAttempt, escalation, alerts) | ✅ + decrementAlerts (FE-12)             |
 | useWebSocket (singleton, backoff exponencial)       | ✅                                        |
@@ -577,7 +577,7 @@ src/
   pages/
     BandejaPage.tsx          — Lista de conversaciones; handlers WS para escalation.new
     ChatPage.tsx             — Vista de chat; adjuntos; grabación de audio
-    LoginPage.tsx            — Login real (Supabase) + mock (hola@mail.com / 123)
+    LoginPage.tsx            — Login real (Supabase) + mock (asesor@mock.com / 123, admin@mock.com / 123)
     HistorialPage.tsx
     PerfilPage.tsx
     GestionPage.tsx          — Solo role=admin; tabla asesores + CRUD + BehaviorAlertsPanel
@@ -624,12 +624,10 @@ src/
 
 Mientras el backend no tenga auth real, se usa:
 
-| Campo | Valor |
-|---|---|
-| Email | `hola@mail.com` |
-| Password | `123` |
-| Token | `mock-token` (no válido en Supabase) |
-| Rol | `asesor` |
+| Email | Password | Token | Rol |
+|---|---|---|---|
+| `asesor@mock.com` | `123` | `mock-token-asesor` | `asesor` |
+| `admin@mock.com` | `123` | `mock-token-admin` | `admin` |
 
 La sesión mock **solo vive en el store de Zustand** — no se persiste en Supabase. Al refrescar la página se pierde y hay que volver a hacer login.
 
