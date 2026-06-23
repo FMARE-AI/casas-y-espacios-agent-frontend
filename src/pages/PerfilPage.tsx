@@ -200,7 +200,7 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
           id={id}
           {...register}
           placeholder=" "
-          className="peer w-full bg-[#2E2E2B]/60 border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3.5 pr-10 pt-5 pb-1.5 text-xs outline-none transition-all duration-200 focus:ring-1 focus:ring-[#01A4E3]/20"
+          className="peer w-full bg-[#2E2E2B]/60 border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3.5 pr-10 pt-5 pb-1.5 text-sm outline-none transition-all duration-200 focus:ring-1 focus:ring-[#01A4E3]/20"
         />
         <label
           htmlFor={id}
@@ -510,38 +510,38 @@ export default function PerfilPage() {
                 </div>
 
                 {/* Email */}
-                <p className="text-xs text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1">
+                <p className="text-sm text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1">
                   <svg className="w-3.5 h-3.5 shrink-0 text-[#8B8FA8]/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                   <span id="perfil-email-txt">{advisor?.email}</span>
                 </p>
 
-                {/* Badges rol + área */}
-                <div className="flex flex-wrap gap-2 mt-2 justify-center sm:justify-start items-center">
+                {/* Badges rol + área + estado */}
+                <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start items-center">
                   <span
                     id="perfil-role-badge"
                     className={[
-                      'text-xs px-2.5 py-0.5 rounded font-black uppercase tracking-wider',
+                      'text-xs px-3 py-1 rounded-md font-bold uppercase tracking-wide',
                       advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
                     ].join(' ')}
                   >
                     {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : 'Asesor Senior'}
                   </span>
+
                   <span
                     id="perfil-area-badge"
-                    className="bg-[#2E2E2B]/85 text-[#8B8FA8] text-xs px-2.5 py-0.5 rounded font-bold border border-[#3A3A37] cursor-help"
+                    className="text-xs px-3 py-1 rounded-md font-medium border border-[#3A3A37] text-[#8B8FA8] bg-[#2E2E2B]/60 cursor-help"
                     title="Solo el admin puede cambiar esto"
                   >
                     Área: {advisor?.area}
                   </span>
 
-                  {/* Estado de disponibilidad actual */}
                   <div
                     id="availability-status-display"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border"
                     style={{
-                      borderColor: `${STATUS_COLORS[currentStatus]}40`,
+                      borderColor: `${STATUS_COLORS[currentStatus]}35`,
                       backgroundColor: `${STATUS_COLORS[currentStatus]}10`,
                     }}
                   >
@@ -551,13 +551,13 @@ export default function PerfilPage() {
                     />
                     <span
                       id="avail-label"
-                      className="text-[11px] font-semibold uppercase tracking-wider"
+                      className="text-xs font-semibold"
                       style={{ color: STATUS_COLORS[currentStatus] }}
                     >
                       {STATUS_LABELS[currentStatus]}
                     </span>
                     {advisor?.status_until && (
-                      <span className="text-[11px] text-[#8B8FA8]">
+                      <span className="text-xs text-[#8B8FA8]">
                         · {formatStatusUntil(advisor.status_until)}
                       </span>
                     )}
@@ -665,7 +665,7 @@ export default function PerfilPage() {
                       type="button"
                       onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
                       disabled={isSavingStatus}
-                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-xs font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 shadow-md"
+                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95 shadow-md"
                     >
                       {isSavingStatus && (
                         <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -722,7 +722,7 @@ export default function PerfilPage() {
                 <button
                   type="submit"
                   disabled={isSavingPassword}
-                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-3 rounded-lg text-xs font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6 active:scale-95 shadow-md"
+                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-3 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-6 active:scale-95 shadow-md"
                 >
                   {isSavingPassword && (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
