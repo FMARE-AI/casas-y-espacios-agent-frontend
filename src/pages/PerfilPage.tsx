@@ -49,15 +49,18 @@ function AdvisorAvatar({
   avatarUrl,
   fullName,
   size = 'md',
+  id,
 }: {
   avatarUrl: string | null
   fullName: string
   size?: 'sm' | 'md' | 'lg'
+  id?: string
 }) {
   const sizeClass = AVATAR_SIZE_CLASSES[size]
   if (avatarUrl) {
     return (
       <img
+        id={id}
         src={avatarUrl}
         alt={fullName}
         className={`${sizeClass} rounded-full border-2 border-[#01A4E3] object-cover`}
@@ -66,6 +69,7 @@ function AdvisorAvatar({
   }
   return (
     <div
+      id={id}
       className={`${sizeClass} rounded-full bg-[#01A4E3]/25 border-2 border-[#01A4E3] flex items-center justify-center text-[#01A4E3] font-bold`}
     >
       {getInitials(fullName)}
@@ -79,20 +83,26 @@ const STATUS_OPTIONS = [
   {
     value: 'available' as const,
     label: 'Disponible',
-    color: '#00D4AA',
-    activeClass: 'bg-[#00D4AA]/15 border-[#00D4AA] text-[#00D4AA]',
+    id: 'avail-btn-available',
+    activeClass: 'bg-[#00D4AA]/20 text-[#00D4AA] border-[#00D4AA]/40',
+    inactiveClass: 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#00D4AA]/40 hover:text-[#00D4AA]',
+    icon: <span className="w-2 h-2 rounded-full bg-[#00D4AA] shrink-0" />,
   },
   {
     value: 'break' as const,
     label: 'En descanso',
-    color: '#FFB84D',
-    activeClass: 'bg-[#FFB84D]/15 border-[#FFB84D] text-[#FFB84D]',
+    id: 'avail-btn-break',
+    activeClass: 'bg-[#FFB84D]/20 text-[#FFB84D] border-[#FFB84D]/40',
+    inactiveClass: 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#FFB84D]/40 hover:text-[#FFB84D]',
+    icon: <span className="text-[10px] leading-none select-none">▮</span>,
   },
   {
     value: 'offline' as const,
     label: 'No disponible',
-    color: '#FF5B5B',
-    activeClass: 'bg-[#FF5B5B]/15 border-[#FF5B5B] text-[#FF5B5B]',
+    id: 'avail-btn-offline',
+    activeClass: 'bg-[#FF5B5B]/20 text-[#FF5B5B] border-[#FF5B5B]/40',
+    inactiveClass: 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#FF5B5B]/40 hover:text-[#FF5B5B]',
+    icon: <span className="text-[10px] leading-none select-none">✕</span>,
   },
 ]
 
@@ -160,7 +170,7 @@ function ProfileSkeleton() {
 // ── Page ���─────────────────────────────────────────────────
 
 export default function PerfilPage() {
-  const { advisor: storeAdvisor } = useAuthStore()
+  const { advisor: storeAdvisor, setAdvisor: setStoreAdvisor } = useAuthStore()
 
   const [advisor, setAdvisor] = useState<Advisor | null>(storeAdvisor)
   const [isLoading, setIsLoading] = useState(true)
@@ -173,7 +183,7 @@ export default function PerfilPage() {
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus>(
     storeAdvisor?.availability_status ?? 'available'
   )
-  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(null)
+  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(30)
   const [isSavingStatus, setIsSavingStatus] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -200,7 +210,7 @@ export default function PerfilPage() {
         setAdvisor(fetched)
         setNameValue(fetched.full_name)
         setSelectedStatus(fetched.availability_status)
-        setSelectedMinutes(fetched.availability_status === 'available' ? null : 15)
+        setSelectedMinutes(fetched.availability_status === 'available' ? null : 30)
       } catch {
         // network unavailable — silently fail; skeleton stays hidden
       } finally {
@@ -241,9 +251,9 @@ export default function PerfilPage() {
         .from(STORAGE_BUCKET)
         .getPublicUrl(path)
 
-      await advisorsService.updateMe({ avatar_url: urlData.publicUrl })
-
-      setAdvisor((prev) => (prev ? { ...prev, avatar_url: urlData.publicUrl } : prev))
+      const { advisor: updated } = await advisorsService.updateMe({ avatar_url: urlData.publicUrl })
+      setAdvisor(updated)
+      setStoreAdvisor(updated)
     } catch {
       toast.error('No se pudo subir la imagen')
     } finally {
@@ -252,16 +262,16 @@ export default function PerfilPage() {
     }
   }
 
-  async function handleApplyStatus() {
+  async function handleApplyStatusDirectly(status: AvailabilityStatus, minutes: number | null) {
     setIsSavingStatus(true)
     try {
-      await advisorsService.updateAvailability(
-        selectedStatus,
-        selectedStatus === 'available' ? null : selectedMinutes
-      )
-      setAdvisor((prev) =>
-        prev ? { ...prev, availability_status: selectedStatus } : prev
-      )
+      await advisorsService.updateAvailability(status, minutes)
+      const { advisor: refreshed } = await advisorsService.getMe()
+      setAdvisor(refreshed)
+      setStoreAdvisor(refreshed)
+      setSelectedStatus(refreshed.availability_status)
+      setSelectedMinutes(refreshed.availability_status === 'available' ? null : minutes)
+      toast.success('Disponibilidad actualizada')
     } catch {
       toast.error('No se pudo actualizar la disponibilidad')
     } finally {
@@ -295,6 +305,7 @@ export default function PerfilPage() {
       })
       setAdvisor(updated)
       setNameValue(updated.full_name)
+      setStoreAdvisor(updated)
     } catch {
       setNameValue(advisor?.full_name ?? '')
     } finally {
@@ -346,13 +357,12 @@ export default function PerfilPage() {
 
               {/* Avatar */}
               <div className="relative group shrink-0">
-                <div id="perfil-avatar-img">
-                  <AdvisorAvatar
-                    avatarUrl={advisor?.avatar_url ?? null}
-                    fullName={advisor?.full_name ?? ''}
-                    size="lg"
-                  />
-                </div>
+                <AdvisorAvatar
+                  id="perfil-avatar-img"
+                  avatarUrl={advisor?.avatar_url ?? null}
+                  fullName={advisor?.full_name ?? ''}
+                  size="lg"
+                />
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -449,20 +459,20 @@ export default function PerfilPage() {
                   id="availability-section"
                   className="mt-4 pt-4 border-t border-[#3A3A37]"
                 >
-                  <p className="text-xs font-semibold text-[#8B8FA8] uppercase tracking-wider mb-3">
-                    Mi Disponibilidad
-                  </p>
+                  <h4 className="text-xs font-bold text-white mb-3">Mi Disponibilidad</h4>
 
                   {/* Estado actual */}
-                  <div className="flex items-center gap-2 mb-4">
+                  <div id="availability-status-display" className="flex items-center gap-2 mb-3">
                     <span
-                      className="w-2 h-2 rounded-full"
+                      id="avail-dot"
+                      className="w-2.5 h-2.5 rounded-full"
                       style={{
                         backgroundColor:
                           STATUS_COLORS[advisor?.availability_status ?? 'available'],
                       }}
                     />
                     <span
+                      id="avail-label"
                       className="text-xs font-semibold"
                       style={{
                         color: STATUS_COLORS[advisor?.availability_status ?? 'available'],
@@ -480,84 +490,79 @@ export default function PerfilPage() {
                   {/* Selector de estado */}
                   <div
                     id="availability-status-pills"
-                    className="flex items-center gap-2 mb-3 flex-wrap"
+                    className="flex flex-wrap gap-2 mb-3"
                   >
-                    {STATUS_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setSelectedStatus(option.value)
-                          if (option.value === 'available') {
-                            setSelectedMinutes(null)
-                          } else {
-                            setSelectedMinutes(15)
-                          }
-                        }}
-                        className={[
-                          'text-xs px-3 py-1.5 rounded-full border transition',
-                          selectedStatus === option.value
-                            ? option.activeClass
-                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
-                        ].join(' ')}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                    {STATUS_OPTIONS.map((option) => {
+                      const isActive = selectedStatus === option.value
+                      return (
+                        <button
+                          key={option.value}
+                          id={option.id}
+                          type="button"
+                          onClick={async () => {
+                            setSelectedStatus(option.value)
+                            if (option.value === 'available') {
+                              setSelectedMinutes(null)
+                              await handleApplyStatusDirectly('available', null)
+                            } else {
+                              setSelectedMinutes(30)
+                            }
+                          }}
+                          className={[
+                            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border transition',
+                            isActive ? option.activeClass : option.inactiveClass,
+                          ].join(' ')}
+                        >
+                          {option.icon}
+                          {option.label}
+                        </button>
+                      )
+                    })}
                   </div>
 
-                  {/* Selector de timer — solo para break y offline */}
+                  {/* Duration picker (hidden by default) */}
                   {selectedStatus !== 'available' && (
                     <div
-                      id="availability-timer-options"
-                      className="mb-4"
+                      id="avail-duration-picker"
+                      className="mt-4 pt-1 space-y-3"
                     >
-                      <p className="text-[10px] text-[#8B8FA8] mb-2">¿Por cuánto tiempo?</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {TIMER_OPTIONS.map((option) => (
-                          <button
-                            key={String(option.value)}
-                            type="button"
-                            onClick={() => setSelectedMinutes(option.value)}
-                            className={[
-                              'text-[10px] px-2.5 py-1 rounded border transition',
-                              selectedMinutes === option.value
-                                ? 'bg-[#2E2E2B] border-[#8B8FA8] text-[#F0F0F5]'
-                                : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
-                            ].join(' ')}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
+                      <p className="text-[11px] text-[#8B8FA8]">¿Por cuánto tiempo?</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {TIMER_OPTIONS.map((option) => {
+                          const isMinutesActive = selectedMinutes === option.value
+                          return (
+                            <button
+                              key={String(option.value)}
+                              type="button"
+                              onClick={() => setSelectedMinutes(option.value)}
+                              className={[
+                                'avail-dur-btn px-3 py-1 rounded-full text-[10px] font-bold border transition',
+                                isMinutesActive
+                                  ? 'border-[#01A4E3] text-[#01A4E3] bg-[#01A4E3]/10'
+                                  : 'border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#01A4E3]',
+                              ].join(' ')}
+                            >
+                              {option.label}
+                            </button>
+                          )
+                        })}
                       </div>
 
-                      {/* Texto informativo */}
-                      <p id="availability-info-text" className="text-[10px] mt-2">
-                        {selectedMinutes !== null ? (
-                          <span className="text-[#00D4AA]">
-                            ✓ Volverás a Disponible automáticamente en {selectedMinutes} minutos
-                          </span>
-                        ) : (
-                          <span className="text-[#FFB84D]">
-                            ⚠️ Deberás activar tu disponibilidad manualmente cuando estés listo para atender
-                          </span>
-                        )}
-                      </p>
+                      <div className="flex items-center gap-3 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
+                          disabled={isSavingStatus}
+                          className="bg-[#01A4E3] hover:bg-[#0190C8] text-white px-4 py-2 rounded-lg text-xs font-bold transition disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          {isSavingStatus && (
+                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          )}
+                          Aplicar
+                        </button>
+                      </div>
                     </div>
                   )}
-
-                  {/* Botón Aplicar */}
-                  <button
-                    type="button"
-                    onClick={handleApplyStatus}
-                    disabled={isSavingStatus}
-                    className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-xs font-semibold py-2.5 rounded transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    {isSavingStatus && (
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    )}
-                    Aplicar
-                  </button>
                 </div>
 
               </div>

@@ -373,31 +373,19 @@ export default function ScheduleManager() {
     <>
       <div
         id="schedules-card"
-        className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 space-y-4"
+        className="bg-[#252522] border border-[#3A3A37] rounded-xl p-5"
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h3 className="text-sm font-semibold text-[#F0F0F5]">
-              Intervalos de Inactividad
-            </h3>
-            <p className="text-xs text-[#8B8FA8] mt-0.5">
-              El sistema te marcará como{' '}
-              <strong className="text-[#FFB84D]">En descanso</strong>{' '}
-              automáticamente durante estos intervalos
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowModal(true)}
-            className="shrink-0 text-xs px-3 py-1.5 border border-[#01A4E3] text-[#01A4E3] rounded hover:bg-[#01A4E3]/10 transition flex items-center gap-1.5"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Agregar intervalo
-          </button>
+        <div className="flex items-start justify-between mb-1">
+          <h3 className="text-sm font-bold text-white">
+            Intervalos de Inactividad
+          </h3>
         </div>
+        <p className="text-xs text-[#8B8FA8] mb-4">
+          El sistema te marcará automáticamente como{' '}
+          <strong className="text-[#FFB84D]">En descanso</strong>{' '}
+          durante estos intervalos
+        </p>
 
         {/* List */}
         {isLoading ? (
@@ -410,7 +398,7 @@ export default function ScheduleManager() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3" id="schedule-list">
             {schedules.map((schedule) => (
               <div
                 key={schedule.id}
@@ -454,14 +442,14 @@ export default function ScheduleManager() {
                     aria-checked={schedule.is_active}
                     onClick={() => handleToggle(schedule.id, !schedule.is_active)}
                     className={[
-                      'relative w-9 h-5 rounded-full transition-colors duration-200',
+                      'relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none',
                       schedule.is_active ? 'bg-[#01A4E3]' : 'bg-[#3A3A37]',
                     ].join(' ')}
                   >
                     <span
                       className={[
-                        'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200',
-                        schedule.is_active ? 'left-4' : 'left-0.5',
+                        'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
+                        schedule.is_active ? 'left-0.5 translate-x-4' : 'left-0.5 translate-x-0',
                       ].join(' ')}
                     />
                   </button>
@@ -482,6 +470,17 @@ export default function ScheduleManager() {
             ))}
           </div>
         )}
+
+        <button
+          type="button"
+          onClick={() => setShowModal(true)}
+          className="mt-4 flex items-center gap-2 px-4 py-2 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded-lg text-xs font-semibold transition"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Agregar intervalo
+        </button>
       </div>
 
       {/* Modals */}
