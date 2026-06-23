@@ -324,8 +324,9 @@ export default function ChatPage() {
   }
 
   function getChatVariant(): ChatVariant {
-    if (isDemo) return demoVariant
+    // Admin always in monitoring mode — no exceptions, not even for demo
     if (role === 'admin') return 'monitoring'
+    if (isDemo) return demoVariant
     if (!conversation) return 'unassigned'
     if (conversation.bot_activo) return 'bot'
     if (conversation.escalation?.advisor?.id === advisor?.id) return 'assigned'
@@ -428,12 +429,20 @@ export default function ChatPage() {
           />
         ) : (
           <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">
-            {(variant === 'unassigned' || variant === 'monitoring') && (
+            {variant === 'unassigned' && (
               <div
                 id="chat-banner-readonly"
                 className="p-2.5 bg-[#2E2E2B] text-center border border-[#3A3A37] rounded text-xs text-[#FFB84D] font-semibold"
               >
                 ⚠️ Modo de Solo Lectura • Debes tomar la conversación para responder.
+              </div>
+            )}
+            {variant === 'monitoring' && (
+              <div
+                id="chat-banner-monitoring"
+                className="p-2.5 bg-[#FFB84D]/5 text-center border border-[#FFB84D]/20 rounded text-xs text-[#FFB84D] font-semibold"
+              >
+                👁️ Modo Monitoreo • Vista de solo lectura para administradores.
               </div>
             )}
             {variant === 'bot' && (

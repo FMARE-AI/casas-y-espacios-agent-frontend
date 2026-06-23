@@ -7,6 +7,7 @@ interface ConversationCardProps {
   advisorActiveConversations: number
   onTake: (conversation: Conversation) => void
   onView: (conversationId: string) => void
+  isAdmin?: boolean
 }
 
 type CardVariant = 'A' | 'A2' | 'B' | 'C'
@@ -34,6 +35,7 @@ export function ConversationCard({
   advisorActiveConversations,
   onTake,
   onView,
+  isAdmin = false,
 }: ConversationCardProps) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -125,7 +127,9 @@ export function ConversationCard({
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
               Sin asignar
             </span>
-            {variant === 'A' ? (
+            {isAdmin ? (
+              <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] px-2.5 py-1 rounded text-[10px] font-semibold transition">Ver</button>
+            ) : variant === 'A' ? (
               <button onClick={() => onTake(conversation)} className="bg-[#01A4E3] hover:bg-[#0190C8] text-white px-3 py-1 rounded text-[10px] font-bold transition">Atender ya</button>
             ) : (
               <div className="relative group">

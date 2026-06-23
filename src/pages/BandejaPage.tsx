@@ -307,13 +307,14 @@ export default function BandejaPage() {
             <EmptyState />
           ) : (
             conversations.map(conv => (
-              <ConversationCard 
+              <ConversationCard
                 key={conv.id}
                 conversation={conv}
                 advisorMaxConversations={advisorMaxConv}
                 advisorActiveConversations={advisorActiveConv}
                 onTake={setTakeTarget}
                 onView={(id) => navigate(`/chat/${id}`)}
+                isAdmin={role === 'admin'}
               />
             ))
           )}
