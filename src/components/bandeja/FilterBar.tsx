@@ -1,7 +1,12 @@
-import type { Conversation } from '../../types'
+interface StatusCounts {
+  all: number
+  escaladas: number
+  activas: number
+  cerradas: number
+}
 
 interface FilterBarProps {
-  conversations: Conversation[]
+  statusCounts: StatusCounts
   activeStatus: string | null
   activeChannel: string | null
   onStatusChange: (status: string | null) => void
@@ -10,19 +15,14 @@ interface FilterBarProps {
 }
 
 export function FilterBar({
-  conversations,
+  statusCounts,
   activeStatus,
   activeChannel,
   onStatusChange,
   onChannelChange,
   onRefresh,
 }: FilterBarProps) {
-  const totals = {
-    all: conversations.length,
-    escaladas: conversations.filter(c => c.status === 'escalada').length,
-    activas: conversations.filter(c => c.status === 'activa').length,
-    cerradas: conversations.filter(c => c.status === 'cerrada').length,
-  }
+  const totals = statusCounts
 
   const btnBase = "px-3 py-1.5 rounded transition flex items-center gap-1.5"
   const btnActive = "bg-[#01A4E3] text-white font-semibold"
