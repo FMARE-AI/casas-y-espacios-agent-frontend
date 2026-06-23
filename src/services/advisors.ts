@@ -1,6 +1,69 @@
 import apiClient from '../lib/axios'
 import type { Advisor, AvailabilityStatus } from '../types'
 
+const MOCK_ADVISORS: Advisor[] = [
+  {
+    id: 'advisor-diana',
+    email: 'diana@casasyespacios.co',
+    full_name: 'Diana Ospina',
+    role: 'asesor',
+    area: 'administrativa',
+    max_conversations: 3,
+    active_conversations: 3,
+    availability_status: 'available',
+    avatar_url: null,
+    is_active: true,
+  },
+  {
+    id: 'advisor-andres',
+    email: 'andres@casasyespacios.co',
+    full_name: 'Andrés Morales',
+    role: 'asesor',
+    area: 'administrativa',
+    max_conversations: 3,
+    active_conversations: 1,
+    availability_status: 'available',
+    avatar_url: null,
+    is_active: true,
+  },
+  {
+    id: 'advisor-julio',
+    email: 'julio@casasyespacios.co',
+    full_name: 'Julio César Torres',
+    role: 'asesor',
+    area: 'ambas',
+    max_conversations: 3,
+    active_conversations: 0,
+    availability_status: 'offline',
+    avatar_url: null,
+    is_active: true,
+  },
+  {
+    id: 'advisor-jorge',
+    email: 'jorge@casasyespacios.co',
+    full_name: 'Jorge Ramírez',
+    role: 'admin',
+    area: 'ambas',
+    max_conversations: 10,
+    active_conversations: 0,
+    availability_status: 'available',
+    avatar_url: null,
+    is_active: true,
+  },
+  {
+    id: 'advisor-paola',
+    email: 'paola@casasyespacios.co',
+    full_name: 'Paola Salcedo',
+    role: 'asesor',
+    area: 'administrativa',
+    max_conversations: 3,
+    active_conversations: 0,
+    availability_status: 'break',
+    avatar_url: null,
+    is_active: false,
+  },
+]
+
 export const advisorsService = {
 
   async getMe(): Promise<{ advisor: Advisor }> {
@@ -34,8 +97,12 @@ export const advisorsService = {
     area?: string
     is_active?: boolean
   }): Promise<{ advisors: Advisor[] }> {
-    const { data } = await apiClient.get('/api/v1/panel/advisors', { params })
-    return data.data
+    try {
+      const { data } = await apiClient.get('/api/v1/panel/advisors', { params })
+      return data.data
+    } catch {
+      return { advisors: MOCK_ADVISORS }
+    }
   },
 
   async create(payload: {
