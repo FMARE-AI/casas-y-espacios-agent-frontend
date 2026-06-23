@@ -36,7 +36,7 @@ function channelLabel(channel: string): string {
 
 function TableSkeleton() {
   return (
-    <div className="max-w-5xl w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-hidden animate-pulse">
+    <div className="w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-hidden animate-pulse">
       <div className="h-10 bg-[#2E2E2B]/60 border-b border-[#3A3A37]" />
       {[0, 1, 2].map((i) => (
         <div key={i} className="flex gap-4 p-4 border-b border-[#3A3A37] last:border-0">
@@ -134,10 +134,10 @@ export default function HistorialPage() {
   return (
     <section
       id="screen-historial"
-      className="flex-1 flex flex-col items-start p-4 md:p-6 space-y-4"
+      className="flex-1 flex flex-col p-4 md:p-6 space-y-4"
     >
       {/* ── Header ── */}
-      <div className="max-w-5xl w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#3A3A37] pb-4">
+      <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#3A3A37] pb-4">
         <div>
           <h2 className="text-xl font-bold text-white">
             Historial de Conversaciones Cerradas
@@ -169,7 +169,7 @@ export default function HistorialPage() {
       </div>
 
       {/* ── Filter panel ── */}
-      <div className="max-w-5xl w-full bg-[#252522] p-4 border border-[#3A3A37] rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
+      <div className="w-full bg-[#252522] p-4 border border-[#3A3A37] rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
         <div className="relative sm:col-span-2">
           <input
             id="history-search-input"
@@ -221,7 +221,7 @@ export default function HistorialPage() {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <div className="max-w-5xl w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-x-auto">
+        <div className="w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-x-auto">
           <table
             id="history-table"
             className="w-full text-left text-xs text-[#F0F0F5]"
