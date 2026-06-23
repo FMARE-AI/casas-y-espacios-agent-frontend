@@ -3,6 +3,7 @@ import type { Conversation } from '../../types'
 
 interface ConversationCardProps {
   conversation: Conversation
+  currentAdvisorId: string
   advisorMaxConversations: number
   advisorActiveConversations: number
   onTake: (conversation: Conversation) => void
@@ -31,6 +32,7 @@ function getVariant(conversation: Conversation, now: number): CardVariant {
 
 export function ConversationCard({
   conversation,
+  currentAdvisorId,
   advisorMaxConversations,
   advisorActiveConversations,
   onTake,
@@ -94,6 +96,10 @@ export function ConversationCard({
 
   const clientName = conversation.client?.full_name || 'Desconocido'
   const isAtLimit = advisorActiveConversations >= advisorMaxConversations
+  const isAssignedToMe =
+    !isAdmin &&
+    currentAdvisorId !== '' &&
+    conversation.escalation?.advisor?.id === currentAdvisorId
 
   return (
     <div className={`bg-[#252522] border border-[#3A3A37] rounded-r-lg p-3 flex flex-col justify-between transition ${containerStyles[variant]}`}>
@@ -105,6 +111,11 @@ export function ConversationCard({
             </span>
             <span className="bg-[#2E2E2B] text-[#F0F0F5] text-[8px] px-1.5 py-0.5 rounded font-semibold">{conversation.client?.client_type || 'Desconocido'}</span>
             <span className="bg-[#2E2E2B] text-[#01A4E3] text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase">{conversation.channel || 'Desconocido'}</span>
+            {isAssignedToMe && (
+              <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#01A4E3]/15 text-[#01A4E3] border border-[#01A4E3]/20 font-semibold">
+                Asignada a ti
+              </span>
+            )}
           </div>
           {renderTopRight()}
         </div>

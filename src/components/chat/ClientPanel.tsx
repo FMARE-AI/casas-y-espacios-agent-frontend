@@ -10,6 +10,7 @@ interface ClientPanelProps {
   isTaking: boolean
   isReturning: boolean
   onClose?: () => void
+  onCloseConversation?: () => void
 }
 
 function getInitials(name: string | null | undefined): string {
@@ -25,6 +26,7 @@ export default function ClientPanel({
   isTaking,
   isReturning,
   onClose,
+  onCloseConversation,
 }: ClientPanelProps) {
   const { client, escalation } = conversation
 
@@ -150,21 +152,30 @@ export default function ClientPanel({
         )}
 
         {variant === 'assigned' && (
-          <button
-            type="button"
-            onClick={onReturnBot}
-            disabled={isReturning}
-            className="w-full bg-[#FF5B5B]/10 hover:bg-[#FF5B5B]/20 border border-[#FF5B5B]/30 hover:border-[#FF5B5B] text-[#FF5B5B] py-3 px-3 h-12 rounded text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95"
-          >
-            {isReturning ? (
-              <div className="w-4 h-4 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            )}
-            <span>Devolver al Bot</span>
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={onReturnBot}
+              disabled={isReturning}
+              className="w-full bg-[#FF5B5B]/10 hover:bg-[#FF5B5B]/20 border border-[#FF5B5B]/30 hover:border-[#FF5B5B] text-[#FF5B5B] py-3 px-3 h-12 rounded text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95"
+            >
+              {isReturning ? (
+                <div className="w-4 h-4 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              )}
+              <span>Devolver al Bot</span>
+            </button>
+            <button
+              type="button"
+              onClick={onCloseConversation}
+              className="w-full h-12 border border-[#FF5B5B]/20 text-[#FF5B5B]/60 text-xs font-semibold rounded hover:border-[#FF5B5B]/40 hover:text-[#FF5B5B] transition mt-2"
+            >
+              Cerrar conversación
+            </button>
+          </>
         )}
       </div>
     </aside>

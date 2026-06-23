@@ -25,16 +25,16 @@ export default function ProtectedRoute({ requiredRole }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-[#1D1D1B] flex">
+    <div className="h-screen overflow-hidden bg-[#1D1D1B] flex">
       <Sidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <MobileHeader onOpenSidebar={() => setMobileOpen(true)} />
         <WSDisconnectedBanner onReconnect={reconnect} />
-        <main className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
           <Outlet />
         </main>
       </div>

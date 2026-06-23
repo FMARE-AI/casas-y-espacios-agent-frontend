@@ -14,6 +14,17 @@ import type { Conversation } from '../types'
 // intent exists in the backend response but is not yet declared in types/index.ts
 type ConvRow = Conversation & { intent?: string }
 
+const RESOLUTION_LABELS: Record<string, string> = {
+  consulta_cartera_resuelta:       'Cartera resuelta',
+  pago_acordado:                   'Pago acordado',
+  orden_mantenimiento_creada:      'Mantenimiento creado',
+  queja_pqrs_registrada:           'PQRS registrada',
+  informacion_contrato_entregada:  'Info contrato',
+  derivado_otro_canal:             'Derivado',
+  sin_respuesta_cliente:           'Sin respuesta',
+  otro:                            'Otro',
+}
+
 // ── Helpers ───────────────────────────────────────────────
 
 function formatClosedDate(iso: string): string {
@@ -270,11 +281,29 @@ export default function HistorialPage() {
                     <td className="p-4 text-[#8B8FA8] whitespace-nowrap">
                       {formatClosedDate(conv.last_activity)}
                     </td>
-                    <td className="p-4 italic text-zinc-300 max-w-[200px] truncate">
-                      {conv.intent ?? '—'}
+                    <td className="p-4 max-w-[200px]">
+                      <span className="text-xs text-[#8B8FA8] italic">
+                        {conv.resolution_type
+                          ? (RESOLUTION_LABELS[conv.resolution_type] ?? conv.resolution_type)
+                          : (conv.intent ?? '—')}
+                      </span>
+                      {conv.resolution_notes && (
+                        <p
+                          className="text-[10px] text-[#8B8FA8]/60 mt-0.5 truncate max-w-[200px]"
+                          title={conv.resolution_notes}
+                        >
+                          {conv.resolution_notes}
+                        </p>
+                      )}
                     </td>
-                    <td className="p-4 text-[#00D4AA] font-bold whitespace-nowrap">
-                      {conv.escalation?.advisor?.full_name ?? 'Bot'}
+                    <td className="p-4 font-bold whitespace-nowrap">
+                      {conv.closed_by === 'bot' ? (
+                        <span className="text-[#00D4AA] text-xs">Bot</span>
+                      ) : (
+                        <span className="text-[#F0F0F5] text-xs">
+                          {conv.escalation?.advisor?.full_name ?? '—'}
+                        </span>
+                      )}
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
                       <button
