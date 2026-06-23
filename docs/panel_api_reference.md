@@ -613,13 +613,43 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
 
 **Auth required:** Yes (assigned advisor or admin)
 
-**Description:** Closes the conversation permanently. Sets `status = "cerrada"`, `bot_activo = false`, and `closed_at = now()`. Resolves any active escalation. No request body.
+**Description:** Closes the conversation permanently and records how it was resolved. Sets `status = "cerrada"`, `bot_activo = false`, `closed_by = "asesor"`, and `closed_at = now()`. Resolves any active escalation. The request body is optional — omitting it applies the defaults (`resolution_type = "otro"`, `client_satisfied = "sin_confirmar"`).
 
 **Path params:**
 
 | Param             | Type            | Description               |
 | ----------------- | --------------- | ------------------------- |
 | `conversation_id` | `string` (UUID) | The conversation to close |
+
+**Request body (all fields optional):**
+
+```json
+{
+  "resolution_type": "consulta_cartera_resuelta",
+  "resolution_notes": "El propietario confirmó recibo del estado de cuenta.",
+  "client_satisfied": "si"
+}
+```
+
+| Field              | Type               | Default           | Constraints                                                 |
+| ------------------ | ------------------ | ----------------- | ----------------------------------------------------------- |
+| `resolution_type`  | `string`           | `"otro"`          | Must be one of the `ResolutionType` enum values (see below) |
+| `resolution_notes` | `string` or `null` | `null`            | Optional, max 1000 characters                               |
+| `client_satisfied` | `string`           | `"sin_confirmar"` | `"si"`, `"no"`, or `"sin_confirmar"`                        |
+
+**`resolution_type` allowed values:**
+
+| Value                            | When to use                                        |
+| -------------------------------- | -------------------------------------------------- |
+| `consulta_cartera_resuelta`      | Cartera/balance inquiry answered satisfactorily    |
+| `pago_acordado`                  | Payment agreement reached with the owner           |
+| `orden_mantenimiento_creada`     | Maintenance work order created in SIMI             |
+| `queja_pqrs_registrada`          | Complaint or PQR formally registered               |
+| `informacion_contrato_entregada` | Lease or contract information delivered            |
+| `derivado_otro_canal`            | Client redirected to another channel or department |
+| `sin_respuesta_cliente`          | Client stopped responding                          |
+| `consulta_resuelta_confirmada`   | Client explicitly confirmed the issue is resolved  |
+| `otro`                           | Default. Use when no other type fits               |
 
 **Response 200:**
 
@@ -628,7 +658,12 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
   "data": {
     "conversation": {
       "id": "550e8400-e29b-41d4-a716-446655440010",
-      "status": "cerrada"
+      "status": "cerrada",
+      "resolution_type": "consulta_cartera_resuelta",
+      "resolution_notes": "El propietario confirmó recibo del estado de cuenta.",
+      "client_satisfied": "si",
+      "closed_by": "asesor",
+      "closed_at": "2026-06-23T14:30:00+00:00"
     }
   }
 }
@@ -636,13 +671,20 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
 
 **Errors:**
 
-| HTTP | ErrorCode                | When                                          |
-| ---- | ------------------------ | --------------------------------------------- |
-| 401  | `INVALID_TOKEN`          | Missing or invalid JWT                        |
-| 403  | `ADVISOR_INACTIVE`       | Advisor account is deactivated                |
-| 403  | `NOT_ASSIGNED`           | Non-admin advisor is not the assigned advisor |
-| 404  | `CONVERSATION_NOT_FOUND` | No conversation with the given ID             |
-| 409  | `ALREADY_CLOSED`         | Conversation status is already `cerrada`      |
+| HTTP | ErrorCode                | When                                                              |
+| ---- | ------------------------ | ----------------------------------------------------------------- |
+| 400  | `INVALID_STATUS`         | `resolution_type` or `client_satisfied` has an unrecognized value |
+| 401  | `INVALID_TOKEN`          | Missing or invalid JWT                                            |
+| 403  | `ADVISOR_INACTIVE`       | Advisor account is deactivated                                    |
+| 403  | `NOT_ASSIGNED`           | Non-admin advisor is not the assigned advisor                     |
+| 404  | `CONVERSATION_NOT_FOUND` | No conversation with the given ID                                 |
+| 409  | `ALREADY_CLOSED`         | Conversation status is already `cerrada`                          |
+| 422  | _(Pydantic)_             | `resolution_notes` exceeds 1000 characters                        |
+
+**Notes:**
+
+- `closed_by` is always set to `"asesor"` by this endpoint. Bot-initiated closure is handled by the inactivity job and sets `"bot"`.
+- `resolution_notes` accepts `null` — sending `null` or omitting the field stores `NULL` in the database.
 
 **WebSocket events emitted:**
 
@@ -1490,7 +1532,10 @@ Emitted to **all connected advisors** when an advisor closes a conversation via 
   "data": {
     "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
     "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
-    "advisor_name": "Ana Gómez"
+    "advisor_name": "Ana Gómez",
+    "resolution_type": "consulta_cartera_resuelta",
+    "closed_by": "asesor",
+    "closed_at": "2026-06-23T14:30:00+00:00"
   }
 }
 ```
@@ -1779,10 +1824,28 @@ const response = await fetch(
 **Closing:**
 
 ```javascript
+// With full resolution data (from the modal)
+const response = await fetch(
+  `/api/v1/panel/conversations/${conversationId}/close`,
+  {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({
+      resolution_type: "consulta_cartera_resuelta",
+      resolution_notes: "El propietario confirmó recibo.",
+      client_satisfied: "si",
+    }),
+  },
+).then((r) => r.json());
+
+// Without body — applies defaults (resolution_type: "otro", client_satisfied: "sin_confirmar")
 const response = await fetch(
   `/api/v1/panel/conversations/${conversationId}/close`,
   { method: "PATCH", headers },
 ).then((r) => r.json());
+
+// response.data.conversation includes: status, resolution_type, resolution_notes,
+// client_satisfied, closed_by, closed_at
 ```
 
 ---
