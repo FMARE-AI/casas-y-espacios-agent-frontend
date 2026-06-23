@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type UseFormRegisterReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
@@ -9,7 +9,7 @@ import { supabase } from '../lib/supabase'
 import type { Advisor, AdvisorRole, AvailabilityStatus } from '../types'
 import ScheduleManager from '../components/perfil/ScheduleManager'
 
-const STORAGE_BUCKET = import.meta.env.VITE_SUPABAS_BUCKET_NAME as string
+const STORAGE_BUCKET = (import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || import.meta.env.VITE_SUPABASE_BUCKET_NAME || 'advisors-avatars') as string
 
 // ── Schema contraseña ─────────────────────────────────────
 
@@ -185,7 +185,7 @@ function ProfileSkeleton() {
 interface PasswordInputProps {
   id: string
   label: string
-  register: any
+  register: UseFormRegisterReturn
   error?: string
   placeholder?: string
 }
@@ -415,7 +415,7 @@ export default function PerfilPage() {
   return (
     <section
       id="screen-perfil"
-      className="flex-1 flex flex-col items-start p-4 md:p-6 space-y-6 w-full"
+      className="flex-1 flex flex-col p-4 md:p-6 space-y-6 w-full overflow-y-auto"
     >
       <div className="max-w-4xl w-full space-y-6 mx-auto">
         <h2 className="text-xl font-bold text-white tracking-tight">Mi Perfil Profesional</h2>
