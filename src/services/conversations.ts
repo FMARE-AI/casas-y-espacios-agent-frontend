@@ -761,4 +761,26 @@ export const conversationsService = {
     )
     return data.data
   },
+
+  async close(
+    id: string,
+    payload: { resolution_type: string; resolution_notes: string | null; client_satisfied: string }
+  ): Promise<object> {
+    if (id === 'demo' || id.startsWith('conv-')) {
+      const conv = MOCK_CONVERSATIONS.find(c => c.id === id)
+      if (conv) {
+        conv.status = 'cerrada'
+        conv.bot_activo = false
+        conv.resolution_type = payload.resolution_type
+        conv.resolution_notes = payload.resolution_notes
+        conv.closed_by = 'advisor'
+      }
+      return {}
+    }
+    const { data } = await apiClient.patch(
+      `/api/v1/panel/conversations/${id}/close`,
+      payload
+    )
+    return data.data
+  },
 }

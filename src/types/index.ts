@@ -75,6 +75,9 @@ export interface Conversation {
   last_activity: string
   client: Client
   escalation: Escalation | null
+  resolution_type?: string | null
+  resolution_notes?: string | null
+  closed_by?: 'bot' | 'advisor' | null
 }
 
 export interface BehaviorAlert {

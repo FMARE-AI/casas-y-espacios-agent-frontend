@@ -134,7 +134,7 @@ export default function MessageFeed({
       ref={feedRef}
       id="chat-message-feed"
       onScroll={handleScroll}
-      className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col h-[55vh] md:h-[calc(100vh-280px)]"
+      className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col min-h-0"
     >
       {isLoading ? (
         <ChatSkeleton />
