@@ -4,7 +4,6 @@ import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import type {
   WSEscalationNew,
-  WSEvent,
   WSAdvisorStatusChanged,
   WSBehaviorAlert,
   Message,
@@ -22,9 +21,6 @@ interface WSHandlers {
 
 const _handlers: WSHandlers = {}
 
-let socket: WebSocket | null = null
-let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
-let isConnecting = false
 
 /**
  * Plays a pleasant double chime notification sound using the Web Audio API.
@@ -73,11 +69,7 @@ export function playNotificationSound() {
 export function useWebSocket(handlers?: WSHandlers) {
   const { token: accessToken } = useAuthStore()
 
-  // Destructure individual slices to keep useEffect dependencies stable
   const setStatus = useWSStore((s) => s.setStatus)
-  const setReconnectAttempt = useWSStore((s) => s.setReconnectAttempt)
-  const setPendingEscalation = useWSStore((s) => s.setPendingEscalation)
-  const incrementAlerts = useWSStore((s) => s.incrementAlerts)
 
   // Register and clean up handlers
   useEffect(() => {
@@ -113,50 +105,6 @@ export function useWebSocket(handlers?: WSHandlers) {
       }
     }
   }, [handlers])
-
-  const handleEvent = useCallback((event: string, data: unknown) => {
-    switch (event) {
-      case 'escalation.new': {
-        playNotificationSound()
-        const payload = data as WSEscalationNew
-        setPendingEscalation({
-          clientName: payload.client_name,
-          reason: payload.reason,
-          conversationId: payload.conversation_id,
-        })
-        _handlers.onEscalationNew?.(payload)
-        break
-      }
-      case 'escalation.assigned': {
-        const payload = data as { conversation_id: string; advisor_id: string }
-        _handlers.onEscalationAssigned?.(payload)
-        break
-      }
-      case 'message.new': {
-        const payload = data as { conversation_id: string; message: Message }
-        _handlers.onMessageNew?.(payload)
-        break
-      }
-      case 'conversation.returned': {
-        const payload = data as { conversation_id: string }
-        _handlers.onConversationReturned?.(payload)
-        break
-      }
-      case 'advisor.status_changed': {
-        const payload = data as WSAdvisorStatusChanged
-        _handlers.onAdvisorStatusChanged?.(payload)
-        break
-      }
-      case 'behavior.alert': {
-        incrementAlerts()
-        const payload = data as WSBehaviorAlert
-        _handlers.onBehaviorAlert?.(payload)
-        break
-      }
-      default:
-        break
-    }
-  }, [setPendingEscalation, incrementAlerts])
 
   // TODO: integrate WebSocket /ws?token=
   useEffect(() => {

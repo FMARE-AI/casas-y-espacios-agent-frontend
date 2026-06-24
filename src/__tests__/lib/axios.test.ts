@@ -16,18 +16,6 @@ function resetStore(): void {
   localStorage.clear()
 }
 
-function mockAdapter(overrides: Partial<AxiosResponse> = {}) {
-  return async (config: Parameters<typeof apiClient.defaults.adapter extends undefined ? never : NonNullable<typeof apiClient.defaults.adapter>>[0]) =>
-    ({
-      data: {},
-      status: 200,
-      statusText: 'OK',
-      headers: {},
-      config,
-      ...overrides,
-    } as AxiosResponse)
-}
-
 describe('axios interceptors', () => {
   let dispatchEventSpy: ReturnType<typeof vi.spyOn>
   let originalAdapter: typeof apiClient.defaults.adapter
@@ -74,13 +62,9 @@ describe('axios interceptors', () => {
   describe('response interceptor', () => {
     it('dispatches session-expired CustomEvent on 401 response', async () => {
       apiClient.defaults.adapter = async () => {
-        throw new axios.AxiosError(
-          'Unauthorized',
-          axios.AxiosError.ERR_BAD_REQUEST,
-          undefined,
-          undefined,
-          { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} } as AxiosResponse,
-        )
+        const err = new axios.AxiosError('Unauthorized')
+        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} as never }
+        throw err
       }
 
       try { await apiClient.get('/test') } catch { /* expected */ }
@@ -92,13 +76,9 @@ describe('axios interceptors', () => {
 
     it('does NOT dispatch event on non-401 errors', async () => {
       apiClient.defaults.adapter = async () => {
-        throw new axios.AxiosError(
-          'Internal Server Error',
-          axios.AxiosError.ERR_BAD_RESPONSE,
-          undefined,
-          undefined,
-          { status: 500, statusText: 'Internal Server Error', data: {}, headers: {}, config: {} } as AxiosResponse,
-        )
+        const err = new axios.AxiosError('Server Error')
+        err.response = { status: 500, statusText: 'Internal Server Error', data: {}, headers: {}, config: {} as never }
+        throw err
       }
 
       try { await apiClient.get('/test') } catch { /* expected */ }
@@ -111,13 +91,9 @@ describe('axios interceptors', () => {
 
     it('still rejects the promise on 401 (does not swallow errors)', async () => {
       apiClient.defaults.adapter = async () => {
-        throw new axios.AxiosError(
-          'Unauthorized',
-          axios.AxiosError.ERR_BAD_REQUEST,
-          undefined,
-          undefined,
-          { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} } as AxiosResponse,
-        )
+        const err = new axios.AxiosError('Unauthorized')
+        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} as never }
+        throw err
       }
 
       await expect(apiClient.get('/test')).rejects.toThrow()

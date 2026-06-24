@@ -331,7 +331,7 @@ export default function ScheduleManager() {
   async function handleDelete(id: string) {
     setIsDeleting(true)
     try {
-      await schedulesService.delete(id)
+      await schedulesService.remove(id)
       setSchedules((prev) => prev.filter((s) => s.id !== id))
       setDeletingId(null)
     } catch {

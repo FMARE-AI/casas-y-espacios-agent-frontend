@@ -14,7 +14,6 @@ specs/
 # Dev tooling
 .nvmrc
 eslint.config.js
-tsconfig.node.json
 
 # Build artifacts & deps (Vercel manages these)
 node_modules/

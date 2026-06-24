@@ -40,7 +40,6 @@ function makeAdvisor(overrides: Partial<Advisor> = {}): Advisor {
     full_name: 'Ana Gómez',
     role: 'asesor',
     area: 'administrativa',
-    specialty: null,
     max_conversations: 3,
     active_conversations: 0,
     availability_status: 'available',
