@@ -27,78 +27,6 @@ const SEVERITY_STYLES: Record<AlertSeverity, string> = {
   baja: 'bg-[#8B8FA8]/15 text-[#8B8FA8]',
 }
 
-const MOCK_ALERTS: BehaviorAlert[] = [
-  {
-    id: 'mock-alert-1',
-    advisor: {
-      id: 'mock-advisor-1',
-      email: 'carlos@mail.com',
-      full_name: 'Carlos Rueda',
-      role: 'asesor',
-      area: 'administrativa',
-      max_conversations: 3,
-      active_conversations: 1,
-      availability_status: 'available',
-      is_active: true,
-      avatar_url: null,
-    },
-    conversation_id: 'conv-demo',
-    message_content: 'Eso es un problema suyo, no mío. Busque otro asesor.',
-    alert_type: 'tono_agresivo',
-    severity: 'alta',
-    detected_at: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    reviewed: false,
-    reviewed_by: null,
-    reviewed_at: null,
-  },
-  {
-    id: 'mock-alert-2',
-    advisor: {
-      id: 'mock-advisor-2',
-      email: 'laura@mail.com',
-      full_name: 'Laura Gómez',
-      role: 'asesor',
-      area: 'comercial',
-      max_conversations: 3,
-      active_conversations: 2,
-      availability_status: 'available',
-      is_active: true,
-      avatar_url: null,
-    },
-    conversation_id: 'conv-demo-2',
-    message_content: 'No sé por qué me escribe si no va a comprar nada de todas formas.',
-    alert_type: 'lenguaje_inapropiado',
-    severity: 'media',
-    detected_at: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    reviewed: false,
-    reviewed_by: null,
-    reviewed_at: null,
-  },
-  {
-    id: 'mock-alert-3',
-    advisor: {
-      id: 'mock-advisor-3',
-      email: 'pedro@mail.com',
-      full_name: 'Pedro Vargas',
-      role: 'asesor',
-      area: 'ambas',
-      max_conversations: 3,
-      active_conversations: 0,
-      availability_status: 'break',
-      is_active: true,
-      avatar_url: null,
-    },
-    conversation_id: 'conv-demo-3',
-    message_content: 'Haga lo que quiera, igual no importa.',
-    alert_type: 'comportamiento_inadecuado',
-    severity: 'baja',
-    detected_at: new Date(Date.now() - 1000 * 60 * 60 * 26).toISOString(),
-    reviewed: false,
-    reviewed_by: null,
-    reviewed_at: null,
-  },
-]
-
 // ── Helpers ───────────────────────────────────────────────
 
 function getInitials(name: string): string {
@@ -169,7 +97,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
       const result = await alertsService.list({ reviewed: false, limit: 50 })
       setAlerts(result.alerts)
     } catch {
-      if (!silent) setAlerts(MOCK_ALERTS)
+      if (!silent) setAlerts([])
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)

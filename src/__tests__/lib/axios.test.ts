@@ -1,9 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
-import axios from 'axios'
+import axios, { type AxiosResponse } from 'axios'
 import { useAuthStore } from '../../store/authStore'
 import apiClient from '../../lib/axios'
-
-// ── Helpers ────────────────────────────────────────────────
 
 function resetStore(): void {
   useAuthStore.setState({
@@ -18,7 +16,17 @@ function resetStore(): void {
   localStorage.clear()
 }
 
-// ── Tests ──────────────────────────────────────────────────
+function mockAdapter(overrides: Partial<AxiosResponse> = {}) {
+  return async (config: Parameters<typeof apiClient.defaults.adapter extends undefined ? never : NonNullable<typeof apiClient.defaults.adapter>>[0]) =>
+    ({
+      data: {},
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config,
+      ...overrides,
+    } as AxiosResponse)
+}
 
 describe('axios interceptors', () => {
   let dispatchEventSpy: ReturnType<typeof vi.spyOn>
@@ -35,17 +43,14 @@ describe('axios interceptors', () => {
     dispatchEventSpy.mockRestore()
   })
 
-  // ── Request interceptor ──
-
   describe('request interceptor', () => {
     it('adds Authorization header when token exists in store', async () => {
       useAuthStore.getState().setToken('my-jwt-token')
 
       let capturedAuthHeader: string | undefined
-
       apiClient.defaults.adapter = async (config) => {
         capturedAuthHeader = config.headers?.Authorization as string | undefined
-        return { data: {}, status: 200, statusText: 'OK', headers: {}, config }
+        return { data: {}, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse
       }
 
       await apiClient.get('/test')
@@ -55,10 +60,9 @@ describe('axios interceptors', () => {
 
     it('does NOT add Authorization header when token is null', async () => {
       let capturedAuthHeader: string | undefined
-
       apiClient.defaults.adapter = async (config) => {
         capturedAuthHeader = config.headers?.Authorization as string | undefined
-        return { data: {}, status: 200, statusText: 'OK', headers: {}, config }
+        return { data: {}, status: 200, statusText: 'OK', headers: {}, config } as AxiosResponse
       }
 
       await apiClient.get('/test')
@@ -67,16 +71,16 @@ describe('axios interceptors', () => {
     })
   })
 
-  // ── Response interceptor ──
-
   describe('response interceptor', () => {
     it('dispatches session-expired CustomEvent on 401 response', async () => {
       apiClient.defaults.adapter = async () => {
-        const error = new axios.AxiosError(
-          'Unauthorized', '401', undefined, undefined,
-          { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} as never }
+        throw new axios.AxiosError(
+          'Unauthorized',
+          axios.AxiosError.ERR_BAD_REQUEST,
+          undefined,
+          undefined,
+          { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} } as AxiosResponse,
         )
-        throw error
       }
 
       try { await apiClient.get('/test') } catch { /* expected */ }
@@ -88,28 +92,32 @@ describe('axios interceptors', () => {
 
     it('does NOT dispatch event on non-401 errors', async () => {
       apiClient.defaults.adapter = async () => {
-        const error = new axios.AxiosError(
-          'Internal Server Error', '500', undefined, undefined,
-          { status: 500, statusText: 'Internal Server Error', data: {}, headers: {}, config: {} as never }
+        throw new axios.AxiosError(
+          'Internal Server Error',
+          axios.AxiosError.ERR_BAD_RESPONSE,
+          undefined,
+          undefined,
+          { status: 500, statusText: 'Internal Server Error', data: {}, headers: {}, config: {} } as AxiosResponse,
         )
-        throw error
       }
 
       try { await apiClient.get('/test') } catch { /* expected */ }
 
-      const sessionExpiredCalls = (dispatchEventSpy as Mock).mock.calls.filter(
+      const calls = (dispatchEventSpy as Mock).mock.calls.filter(
         ([event]: [Event]) => event instanceof CustomEvent && event.type === 'session-expired'
       )
-      expect(sessionExpiredCalls).toHaveLength(0)
+      expect(calls).toHaveLength(0)
     })
 
     it('still rejects the promise on 401 (does not swallow errors)', async () => {
       apiClient.defaults.adapter = async () => {
-        const error = new axios.AxiosError(
-          'Unauthorized', '401', undefined, undefined,
-          { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} as never }
+        throw new axios.AxiosError(
+          'Unauthorized',
+          axios.AxiosError.ERR_BAD_REQUEST,
+          undefined,
+          undefined,
+          { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} } as AxiosResponse,
         )
-        throw error
       }
 
       await expect(apiClient.get('/test')).rejects.toThrow()
