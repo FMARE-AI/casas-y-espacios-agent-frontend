@@ -13,6 +13,7 @@ Panel web interno para el equipo de una inmobiliaria colombiana. Permite a los a
 
 ---
 
+
 ## Prerrequisitos
 
 - Node.js `>=20.19.0` (ver `.nvmrc`)
