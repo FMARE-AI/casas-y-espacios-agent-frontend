@@ -13,9 +13,8 @@ const schema = z.object({
 type LoginFormData = z.infer<typeof schema>
 
 export function LoginPage() {
-  const { signIn } = useAuth()
+  const { signIn, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
-  const [showError, setShowError] = useState(false)
 
   const {
     register,
@@ -24,13 +23,7 @@ export function LoginPage() {
   } = useForm<LoginFormData>({ resolver: zodResolver(schema) })
 
   const onSubmit = async (data: LoginFormData) => {
-    try {
-      setShowError(false)
-      await signIn(data.email, data.password)
-    } catch (err) {
-      console.error('[LoginPage] Supabase error:', err)
-      setShowError(true)
-    }
+    await signIn(data.email, data.password)
   }
 
   return (
@@ -178,7 +171,7 @@ export function LoginPage() {
             </div>
 
             {/* Error banner */}
-            {showError && (
+            {error && (
               <div
                 className="rounded-lg p-3.5 flex items-start gap-3 border"
                 style={{ background: 'rgba(255,91,91,0.08)', borderColor: 'rgba(255,91,91,0.4)' }}
@@ -187,8 +180,8 @@ export function LoginPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div className="text-xs leading-relaxed">
-                  <span className="font-semibold text-white block">Error de Credenciales</span>
-                  <span className="text-[#8B8FA8]">El usuario o contraseña ingresados no pertenecen a la organización.</span>
+                  <span className="font-semibold text-white block">Error al iniciar sesión</span>
+                  <span className="text-[#8B8FA8]">{error}</span>
                 </div>
               </div>
             )}

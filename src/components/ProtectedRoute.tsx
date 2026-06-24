@@ -11,7 +11,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole,
   children,
 }) => {
-  const { session, role, isLoading } = useAuthStore()
+  const { token, role, isLoading } = useAuthStore()
 
   if (isLoading) {
     return (
@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     )
   }
 
-  if (!session) {
+  if (!token) {
     return <Navigate to="/login" replace />
   }
 

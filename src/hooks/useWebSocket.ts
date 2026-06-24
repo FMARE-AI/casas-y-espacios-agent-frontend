@@ -71,15 +71,13 @@ export function playNotificationSound() {
 }
 
 export function useWebSocket(handlers?: WSHandlers) {
-  const { session } = useAuthStore()
+  const { token: accessToken } = useAuthStore()
 
   // Destructure individual slices to keep useEffect dependencies stable
   const setStatus = useWSStore((s) => s.setStatus)
   const setReconnectAttempt = useWSStore((s) => s.setReconnectAttempt)
   const setPendingEscalation = useWSStore((s) => s.setPendingEscalation)
   const incrementAlerts = useWSStore((s) => s.incrementAlerts)
-
-  const accessToken = session?.access_token
 
   // Register and clean up handlers
   useEffect(() => {
@@ -238,7 +236,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (reconnectTimeout) clearTimeout(reconnectTimeout)
       isConnecting = false
       const rawUrl = import.meta.env.VITE_WS_BASE_URL || 'wss://casasyespaciosagent.up.railway.app/api/v1/panel/ws?token={jwt}'
-      const token = useAuthStore.getState().session?.access_token
+      const token = useAuthStore.getState().token
       if (token) {
         const url = rawUrl.replace('{jwt}', token)
         try {
