@@ -101,8 +101,8 @@ export function FilterBar({
           className="bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded px-2.5 py-1.5 w-full sm:w-44 focus:border-[#01A4E3] outline-none"
         >
           <option value="">Todos los Canales</option>
-          <option value="Administrativa">Administrativa</option>
-          <option value="Comercial">Comercial</option>
+          <option value="administrativa">Administrativa</option>
+          <option value="comercial">Comercial</option>
         </select>
         <button
           onClick={onRefresh}

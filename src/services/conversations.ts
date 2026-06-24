@@ -1,3 +1,4 @@
+import apiClient from '../lib/axios'
 import type { PaginatedConversations, PaginatedMessages, Message, Conversation } from '../types'
 
 type ConversationListParams = { status?: string; channel?: string; limit?: number; offset?: number }
@@ -6,8 +7,9 @@ type CloseConversationData = { resolution_type?: string; resolution_notes?: stri
 
 export const conversationsService = {
 
-  async list(_params?: ConversationListParams): Promise<PaginatedConversations> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 3')
+  async list(params?: ConversationListParams): Promise<PaginatedConversations> {
+    const { data } = await apiClient.get('/api/v1/panel/conversations/', { params })
+    return data.data
   },
 
   async getById(_id: string): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {

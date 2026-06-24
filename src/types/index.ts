@@ -66,6 +66,7 @@ export interface Escalation {
   summary: string | null
   escalated_at: string
   advisor: Advisor | null
+  wait_seconds?: number | null
 }
 
 export interface Conversation {
@@ -101,6 +102,16 @@ export interface AdvisorSchedule {
   end_time: string
   days_of_week: number[]
   is_active: boolean
+}
+
+export interface DashboardMetrics {
+  activas: number
+  escaladas: number
+  en_atencion: number
+  tiempo_promedio_min: number
+  bot_ok_pct: number
+  capacidad_actual: number
+  capacidad_total: number
 }
 
 // ── API RESPONSES ─────────────────────────────────────────
