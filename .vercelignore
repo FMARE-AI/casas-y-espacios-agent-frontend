@@ -1,0 +1,24 @@
+# Development docs
+docs/
+specs/
+
+# Markdown files
+*.md
+!README.md
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Dev tooling
+.nvmrc
+eslint.config.js
+tsconfig.node.json
+
+# Build artifacts & deps (Vercel manages these)
+node_modules/
+dist/
+
+# Git
+.git/
