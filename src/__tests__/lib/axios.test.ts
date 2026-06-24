@@ -84,7 +84,7 @@ describe('axios interceptors', () => {
       try { await apiClient.get('/test') } catch { /* expected */ }
 
       const calls = (dispatchEventSpy as Mock).mock.calls.filter(
-        ([event]: [Event]) => event instanceof CustomEvent && event.type === 'session-expired'
+        (args: unknown[]) => args[0] instanceof CustomEvent && (args[0] as CustomEvent).type === 'session-expired'
       )
       expect(calls).toHaveLength(0)
     })
