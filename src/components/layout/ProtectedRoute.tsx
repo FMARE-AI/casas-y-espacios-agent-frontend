@@ -14,11 +14,11 @@ interface Props {
 }
 
 export default function ProtectedRoute({ requiredRole }: Props) {
-  const { session, role, isFirstLogin, sessionExpired } = useAuthStore()
+  const { token, role, isFirstLogin, sessionExpired } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { reconnect } = useWebSocket()
 
-  if (!session) return <Navigate to="/login" replace />
+  if (!token) return <Navigate to="/login" replace />
   if (isFirstLogin) return <Navigate to="/first-login" replace />
   if (requiredRole && role !== null && role !== requiredRole) {
     return <Navigate to="/" replace />

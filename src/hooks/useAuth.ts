@@ -1,149 +1,110 @@
-// Hook principal de autenticación.
-// Sincroniza Supabase Auth con el authStore.
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore, getStoredToken } from '../store/authStore'
+import { advisorsService } from '../services/advisors'
+import apiClient from '../lib/axios'
 
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "../lib/supabase";
-import { useAuthStore } from "../store/authStore";
-import type { Session } from "@supabase/supabase-js";
+type AxiosLike = { response?: { status?: number; data?: { detail?: { code?: string; message?: string } } } }
+
+function getBackendErrorCode(error: unknown): string | undefined {
+  return (error as AxiosLike)?.response?.data?.detail?.code
+}
+
+function getBackendErrorMessage(error: unknown): string | undefined {
+  return (error as AxiosLike)?.response?.data?.detail?.message
+}
+
+function isAdvisorInactiveError(error: unknown): boolean {
+  return getBackendErrorCode(error) === 'ADVISOR_INACTIVE'
+}
 
 export function useAuth() {
-  const store = useAuthStore();
-  const navigate = useNavigate();
+  const store = useAuthStore()
+  const navigate = useNavigate()
 
   useEffect(() => {
-    // TODO: replace with getMe() when backend is connected
-    function setHardcodedAdvisor() {
-      useAuthStore.getState().setAdvisor({
-        id: "hardcoded",
-        email: "admin@casasyespacios.co",
-        full_name: "Diana Ospina",
-        role: "asesor",
-        area: "ambas",
-        max_conversations: 10,
-        active_conversations: 0,
-        availability_status: "available",
-        is_active: true,
-        avatar_url: null,
-      });
+    const stored = getStoredToken()
+
+    if (stored) {
+      useAuthStore.getState().setToken(stored)
+      advisorsService.getMe()
+        .then(({ advisor }) => {
+          useAuthStore.getState().setAdvisor(advisor)
+          if (advisor.must_change_password) {
+            useAuthStore.getState().setFirstLogin(true)
+          }
+        })
+        .catch(() => {
+          useAuthStore.getState().reset()
+        })
+        .finally(() => {
+          useAuthStore.getState().setLoading(false)
+        })
+    } else {
+      useAuthStore.getState().setLoading(false)
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      useAuthStore.getState().setSession(session);
-      if (session) setHardcodedAdvisor();
-      useAuthStore.getState().setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      useAuthStore.getState().setSession(session);
-
-      if (event === "SIGNED_IN") {
-        setHardcodedAdvisor();
-        useAuthStore.getState().setLoading(false);
-      }
-
-      if (event === "SIGNED_OUT") {
-        useAuthStore.getState().reset();
-        useAuthStore.getState().setLoading(false);
-      }
-
-      if (event === "TOKEN_REFRESHED") {
-        useAuthStore.getState().setSession(session);
-      }
-    });
-
-    const handleExpired = () => useAuthStore.getState().setSessionExpired(true);
-    window.addEventListener("session-expired", handleExpired);
+    const handleExpired = () => useAuthStore.getState().setSessionExpired(true)
+    window.addEventListener('session-expired', handleExpired)
 
     return () => {
-      subscription.unsubscribe();
-      window.removeEventListener("session-expired", handleExpired);
-    };
-  }, []);
+      window.removeEventListener('session-expired', handleExpired)
+    }
+  }, [])
 
   async function signIn(email: string, password: string) {
-    const mockCredentials: Record<
-      string,
-      { token: string; advisor: import("../types").Advisor }
-    > = {
-      "asesor@mock.com": {
-        token: "mock-token-asesor",
-        advisor: {
-          id: "mock-asesor",
-          email: "asesor@mock.com",
-          full_name: "Diana Ospina",
-          role: "asesor",
-          area: "ambas",
-          max_conversations: 3,
-          active_conversations: 1,
-          availability_status: "available",
-          is_active: true,
-          avatar_url: null,
-        },
-      },
-      "admin@mock.com": {
-        token: "mock-token-admin",
-        advisor: {
-          id: "mock-admin",
-          email: "admin@mock.com",
-          full_name: "Jorge Ramírez",
-          role: "admin",
-          area: "ambas",
-          max_conversations: 10,
-          active_conversations: 0,
-          availability_status: "available",
-          is_active: true,
-          avatar_url: null,
-        },
-      },
-    };
+    useAuthStore.getState().setLoading(true)
+    useAuthStore.getState().setError(null)
 
-    const mock = password === "123" ? mockCredentials[email] : undefined;
-    if (mock) {
-      const mockSession = {
-        access_token: mock.token,
-        token_type: "bearer",
-        expires_in: 3600,
-        refresh_token: `${mock.token}-refresh`,
-        user: {
-          id: mock.advisor.id,
-          email: mock.advisor.email,
-          aud: "authenticated",
-          role: "authenticated",
-          created_at: new Date().toISOString(),
-          app_metadata: {},
-          user_metadata: {},
-        },
-      } as unknown as Session;
-      useAuthStore.getState().setSession(mockSession);
-      useAuthStore.getState().setAdvisor(mock.advisor);
-      navigate("/");
-      return;
+    try {
+      const { data } = await apiClient.post('/api/v1/panel/auth/token', { email, password })
+      const token: string = data.access_token
+
+      useAuthStore.getState().setToken(token)
+
+      const { advisor } = await advisorsService.getMe()
+      useAuthStore.getState().setAdvisor(advisor)
+
+      if (advisor.must_change_password) {
+        useAuthStore.getState().setFirstLogin(true)
+        navigate('/first-login')
+      } else {
+        navigate('/')
+      }
+    } catch (err) {
+      const backendCode = getBackendErrorCode(err)
+      const backendMsg = getBackendErrorMessage(err)
+      console.error('[useAuth] signIn failed', { backendCode, backendMsg, err })
+
+      useAuthStore.getState().reset()
+
+      if (isAdvisorInactiveError(err)) {
+        useAuthStore.getState().setError(
+          'Tu cuenta está desactivada. Contacta a un administrador.'
+        )
+      } else {
+        const message = backendMsg ?? (err instanceof Error ? err.message : 'Error al iniciar sesión')
+        useAuthStore.getState().setError(message)
+      }
+    } finally {
+      useAuthStore.getState().setLoading(false)
     }
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
   }
 
   async function signOut() {
-    await supabase.auth.signOut().catch(() => {});
-    useAuthStore.getState().reset();
-    navigate("/login");
+    useAuthStore.getState().reset()
+    navigate('/login')
   }
 
   return {
-    session: store.session,
+    token: store.token,
     advisor: store.advisor,
     role: store.role,
     isLoading: store.isLoading,
     isFirstLogin: store.isFirstLogin,
     sessionExpired: store.sessionExpired,
+    error: store.error,
     signIn,
     signOut,
-  };
+  }
 }

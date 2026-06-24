@@ -36,6 +36,7 @@ export interface Advisor {
   status_until?: string | null
   is_active: boolean
   avatar_url: string | null
+  must_change_password: boolean
 }
 
 export interface Client {

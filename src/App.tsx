@@ -35,16 +35,16 @@ function AuthInit() {
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { session, isLoading, isFirstLogin } = useAuthStore()
+  const { token, isLoading, isFirstLogin } = useAuthStore()
   if (isLoading) return null
-  if (session) return <Navigate to={isFirstLogin ? ROUTES.FIRST_LOGIN : ROUTES.BANDEJA} replace />
+  if (token) return <Navigate to={isFirstLogin ? ROUTES.FIRST_LOGIN : ROUTES.BANDEJA} replace />
   return <>{children}</>
 }
 
 function FirstLoginRoute() {
-  const { session, isLoading, isFirstLogin } = useAuthStore()
+  const { token, isLoading, isFirstLogin } = useAuthStore()
   if (isLoading) return null
-  if (!session) return <Navigate to={ROUTES.LOGIN} replace />
+  if (!token) return <Navigate to={ROUTES.LOGIN} replace />
   if (!isFirstLogin) return <Navigate to={ROUTES.BANDEJA} replace />
   return <FirstLoginPage />
 }

@@ -18,33 +18,6 @@ const DAYS = [
   { value: 7, label: 'D' },
 ]
 
-const MOCK_SCHEDULES: AdvisorSchedule[] = [
-  {
-    id: 'mock-1',
-    label: 'Almuerzo',
-    start_time: '12:00',
-    end_time: '13:30',
-    days_of_week: [1, 2, 3, 4, 5],
-    is_active: true,
-  },
-  {
-    id: 'mock-2',
-    label: 'Descanso tarde',
-    start_time: '16:00',
-    end_time: '16:30',
-    days_of_week: [1, 2, 3, 4, 5, 6],
-    is_active: false,
-  },
-  {
-    id: 'mock-3',
-    label: 'Fin de semana',
-    start_time: '08:00',
-    end_time: '18:00',
-    days_of_week: [6, 7],
-    is_active: true,
-  },
-]
-
 // ── Form schema ───────────────────────────────────────────
 
 const scheduleSchema = z
@@ -337,7 +310,7 @@ export default function ScheduleManager() {
     schedulesService
       .list()
       .then((r) => setSchedules(r.schedules))
-      .catch(() => setSchedules(MOCK_SCHEDULES))
+      .catch(() => setSchedules([]))
       .finally(() => setIsLoading(false))
   }, [])
 
@@ -358,7 +331,7 @@ export default function ScheduleManager() {
   async function handleDelete(id: string) {
     setIsDeleting(true)
     try {
-      await schedulesService.delete(id)
+      await schedulesService.remove(id)
       setSchedules((prev) => prev.filter((s) => s.id !== id))
       setDeletingId(null)
     } catch {

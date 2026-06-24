@@ -9,112 +9,6 @@ import ChatInput from '../components/chat/ChatInput'
 import ClientPanel, { type ChatVariant } from '../components/chat/ClientPanel'
 import { useWebSocket } from '../hooks/useWebSocket'
 
-// ── Demo data (visible at /chat/demo) ────────────────────
-
-const DEMO_CONVERSATION: Conversation = {
-  id: 'demo',
-  status: 'escalada',
-  bot_activo: false,
-  channel: 'administrativa',
-  last_activity: new Date().toISOString(),
-  client: {
-    id: 'client-1',
-    phone_number: '+57 312 456 7890',
-    full_name: 'Carlos Mendoza',
-    document_id: '1.020.456.789',
-    client_type: 'inquilino',
-  },
-  escalation: {
-    id: 'esc-489-demo-uuid',
-    reason: 'frustracion_detectada',
-    summary:
-      'El cliente presenta alta molestia tras 3 días sin agua caliente. Reporta fuga parcial inundando el piso. El bot no logró clasificar la dirección correctamente.',
-    escalated_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-    advisor: {
-      id: 'hardcoded',
-      email: 'admin@casasyespacios.co',
-      full_name: 'Admin',
-      role: 'admin',
-      area: 'ambas',
-      max_conversations: 10,
-      active_conversations: 1,
-      availability_status: 'available',
-      is_active: true,
-      avatar_url: null,
-    },
-  },
-}
-
-const DEMO_MESSAGES: Message[] = [
-  {
-    id: 'm1',
-    wam_id: null,
-    direction: 'inbound',
-    msg_type: 'text',
-    content: 'Hola, buenas tardes. Necesito urgente que me colaboren con el daño de mi calentador de agua. Es de gas de paso y tiene una fuga de agua abajo.',
-    media_url: null, media_mime_type: null, media_size_bytes: null,
-    timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-    delivered_via: 'whatsapp',
-  },
-  {
-    id: 'm2',
-    wam_id: null,
-    direction: 'outbound_bot',
-    msg_type: 'text',
-    content: 'Para procesar tu reporte, por favor confírmame el código de inmueble o la dirección del apartamento en el que resides actualmente.',
-    media_url: null, media_mime_type: null, media_size_bytes: null,
-    timestamp: new Date(Date.now() - 28 * 60 * 1000).toISOString(),
-    delivered_via: 'whatsapp',
-  },
-  {
-    id: 'm3',
-    wam_id: null,
-    direction: 'inbound',
-    msg_type: 'text',
-    content: 'Es en la Calle 145 #12-45 Apto 502, el contrato está a nombre de Carlos Mendoza. ¡Llevo tres días reportando esto y el robot me responde lo mismo!',
-    media_url: null, media_mime_type: null, media_size_bytes: null,
-    timestamp: new Date(Date.now() - 26 * 60 * 1000).toISOString(),
-    delivered_via: 'whatsapp',
-  },
-  {
-    id: 'm4',
-    wam_id: null,
-    direction: 'inbound',
-    msg_type: 'image',
-    content: 'Foto del daño en el calentador',
-    media_url: null, media_mime_type: 'image/jpeg', media_size_bytes: 245000,
-    timestamp: new Date(Date.now() - 24 * 60 * 1000).toISOString(),
-    delivered_via: 'whatsapp',
-  },
-  {
-    id: 'm5',
-    wam_id: null,
-    direction: 'outbound_advisor',
-    msg_type: 'document',
-    content: 'orden_reparacion_4592.pdf',
-    media_url: null, media_mime_type: 'application/pdf', media_size_bytes: 184320,
-    timestamp: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    delivered_via: 'whatsapp',
-  },
-  {
-    id: 'm6',
-    wam_id: null,
-    direction: 'outbound_advisor',
-    msg_type: 'text',
-    content: 'Carlos, ya radicamos la orden de reparación #9834 en el sistema SIMI. Un técnico se comunicará con usted en las próximas 2 horas.',
-    media_url: null, media_mime_type: null, media_size_bytes: null,
-    timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
-    delivered_via: 'whatsapp',
-  },
-]
-
-// const DEMO_VARIANTS: { label: string; variant: ChatVariant }[] = [
-//   { label: 'Asignado a mí', variant: 'assigned' },
-//   { label: 'Sin asignar', variant: 'unassigned' },
-//   { label: 'Bot activo', variant: 'bot' },
-//   { label: 'Monitoreo (admin)', variant: 'monitoring' },
-// ]
-
 // ── Return-bot confirmation modal ─────────────────────────
 
 function ReturnBotModal({
@@ -374,9 +268,6 @@ export default function ChatPage() {
   const [isAssigning, setIsAssigning] = useState(false)
   const [isReturning, setIsReturning] = useState(false)
   const [isClosing, setIsClosing] = useState(false)
-  const [demoVariant] = useState<ChatVariant>('assigned')
-
-  const isDemo = conversationId === 'demo'
   const feedRef = useRef<HTMLDivElement>(null)
 
   const loadConversation = useCallback(async () => {
@@ -396,20 +287,11 @@ export default function ChatPage() {
   }, [conversationId])
 
   useEffect(() => {
-    if (isDemo) {
-      const timer = setTimeout(() => {
-        setConversation(DEMO_CONVERSATION)
-        setMessages(DEMO_MESSAGES)
-        setTotalMessages(DEMO_MESSAGES.length)
-        setIsLoading(false)
-      }, 0)
-      return () => clearTimeout(timer)
-    }
     const timer = setTimeout(() => {
       loadConversation()
     }, 0)
     return () => clearTimeout(timer)
-  }, [isDemo, loadConversation])
+  }, [loadConversation])
 
   // Scroll to bottom after initial load
   useEffect(() => {
@@ -503,9 +385,7 @@ export default function ChatPage() {
   }
 
   function getChatVariant(): ChatVariant {
-    // Admin always in monitoring mode — no exceptions, not even for demo
     if (role === 'admin') return 'monitoring'
-    if (isDemo) return demoVariant
     if (!conversation) return 'unassigned'
     if (conversation.bot_activo) return 'bot'
     if (conversation.escalation?.advisor?.id === advisor?.id) return 'assigned'

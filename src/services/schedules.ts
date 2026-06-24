@@ -1,38 +1,23 @@
-import apiClient from '../lib/axios'
 import type { AdvisorSchedule } from '../types'
+
+type CreateScheduleData = { label: string; start_time: string; end_time: string; days_of_week: number[] }
+type UpdateScheduleData = { label?: string; start_time?: string; end_time?: string; days_of_week?: number[]; is_active?: boolean }
 
 export const schedulesService = {
 
   async list(): Promise<{ schedules: AdvisorSchedule[] }> {
-    const { data } = await apiClient.get('/api/v1/panel/schedules')
-    return data.data
+    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
   },
 
-  async create(payload: {
-    label: string
-    start_time: string
-    end_time: string
-    days_of_week: number[]
-  }): Promise<{ schedule: AdvisorSchedule }> {
-    const { data } = await apiClient.post('/api/v1/panel/schedules', payload)
-    return data.data
+  async create(_data: CreateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
+    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
   },
 
-  async update(
-    id: string,
-    payload: {
-      label?: string
-      start_time?: string
-      end_time?: string
-      days_of_week?: number[]
-      is_active?: boolean
-    }
-  ): Promise<{ schedule: AdvisorSchedule }> {
-    const { data } = await apiClient.patch(`/api/v1/panel/schedules/${id}`, payload)
-    return data.data
+  async update(_id: string, _data: UpdateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
+    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
   },
 
-  async delete(id: string): Promise<void> {
-    await apiClient.delete(`/api/v1/panel/schedules/${id}`)
+  async remove(_id: string): Promise<void> {
+    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
   },
 }
