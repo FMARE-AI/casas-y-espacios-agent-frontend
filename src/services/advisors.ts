@@ -82,22 +82,17 @@ export const advisorsService = {
     avatar_url?: string;
     must_change_password?: boolean;
   }): Promise<{ advisor: Advisor }> {
-    const { data } = await apiClient.patch(
-      "/api/v1/panel/advisors/me",
-      payload,
-    );
-    return data.data;
+    // TODO: integrate PATCH /advisors/me
+    const current = MOCK_ADVISORS[0]
+    return { advisor: { ...current, ...payload } as Advisor }
   },
 
   async updateAvailability(
     status: AvailabilityStatus,
-    minutesUntil?: number | null,
+    _minutesUntil?: number | null,
   ): Promise<{ availability_status: AvailabilityStatus }> {
-    const { data } = await apiClient.patch(
-      "/api/v1/panel/advisors/me/availability",
-      { availability_status: status, minutes_until: minutesUntil ?? null },
-    );
-    return data.data;
+    // TODO: integrate PATCH /advisors/me/availability
+    return { availability_status: status }
   },
 
   async list(params?: {
@@ -123,8 +118,21 @@ export const advisorsService = {
     area: string;
     max_conversations: number;
   }): Promise<{ advisor: Advisor }> {
-    const { data } = await apiClient.post("/api/v1/panel/advisors", payload);
-    return data.data;
+    // TODO: integrate POST /advisors/
+    const newAdvisor: Advisor = {
+      id: `mock-${Date.now()}`,
+      email: payload.email,
+      full_name: payload.full_name,
+      role: payload.role as Advisor['role'],
+      area: payload.area as Advisor['area'],
+      max_conversations: payload.max_conversations,
+      active_conversations: 0,
+      availability_status: 'available',
+      avatar_url: null,
+      is_active: true,
+      must_change_password: true,
+    }
+    return { advisor: newAdvisor }
   },
 
   async update(
@@ -137,10 +145,8 @@ export const advisorsService = {
       is_active?: boolean;
     },
   ): Promise<{ advisor: Advisor }> {
-    const { data } = await apiClient.patch(
-      `/api/v1/panel/advisors/${id}`,
-      payload,
-    );
-    return data.data;
+    // TODO: integrate PATCH /advisors/{id}
+    const base = MOCK_ADVISORS.find((a) => a.id === id) ?? MOCK_ADVISORS[0]
+    return { advisor: { ...base, ...payload } as Advisor }
   },
 };

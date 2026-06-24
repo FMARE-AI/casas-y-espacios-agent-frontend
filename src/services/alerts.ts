@@ -1,22 +1,21 @@
-import apiClient from '../lib/axios'
 import type { BehaviorAlert, PaginatedAlerts } from '../types'
+
+const MOCK_ALERTS: BehaviorAlert[] = []
 
 export const alertsService = {
 
-  async list(params?: {
+  async list(_params?: {
     reviewed?: boolean
     advisor_id?: string
     limit?: number
     offset?: number
   }): Promise<PaginatedAlerts> {
-    const { data } = await apiClient.get('/api/v1/panel/behavior-alerts', { params })
-    return data.data
+    // TODO: integrate GET /behavior-alerts/
+    return { alerts: MOCK_ALERTS, total: 0 }
   },
 
-  async markReviewed(id: string): Promise<{ alert: BehaviorAlert }> {
-    const { data } = await apiClient.patch(
-      `/api/v1/panel/behavior-alerts/${id}/review`
-    )
-    return data.data
+  async markReviewed(_id: string): Promise<{ alert: BehaviorAlert }> {
+    // TODO: integrate PATCH /behavior-alerts/{id}/review
+    throw new Error('markReviewed: not integrated yet')
   },
 }

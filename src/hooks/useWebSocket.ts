@@ -158,113 +158,15 @@ export function useWebSocket(handlers?: WSHandlers) {
     }
   }, [setPendingEscalation, incrementAlerts])
 
+  // TODO: integrate WebSocket /ws?token=
   useEffect(() => {
-    if (!accessToken) {
-      if (socket) {
-        socket.close()
-        socket = null
-      }
-      setStatus('disconnected')
-      return
-    }
-
-    function connect() {
-      if (socket || isConnecting) return
-      isConnecting = true
-      setStatus('reconnecting')
-
-      const rawUrl = import.meta.env.VITE_WS_BASE_URL || 'wss://casasyespaciosagent.up.railway.app/api/v1/panel/ws?token={jwt}'
-      const url = rawUrl.replace('{jwt}', accessToken)
-
-      try {
-        const ws = new WebSocket(url)
-        socket = ws
-
-        ws.onopen = () => {
-          isConnecting = false
-          setStatus('connected')
-          setReconnectAttempt(0)
-        }
-
-        ws.onmessage = (event) => {
-          try {
-            const parsed: WSEvent = JSON.parse(event.data)
-            handleEvent(parsed.event, parsed.data)
-          } catch (err) {
-            console.error('Failed to parse WebSocket message', err)
-          }
-        }
-
-        ws.onclose = () => {
-          isConnecting = false
-          socket = null
-          setStatus('disconnected')
-
-          // Read attempt directly from store to avoid adding it as a useEffect dependency
-          // (which would bypass the backoff by re-running the effect on every increment)
-          const attempt = useWSStore.getState().reconnectAttempt
-          setReconnectAttempt(attempt + 1)
-          const delay = Math.min(1000 * Math.pow(2, attempt), 30000)
-
-          if (reconnectTimeout) clearTimeout(reconnectTimeout)
-          reconnectTimeout = setTimeout(() => {
-            connect()
-          }, delay)
-        }
-
-        ws.onerror = (err) => {
-          console.error('WebSocket error occurred:', err)
-          ws.close()
-        }
-      } catch (err) {
-        isConnecting = false
-        console.error('Failed to instantiate WebSocket connection:', err)
-      }
-    }
-
-    connect()
-
-    return () => {
-      // Don't close connection on unmount to keep socket connection shared
-    }
-  }, [accessToken, setStatus, setReconnectAttempt, handleEvent])
+    setStatus('disconnected')
+    return () => {}
+  }, [accessToken, setStatus])
 
   const reconnect = useCallback(() => {
-    if (socket) {
-      socket.close()
-    } else {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout)
-      isConnecting = false
-      const rawUrl = import.meta.env.VITE_WS_BASE_URL || 'wss://casasyespaciosagent.up.railway.app/api/v1/panel/ws?token={jwt}'
-      const token = useAuthStore.getState().token
-      if (token) {
-        const url = rawUrl.replace('{jwt}', token)
-        try {
-          socket = new WebSocket(url)
-          socket.onopen = () => {
-            isConnecting = false
-            setStatus('connected')
-            setReconnectAttempt(0)
-          }
-          socket.onmessage = (event) => {
-            try {
-              const parsed = JSON.parse(event.data) as WSEvent
-              handleEvent(parsed.event, parsed.data)
-            } catch (err) {
-              console.error('Failed to parse WebSocket message during reconnect', err)
-            }
-          }
-          socket.onclose = () => {
-            isConnecting = false
-            socket = null
-            setStatus('disconnected')
-          }
-        } catch (err) {
-          console.error('Manual reconnect failed:', err)
-        }
-      }
-    }
-  }, [setStatus, setReconnectAttempt, handleEvent])
+    // TODO: integrate WebSocket /ws?token=
+  }, [])
 
   return { reconnect }
 }

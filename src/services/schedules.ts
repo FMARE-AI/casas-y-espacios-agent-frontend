@@ -1,11 +1,12 @@
-import apiClient from '../lib/axios'
 import type { AdvisorSchedule } from '../types'
+
+const MOCK_SCHEDULES: AdvisorSchedule[] = []
 
 export const schedulesService = {
 
   async list(): Promise<{ schedules: AdvisorSchedule[] }> {
-    const { data } = await apiClient.get('/api/v1/panel/schedules')
-    return data.data
+    // TODO: integrate GET /schedules/
+    return { schedules: MOCK_SCHEDULES }
   },
 
   async create(payload: {
@@ -14,8 +15,16 @@ export const schedulesService = {
     end_time: string
     days_of_week: number[]
   }): Promise<{ schedule: AdvisorSchedule }> {
-    const { data } = await apiClient.post('/api/v1/panel/schedules', payload)
-    return data.data
+    // TODO: integrate POST /schedules/
+    const schedule: AdvisorSchedule = {
+      id: `mock-${Date.now()}`,
+      label: payload.label,
+      start_time: payload.start_time,
+      end_time: payload.end_time,
+      days_of_week: payload.days_of_week,
+      is_active: true,
+    }
+    return { schedule }
   },
 
   async update(
@@ -28,11 +37,19 @@ export const schedulesService = {
       is_active?: boolean
     }
   ): Promise<{ schedule: AdvisorSchedule }> {
-    const { data } = await apiClient.patch(`/api/v1/panel/schedules/${id}`, payload)
-    return data.data
+    // TODO: integrate PATCH /schedules/{id}
+    const schedule: AdvisorSchedule = {
+      id,
+      label: payload.label ?? '',
+      start_time: payload.start_time ?? '00:00',
+      end_time: payload.end_time ?? '00:00',
+      days_of_week: payload.days_of_week ?? [],
+      is_active: payload.is_active ?? true,
+    }
+    return { schedule }
   },
 
-  async delete(id: string): Promise<void> {
-    await apiClient.delete(`/api/v1/panel/schedules/${id}`)
+  async delete(_id: string): Promise<void> {
+    // TODO: integrate DELETE /schedules/{id}
   },
 }
