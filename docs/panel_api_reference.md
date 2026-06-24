@@ -1076,6 +1076,60 @@ msg_type = "document" → render download link using media_url
 
 ---
 
+## Metrics
+
+### GET /api/v1/panel/metrics
+
+**Auth required:** Yes (admin only)
+
+**Description:** Returns 7 real-time operational metrics for the admin dashboard in a single database round-trip via the `get_dashboard_metrics()` Supabase RPC function.
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "metrics": {
+      "activas": 2,
+      "escaladas": 2,
+      "en_atencion": 1,
+      "tiempo_promedio_min": 10,
+      "bot_ok_pct": 50,
+      "capacidad_actual": 1,
+      "capacidad_total": 9
+    }
+  }
+}
+```
+
+**Metric definitions:**
+
+| Field                 | Type    | Description                                                                                                                                       |
+| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `activas`             | integer | Conversations where the bot is actively resolving (`status='activa'` AND `bot_activo=true`)                                                       |
+| `escaladas`           | integer | Conversations waiting or being attended by an advisor (`status='escalada'`). Includes `en_atencion`                                               |
+| `en_atencion`         | integer | Subset of `escaladas` that already have an assigned advisor (`escalation.advisor_id IS NOT NULL`)                                                 |
+| `tiempo_promedio_min` | integer | Average minutes elapsed since `escalated_at` for unresolved active escalations. `0` when none exist                                               |
+| `bot_ok_pct`          | integer | Percentage of conversations closed in the last 24h that the bot resolved without escalating. `0` when no conversations were closed in that period |
+| `capacidad_actual`    | integer | Active escalations with an assigned advisor right now (occupied capacity slots)                                                                   |
+| `capacidad_total`     | integer | Sum of `max_conversations` across all active advisors with `role='asesor'`. Admins are excluded                                                   |
+
+**Errors:**
+
+| HTTP | ErrorCode        | When                     |
+| ---- | ---------------- | ------------------------ |
+| 401  | `INVALID_TOKEN`  | Missing or invalid JWT   |
+| 403  | `FORBIDDEN`      | Caller is not an admin   |
+| 500  | `SUPABASE_ERROR` | RPC function call failed |
+
+**Notes:**
+
+- `escaladas` ≥ `en_atencion` — they are not mutually exclusive.
+- Returns all zeros (not an error) when the database has no data.
+- `capacidad_total` only counts advisors with `role='asesor'` — admins are never included.
+
+---
+
 ## Behavior Alerts
 
 ### GET /api/v1/panel/behavior-alerts/
@@ -2024,6 +2078,19 @@ ws.onclose = (event) => {
     scheduleReconnect();
   }
 };
+```
+
+---
+
+### Loading Admin Dashboard Metrics
+
+```javascript
+// Admin-only — returns 403 for non-admins
+const result = await apiCall("/api/v1/panel/metrics");
+const metrics = result.data.metrics;
+// metrics.activas, metrics.escaladas, metrics.en_atencion,
+// metrics.tiempo_promedio_min, metrics.bot_ok_pct,
+// metrics.capacidad_actual, metrics.capacidad_total
 ```
 
 ---
