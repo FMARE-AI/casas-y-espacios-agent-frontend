@@ -98,12 +98,12 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
 
 **Query params:**
 
-| Param     | Type      | Default | Description                                       |
-| --------- | --------- | ------- | ------------------------------------------------- |
-| `status`  | `string`  | none    | Filter by status: `activa`, `escalada`, `cerrada` |
-| `channel` | `string`  | none    | Filter by channel: `administrativa`, `comercial`  |
-| `limit`   | `integer` | 20      | Page size (1–100)                                 |
-| `offset`  | `integer` | 0       | Pagination offset                                 |
+| Param     | Type      | Default | Description                                                              |
+| --------- | --------- | ------- | ------------------------------------------------------------------------ |
+| `status`  | `string`  | none    | Filter by status: `activa`, `escalada`, `cerrada`, or `mine` (see below) |
+| `channel` | `string`  | none    | Filter by channel: `administrativa`, `comercial`                         |
+| `limit`   | `integer` | 20      | Page size (1–100)                                                        |
+| `offset`  | `integer` | 0       | Pagination offset                                                        |
 
 **Response 200:**
 
@@ -160,6 +160,7 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
 - The `escalation.wait_seconds` field is computed at request time as the number of seconds since `escalated_at`.
 - An `escalation` object is included only if there is an unresolved escalation (`resolved_at IS NULL`).
 - Advisors with `area = "ambas"` see conversations from both channels.
+- **`status=mine`** is a special filter that returns only the conversations with an active escalation assigned to the authenticated advisor (i.e., the "My conversations" tab). It can be combined freely with `channel`. Admins using `mine` see only conversations assigned to themselves — not all conversations.
 
 ---
 
@@ -220,6 +221,7 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
           "media_url": null,
           "media_mime_type": null,
           "media_size_bytes": null,
+          "transcription": null,
           "delivered_via": "webhook_meta",
           "timestamp": "2026-06-22T14:05:00+00:00",
           "created_at": "2026-06-22T14:05:01+00:00"
@@ -277,9 +279,25 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
         "media_url": null,
         "media_mime_type": null,
         "media_size_bytes": null,
+        "transcription": null,
         "delivered_via": "webhook_meta",
         "timestamp": "2026-06-22T14:05:00+00:00",
         "created_at": "2026-06-22T14:05:01+00:00"
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440051",
+        "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+        "wam_id": "wamid.HBgLNTczMDAxMjM0NTY3FQIAEhgWM0E4QjA2RjhDRjhCMzVCODk1NDUD",
+        "direction": "inbound",
+        "msg_type": "audio",
+        "content": null,
+        "media_url": "https://xxxx.supabase.co/storage/v1/object/sign/casas-y-espacios-media/inbound/conv-uuid/wamid_audio?token=...",
+        "media_mime_type": "audio/ogg; codecs=opus",
+        "media_size_bytes": null,
+        "transcription": "Hola, quiero saber cuánto debo de arriendo este mes.",
+        "delivered_via": "webhook_meta",
+        "timestamp": "2026-06-22T14:06:00+00:00",
+        "created_at": "2026-06-22T14:06:01+00:00"
       }
     ],
     "total": 8,
@@ -287,6 +305,27 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
     "offset": 0
   }
 }
+```
+
+**Message field reference:**
+
+| Field           | Type             | Description                                                                                                                                                              |
+| --------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `msg_type`      | `string`         | `"text"`, `"audio"`, `"image"`, `"video"`, `"document"`                                                                                                                  |
+| `content`       | `string \| null` | Text content. Non-null only for `msg_type = "text"`                                                                                                                      |
+| `media_url`     | `string \| null` | Signed Supabase Storage URL (valid 1 year). Non-null for `audio`, `image`, `video`, `document`. Always a full HTTPS URL — never a raw Meta media ID                      |
+| `transcription` | `string \| null` | Whisper transcription of the audio. Non-null only for `msg_type = "audio"` that the bot processed. `null` for audio sent by the advisor or processed before this feature |
+
+**Audio rendering rule — important:**
+
+When `msg_type = "audio"`, **always render an audio player** using `media_url`. Do **not** display `transcription` as message text — it is internal context used by the AI agent to maintain conversation history. If you want to offer a "show transcript" affordance (e.g., a toggle below the player), you may use `transcription` for that, but it should be hidden by default.
+
+```
+msg_type = "audio"  →  render <audio src={media_url} />  (transcription is NOT shown)
+msg_type = "text"   →  render content as text
+msg_type = "image"  →  render <img src={media_url} />
+msg_type = "video"  →  render <video src={media_url} />
+msg_type = "document" → render download link using media_url
 ```
 
 **Errors:**
@@ -683,7 +722,8 @@ A convenience `POST /api/v1/panel/auth/token` endpoint exists for local developm
 
 **Notes:**
 
-- `closed_by` is always set to `"asesor"` by this endpoint. Bot-initiated closure is handled by the inactivity job and sets `"bot"`.
+- `closed_by` is always set to `"asesor"` by this endpoint. Bot-initiated closure (see below) sets `"bot"`.
+- The bot can close conversations in two ways: (1) the inactivity job closes after no client response to a follow-up message, and (2) the AI agent closes proactively when it detects a farewell or satisfaction signal from the client (e.g., "gracias, ya quedó", "adiós"). Both cases emit `conversation.closed` via WebSocket with `closed_by: "bot"` and no `advisor_id`.
 - `resolution_notes` accepts `null` — sending `null` or omitting the field stores `NULL` in the database.
 
 **WebSocket events emitted:**
@@ -1524,7 +1564,9 @@ Emitted to **all connected advisors** when an advisor returns a conversation to 
 
 #### conversation.closed
 
-Emitted to **all connected advisors** when an advisor closes a conversation via `PATCH /conversations/{id}/close`.
+Emitted to **all connected advisors** when a conversation is closed — either by an advisor via `PATCH /conversations/{id}/close`, or by the bot automatically.
+
+**Advisor-initiated** (`closed_by: "asesor"`):
 
 ```json
 {
@@ -1539,6 +1581,21 @@ Emitted to **all connected advisors** when an advisor closes a conversation via 
   }
 }
 ```
+
+**Bot-initiated** (`closed_by: "bot"`): emitted when the AI agent detects a farewell or satisfaction signal from the client, or when the inactivity job closes after no response. `advisor_id` and `advisor_name` are absent.
+
+```json
+{
+  "event": "conversation.closed",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "closed_by": "bot",
+    "reason": "resolved"
+  }
+}
+```
+
+Always handle `conversation.closed` defensively — check for `closed_by` before reading `advisor_id`.
 
 #### behavior.alert
 
@@ -1720,6 +1777,46 @@ const inbox = await fetch("/api/v1/panel/conversations/?limit=20&offset=0", {
 ```
 
 Use `status=escalada` to show only the escalation queue, or omit to show all conversations.
+
+---
+
+### Rendering Messages
+
+Each message object has a `msg_type` field that determines how it should be displayed. Use `msg_type` — not `content` or `media_url` nullability — as the source of truth for rendering decisions.
+
+```javascript
+function renderMessage(msg) {
+  switch (msg.msg_type) {
+    case "text":
+      return <TextBubble text={msg.content} direction={msg.direction} />;
+
+    case "audio":
+      // Always render an audio player. Do NOT display transcription as text.
+      // transcription is internal context for the AI — hidden from the advisor by default.
+      return <AudioPlayer src={msg.media_url} direction={msg.direction} />;
+
+    case "image":
+      return <img src={msg.media_url} alt="Imagen" />;
+
+    case "video":
+      return <video src={msg.media_url} controls />;
+
+    case "document":
+      return (
+        <a href={msg.media_url} target="_blank">
+          Descargar documento
+        </a>
+      );
+
+    default:
+      return null;
+  }
+}
+```
+
+**`media_url` is always a signed Supabase Storage URL** (valid for 1 year) for any non-text message — never a raw Meta media ID. You can use it directly in `<img>`, `<audio>`, `<video>`, or `<a>` tags.
+
+**`transcription`** is populated only for inbound audio messages processed by the bot. It contains the Whisper transcription text. Do not show it as message content — it exists so the AI has context across turns. You may optionally expose it as a collapsible "Ver transcripción" toggle beneath the audio player.
 
 ---
 
