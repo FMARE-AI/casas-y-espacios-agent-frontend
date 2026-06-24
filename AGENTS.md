@@ -333,13 +333,26 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 | Integración SIMI real | ⬜ Bloqueado (sin credenciales) |
 
 ### Panel Web Interno — Backend (Bloque PW)
-| Componente | Estado |
-|---|---|
-| Estructura módulo `/panel` | ✅ |
-| Schemas centralizados | ✅ |
-| get_current_advisor / require_role | ✅ |
-| Endpoints PW-2 a PW-22 | ⬜ Pendientes |
-| WebSocketManager | ⬜ Pendiente (PW-19) |
+
+| Componente                                          | Estado                                      |
+| --------------------------------------------------- | ------------------------------------------- |
+| Estructura módulo `/panel`                          | ✅                                          |
+| Schemas centralizados                               | ✅                                          |
+| get_current_advisor / require_role                  | ✅                                          |
+| GET /conversations/ + /{id} + /{id}/messages        | ✅                                          |
+| POST /reply + /reply/media + /reply/audio           | ✅                                          |
+| PATCH /assign + /return-bot + /close                | ✅                                          |
+| GET /advisors/me + /advisors/                       | ✅                                          |
+| POST /advisors/ (crear asesor)                      | ✅                                          |
+| PATCH /advisors/me + /advisors/me/availability      | ✅                                          |
+| PATCH /advisors/{id} (admin edita asesor)           | ✅                                          |
+| GET /metrics (admin only)                           | ✅                                          |
+| GET /behavior-alerts/ + PATCH /{id}/review          | ✅                                          |
+| GET/POST /schedules/ + PATCH/DELETE /{id}           | ✅                                          |
+| WebSocketManager + /ws endpoint                     | ✅                                          |
+| POST /auth/token (debug sin password — solo dev)    | ✅ sin guard de settings.DEBUG — ver nota   |
+
+> **Nota conocida:** `POST /auth/token` no tiene guard de `settings.DEBUG`. En producción, incluir ese router solo si `DEBUG=True`. `POST /advisors/` no valida `specialty` contra `area` — esa validación solo existe en `PATCH /advisors/{id}`.
 
 > El estado detallado del frontend se encuentra en la Sección 17.
 
@@ -575,12 +588,10 @@ src/
 
 ### Login mock
 
-| Campo    | Valor                                        |
-|----------|----------------------------------------------|
-| Email    | `hola@mail.com`                              |
-| Password | `123`                                        |
-| Token    | `mock-token` (no válido en Supabase)         |
-| Rol      | `asesor`                                     |
+| Email              | Password | Token               | Rol     |
+| ------------------ | -------- | ------------------- | ------- |
+| `asesor@mock.com`  | `123`    | `mock-token-asesor` | `asesor` |
+| `admin@mock.com`   | `123`    | `mock-token-admin`  | `admin`  |
 
 La sesión mock **solo vive en el store de Zustand** — no se persiste en Supabase. Al refrescar la página se pierde y hay que volver a hacer login.
 
@@ -716,21 +727,125 @@ const data = await conversationsService.list()
 
 ## 17. Frontend — Estado Actual
 
-| Componente                                      | Estado                               |
-| ----------------------------------------------- | ------------------------------------ |
-| Auth (Supabase + mock login)                    | ✅ mock: `hola@mail.com` / `123`     |
-| authStore / wsStore (Zustand)                   | ✅ wsStore + decrementAlerts (FE-12) |
-| useWebSocket (singleton + backoff)              | ✅                                   |
-| EscalationToast + sonido Web Audio API          | ✅                                   |
-| ProtectedRoute (guard + WS + toasts)            | ✅                                   |
-| BandejaPage (lista + filtros + modal tomar)     | ✅ con fallback mock                 |
-| ChatPage (historial + reply)                    | ✅                                   |
-| ChatInput (texto + adjuntos + audio)            | ✅                                   |
-| AudioRecorder (MediaRecorder API, webm)         | ✅                                   |
-| MessageBubble (text/image/video/document/audio) | ✅                                   |
-| conversationsService (HTTP + mock fallback)     | ✅ list con mock; resto sin fallback |
-| alertsService (list, markReviewed)              | ✅ sin fallback mock en markReviewed |
-| GestionPage (admin) — tabla asesores + CRUD     | ✅ FE-11                             |
-| BehaviorAlertsPanel (admin-only, FE-12)         | ✅ filtros, WS reload, mock fallback |
-| Conexión real WS con backend                    | ⬜ Pendiente (token mock rechazado)  |
-| HistorialPage / PerfilPage                      | ⬜ Pendientes                        |
+| Componente                                          | Estado                                             |
+| --------------------------------------------------- | -------------------------------------------------- |
+| Auth (Supabase + mock login)                        | ✅ mock: `asesor@mock.com` o `admin@mock.com` / `123` |
+| authStore / wsStore (Zustand)                       | ✅ wsStore + decrementAlerts (FE-12)               |
+| useWebSocket (singleton + backoff)                  | ✅                                                 |
+| EscalationToast + sonido Web Audio API              | ✅                                                 |
+| ProtectedRoute (guard + WS + toasts)                | ✅                                                 |
+| BandejaPage (lista + filtros + modal tomar)         | ✅ con fallback mock                               |
+| ChatPage (historial + reply)                        | ✅                                                 |
+| ChatInput (texto + adjuntos + audio)                | ✅                                                 |
+| AudioRecorder (MediaRecorder API, webm)             | ✅                                                 |
+| MessageBubble (text/image/video/document/audio)     | ✅                                                 |
+| conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback               |
+| alertsService (list, markReviewed)                  | ✅ sin fallback mock en markReviewed               |
+| GestionPage (admin) — tabla asesores + CRUD         | ✅ FE-11                                           |
+| BehaviorAlertsPanel (admin-only, FE-12)             | ✅ filtros, WS reload, mock fallback               |
+| **Integración real con backend (fase activa)**      | 🔄 En progreso                                     |
+| Conexión real WS con backend                        | ⬜ Pendiente (token mock rechazado en dev)         |
+| HistorialPage / PerfilPage                          | ⬜ Pendientes                                      |
+
+---
+
+## 18. Integración Frontend-Backend — Reglas Críticas
+
+Esta sección rige toda la integración entre el panel React y la API FastAPI. El contrato completo está en `docs/panel_api_reference.md` — ese documento es la fuente de verdad para cualquier duda de contrato.
+
+### 18.1 Autenticación
+
+El JWT viene de `supabase.auth.signInWithPassword()` → `session.access_token`. Ya es inyectado automáticamente por `src/lib/axios.ts`. No agregarlo manualmente.
+
+**WebSocket es la excepción**: el token va en el query param, no como header:
+
+```
+wss://<host>/api/v1/panel/ws?token=<jwt>
+```
+
+Código de cierre `4001` = JWT inválido o expirado → redirigir al login inmediatamente.
+
+`POST /api/v1/panel/auth/token` emite JWT **sin verificar password**. Solo para pruebas locales. Nunca en el flujo de producción.
+
+### 18.2 Envelope de respuesta
+
+```
+Éxito:  { "data": { ... } }
+Error:  { "detail": { "code": "ERROR_CODE", "message": "..." } }
+```
+
+Leer siempre `response.data.X`. Manejar errores con `error.detail.code`.
+
+### 18.3 Renderizado de mensajes
+
+Usar `msg_type` como fuente de verdad — no la nulabilidad de `content` o `media_url`.
+
+| `msg_type`   | Cómo renderizar                                              |
+| ------------ | ------------------------------------------------------------ |
+| `text`       | `content` como texto plano                                   |
+| `audio`      | `<audio src={media_url} />` — **nunca mostrar `transcription`** |
+| `image`      | `<img src={media_url} />`                                    |
+| `video`      | `<video src={media_url} controls />`                         |
+| `document`   | `<a href={media_url}>Descargar</a>`                          |
+
+`transcription` es contexto interno del agente de IA (Whisper). No mostrarlo como contenido del mensaje. Se puede exponer como toggle "Ver transcripción" colapsado, pero nunca en el bubble.
+
+`media_url` es siempre una URL firmada de Supabase Storage (válida 1 año). Nunca es un ID de media de Meta.
+
+### 18.4 Subida de archivos (multipart)
+
+Para `POST /reply/media` y `POST /reply/audio`, usar `FormData`. **No setear `Content-Type`** — el browser lo define con el boundary correcto:
+
+```tsx
+// ✅ CORRECTO
+const formData = new FormData()
+formData.append('file', file)
+await apiClient.post(`/conversations/${id}/reply/media`, formData)
+// axios con FormData omite Content-Type automáticamente — no agregar
+
+// ❌ NUNCA
+headers: { 'Content-Type': 'multipart/form-data' }  // rompe el boundary
+```
+
+### 18.5 Eventos WebSocket — contrato preciso
+
+Envelope: `{ "event": "<tipo>", "data": { ... } }`.
+
+| Evento                  | Qué hacer                                                                    |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `message.new`           | Append al chat si `conversation_id` coincide; actualizar `last_activity`     |
+| `escalation.new`        | Mostrar `EscalationToast`; recargar lista                                    |
+| `escalation.assigned`   | Actualizar tarjeta — quitar de cola sin asignar                              |
+| `conversation.returned` | Marcar conversación con ícono de bot                                         |
+| `conversation.closed`   | Quitar de bandeja o actualizar estado — **defensivo: ver abajo**             |
+| `advisor.status_changed`| Actualizar badge de disponibilidad                                           |
+| `behavior.alert`        | Solo admins: incrementar badge + llamar `GET /behavior-alerts/` para detalles |
+
+**`conversation.closed` defensivo:** `advisor_id` y `advisor_name` están ausentes cuando `closed_by === "bot"`. Siempre verificar `closed_by` antes de leer esos campos.
+
+**`behavior.alert`** solo trae `alert_id` (diseño intencional — no difunde contenido sensible). Llamar a `GET /behavior-alerts/` para obtener los datos completos.
+
+Enviar `{ "type": "ping" }` cada 30 segundos. Al abrir un chat, enviar `subscribe_conversation`. Al cerrar, `unsubscribe_conversation`.
+
+### 18.6 Casos de borde conocidos
+
+| Situación | Comportamiento correcto |
+|---|---|
+| Dos asesores toman la misma conversación simultáneamente | El segundo recibe `ALREADY_ASSIGNED` (409) — mostrar: "Otro asesor tomó esta conversación primero." |
+| `status_until` en respuesta de asesor | Hora local de Bogotá **sin** timezone suffix — no asumir UTC |
+| Admin desactiva asesor con conversaciones activas | La respuesta incluye `"warning"` no-nulo — mostrarlo en la UI |
+| `active_conversations` en perfil | Puede ser `0` si el RPC de Supabase falla — fallback silencioso, no un error |
+| Cerrar conversación sin body | Defaults automáticos: `resolution_type = "otro"`, `client_satisfied = "sin_confirmar"` |
+
+### 18.7 Quitar mocks progresivamente
+
+Conectar endpoint por endpoint, en este orden:
+
+1. `GET /advisors/me` — perfil real al cargar `ProtectedRoute`
+2. `GET /conversations/` — reemplazar fallback mock en `conversationsService.list()`
+3. `GET /conversations/{id}` — `ChatPage` con datos reales
+4. Reply (texto, media, audio) — remover guard `id === 'demo'` cuando el chat use conversaciones reales
+5. WebSocket — cambiar URL al backend real; el JWT de Supabase ya es válido
+6. Alerts, schedules, metrics — en orden de prioridad del equipo
+
+No desactivar todos los mocks a la vez — hacerlo endpoint por endpoint para detectar regresiones.

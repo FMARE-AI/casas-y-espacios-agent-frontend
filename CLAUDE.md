@@ -351,36 +351,49 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 
 ### Panel Web Interno — Backend (Bloque PW)
 
-| Componente                         | Estado               |
-| ---------------------------------- | -------------------- |
-| Estructura módulo `/panel`         | ✅                   |
-| Schemas centralizados              | ✅                   |
-| get_current_advisor / require_role | ✅                   |
-| Endpoints PW-2 a PW-22             | ⬜ Pendientes        |
-| WebSocketManager                   | ⬜ Pendiente (PW-19) |
+| Componente                                          | Estado                                      |
+| --------------------------------------------------- | ------------------------------------------- |
+| Estructura módulo `/panel`                          | ✅                                          |
+| Schemas centralizados                               | ✅                                          |
+| get_current_advisor / require_role                  | ✅                                          |
+| GET /conversations/ + /{id} + /{id}/messages        | ✅                                          |
+| POST /reply + /reply/media + /reply/audio           | ✅                                          |
+| PATCH /assign + /return-bot + /close                | ✅                                          |
+| GET /advisors/me + /advisors/                       | ✅                                          |
+| POST /advisors/ (crear asesor)                      | ✅                                          |
+| PATCH /advisors/me + /advisors/me/availability      | ✅                                          |
+| PATCH /advisors/{id} (admin edita asesor)           | ✅                                          |
+| GET /metrics (admin only)                           | ✅                                          |
+| GET /behavior-alerts/ + PATCH /{id}/review          | ✅                                          |
+| GET/POST /schedules/ + PATCH/DELETE /{id}           | ✅                                          |
+| WebSocketManager + /ws endpoint                     | ✅                                          |
+| POST /auth/token (debug sin password — solo dev)    | ✅ sin guard de settings.DEBUG — ver nota   |
+
+> **Nota conocida:** `POST /auth/token` no tiene guard de `settings.DEBUG`. En producción, incluir ese router solo si `DEBUG=True`. `POST /advisors/` no valida `specialty` contra `area` — esa validación solo existe en `PATCH /advisors/{id}`.
 
 ### Panel Web Interno — Frontend (React)
 
-| Componente                                          | Estado                                    |
-| --------------------------------------------------- | ----------------------------------------- |
+| Componente                                          | Estado                                             |
+| --------------------------------------------------- | -------------------------------------------------- |
 | Auth (Supabase + mock login)                        | ✅ mock: `asesor@mock.com` o `admin@mock.com` / `123` |
-| authStore (session, advisor, role, isLoading)       | ✅                                        |
-| wsStore (status, reconnectAttempt, escalation, alerts) | ✅ + decrementAlerts (FE-12)             |
-| useWebSocket (singleton, backoff exponencial)       | ✅                                        |
-| EscalationToast + sonido Web Audio API              | ✅                                        |
-| ProtectedRoute (guard + WS init + toasts)           | ✅                                        |
-| BandejaPage (lista + filtros + modal tomar)         | ✅ con fallback mock                      |
-| ChatPage (historial + reply texto)                  | ✅                                        |
-| ChatInput (texto + adjuntos + audio)                | ✅                                        |
-| AudioRecorder (MediaRecorder API, webm)             | ✅                                        |
-| MessageBubble (text/image/video/document/audio)     | ✅                                        |
-| conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback      |
-| alertsService (list, markReviewed)                  | ✅ sin fallback mock en markReviewed      |
-| GestionPage (admin) — tabla asesores + CRUD         | ✅ FE-11                                  |
-| BehaviorAlertsPanel (admin-only, FE-12)             | ✅ filtros, WS reload, mock fallback      |
-| Conexión real WebSocket con backend                 | ⬜ Pendiente (token mock rechazado)       |
-| HistorialPage                                       | ⬜ Pendiente                              |
-| PerfilPage                                          | ⬜ Pendiente                              |
+| authStore (session, advisor, role, isLoading)       | ✅                                                 |
+| wsStore (status, reconnectAttempt, escalation, alerts) | ✅ + decrementAlerts (FE-12)                    |
+| useWebSocket (singleton, backoff exponencial)       | ✅                                                 |
+| EscalationToast + sonido Web Audio API              | ✅                                                 |
+| ProtectedRoute (guard + WS init + toasts)           | ✅                                                 |
+| BandejaPage (lista + filtros + modal tomar)         | ✅ con fallback mock                               |
+| ChatPage (historial + reply texto)                  | ✅                                                 |
+| ChatInput (texto + adjuntos + audio)                | ✅                                                 |
+| AudioRecorder (MediaRecorder API, webm)             | ✅                                                 |
+| MessageBubble (text/image/video/document/audio)     | ✅                                                 |
+| conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback               |
+| alertsService (list, markReviewed)                  | ✅ sin fallback mock en markReviewed               |
+| GestionPage (admin) — tabla asesores + CRUD         | ✅ FE-11                                           |
+| BehaviorAlertsPanel (admin-only, FE-12)             | ✅ filtros, WS reload, mock fallback               |
+| **Integración real con backend (fase activa)**      | 🔄 En progreso                                     |
+| Conexión real WebSocket con backend                 | ⬜ Pendiente (token mock rechazado en dev)         |
+| HistorialPage                                       | ⬜ Pendiente                                       |
+| PerfilPage                                          | ⬜ Pendiente                                       |
 
 ### Servicios
 
@@ -787,3 +800,119 @@ navigate(ROUTES.BANDEJA)
 - No mezclar lógica de presentación con llamadas a la API — la lógica de fetch va en el `useEffect` de la página, no dentro de componentes hijo.
 - No usar `localStorage` directamente para guardar la sesión — Supabase Auth lo maneja internamente.
 - No importar `socket` del módulo `useWebSocket` — es una variable privada del módulo.
+
+---
+
+## 17. Integración Frontend-Backend — Reglas Críticas
+
+Esta sección rige toda la integración entre el panel React y la API FastAPI. El contrato está definido en `docs/panel_api_reference.md` — ese documento es la fuente de verdad.
+
+### 17.1 Autenticación
+
+El token JWT viene de `supabase.auth.signInWithPassword()` → `session.access_token`. Se pasa en cada llamada como `Authorization: Bearer <jwt>`. El hook `useAuth.ts` y el cliente axios en `src/lib/axios.ts` ya lo inyectan automáticamente — no volver a agregar el header manualmente.
+
+El **WebSocket** es la única excepción: el JWT va como query param, no como header:
+
+```
+wss://<host>/api/v1/panel/ws?token=<jwt>
+```
+
+Si el servidor cierra con código `4001` → JWT inválido o expirado → redirigir al login inmediatamente.
+
+`POST /api/v1/panel/auth/token` es un endpoint de desarrollo que emite un JWT **sin verificar password**. Solo usarlo para pruebas locales. Nunca en el flujo de producción.
+
+### 17.2 Envelope de respuesta
+
+Toda respuesta exitosa sigue este formato:
+
+```json
+{ "data": { ... } }
+```
+
+Toda respuesta de error:
+
+```json
+{ "detail": { "code": "ERROR_CODE", "message": "Mensaje legible" } }
+```
+
+Acceder siempre a `response.data.X`, nunca a `response.X` directamente. Manejar errores leyendo `error.detail.code`.
+
+### 17.3 Renderizado de mensajes
+
+Usar **`msg_type`** como fuente de verdad para decidir cómo renderizar — no la nulabilidad de `content` o `media_url`.
+
+| `msg_type`   | Cómo renderizar                                             |
+| ------------ | ----------------------------------------------------------- |
+| `text`       | Texto plano con `content`                                   |
+| `audio`      | `<audio src={media_url} />` — **nunca mostrar transcription** |
+| `image`      | `<img src={media_url} />`                                   |
+| `video`      | `<video src={media_url} controls />`                        |
+| `document`   | `<a href={media_url}>Descargar</a>`                         |
+
+**`transcription`** es contexto interno del agente de IA (Whisper). No es contenido de mensaje para el asesor. Si se quiere exponer, solo como toggle colapsado "Ver transcripción" — nunca como texto del bubble.
+
+**`media_url`** es siempre una URL firmada de Supabase Storage (válida 1 año). Usable directamente en `<img>`, `<audio>`, `<video>`, `<a>`. Nunca es un ID de media de Meta.
+
+### 17.4 Subida de archivos (multipart)
+
+Para `POST /reply/media` y `POST /reply/audio`, usar `FormData`. **No poner `Content-Type`** en el header — el browser lo setea automáticamente con el boundary correcto:
+
+```tsx
+// ✅ CORRECTO
+const formData = new FormData()
+formData.append('file', file)
+await apiClient.post(`/conversations/${id}/reply/media`, formData, {
+  headers: { Authorization: `Bearer ${token}` } // solo Authorization, sin Content-Type
+})
+
+// ❌ NUNCA
+headers: { 'Content-Type': 'multipart/form-data' }  // rompe el boundary
+```
+
+### 17.5 WebSocket — eventos del servidor
+
+Todos los eventos tienen el envelope `{ "event": "<tipo>", "data": { ... } }`.
+
+Eventos relevantes para el frontend:
+
+| Evento                | Acción esperada en el frontend                                               |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `message.new`         | Append al chat si `conversation_id` coincide; actualizar badge en la bandeja |
+| `escalation.new`      | Mostrar `EscalationToast`; recargar lista de conversaciones                  |
+| `escalation.assigned` | Actualizar tarjeta — quitar de cola sin asignar                              |
+| `conversation.returned` | Marcar conversación con ícono de bot                                       |
+| `conversation.closed` | Quitar de bandeja o actualizar estado                                        |
+| `advisor.status_changed` | Actualizar badge de disponibilidad en vista de equipo                     |
+| `behavior.alert`      | Solo admins: mostrar badge + llamar `GET /behavior-alerts/` para detalles   |
+
+**`conversation.closed` defensivo:** `advisor_id` y `advisor_name` están ausentes cuando `closed_by === "bot"`. Siempre verificar `closed_by` antes de leer esos campos.
+
+**`behavior.alert`** solo trae `alert_id` — no el contenido completo. Diseñado así para no difundir contenido de mensajes sensibles a todos los admins conectados. Llamar a `GET /behavior-alerts/` después de recibirlo.
+
+El cliente debe enviar `{ "type": "ping" }` cada 30 segundos. El servidor responde `{ "type": "pong" }`.
+
+Al abrir un chat, enviar `subscribe_conversation` con el `conversation_id`. Al cerrar el chat, enviar `unsubscribe_conversation`.
+
+### 17.6 Casos de borde conocidos
+
+| Situación | Comportamiento |
+|---|---|
+| `PATCH /assign` con dos asesores simultáneos | Posible race condition — el segundo recibe `ALREADY_ASSIGNED` (409). Mostrar: "Otro asesor tomó esta conversación primero." |
+| `status_until` en respuestas de asesor | Es hora local de Bogotá sin timezone suffix. No asumir UTC al parsear. |
+| Asesor desactivado mientras tiene conversaciones activas | La respuesta de `PATCH /advisors/{id}` incluye `"warning"` no-nulo — mostrarlo al admin. |
+| `active_conversations` en perfil de asesor | Puede ser `0` si el RPC de Supabase falla — no es un error, es un fallback silencioso. |
+| Cerrar conversación sin body | Aplica defaults: `resolution_type = "otro"`, `client_satisfied = "sin_confirmar"`. Válido y correcto. |
+
+### 17.7 Quitar mocks progresivamente
+
+El orden recomendado para conectar el frontend al backend real:
+
+1. **Auth**: ya funciona con Supabase real — eliminar el mock login una vez el equipo tenga credenciales de prueba.
+2. **`GET /conversations/`**: reemplazar el fallback mock en `conversationsService.list()`.
+3. **`GET /conversations/{id}`**: conectar `ChatPage` al endpoint real.
+4. **Reply (texto, media, audio)**: el `id === 'demo'` guard puede removerse cuando el chat use conversaciones reales.
+5. **WebSocket**: cambiar la URL a la del backend real; el token JWT de Supabase ya es válido.
+6. **`GET /advisors/me`**: conectar al cargar `ProtectedRoute` para tener el perfil real.
+7. **Resto de endpoints**: alerts, schedules, metrics — conectar en orden de prioridad del equipo.
+
+No eliminar todos los mocks a la vez — hacerlo endpoint por endpoint para detectar regresiones.
