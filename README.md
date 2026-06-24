@@ -4,15 +4,14 @@ Panel web interno para el equipo de una inmobiliaria colombiana. Permite a los a
 
 ## Documentación
 
-| Archivo | Descripción |
-|---|---|
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Estructura interna, capas y flujo de datos |
-| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Setup local, convenciones y cómo extender el proyecto |
-| [API_GUIDE.md](docs/API_GUIDE.md) | Referencia de todos los servicios y endpoints |
-| [CONFIGURATION.md](docs/CONFIGURATION.md) | Variables de entorno y configuración por ambiente |
+| Archivo                                   | Descripción                                           |
+| ----------------------------------------- | ----------------------------------------------------- |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md)   | Estructura interna, capas y flujo de datos            |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md)     | Setup local, convenciones y cómo extender el proyecto |
+| [API_GUIDE.md](docs/API_GUIDE.md)         | Referencia de todos los servicios y endpoints         |
+| [CONFIGURATION.md](docs/CONFIGURATION.md) | Variables de entorno y configuración por ambiente     |
 
 ---
-
 
 ## Prerrequisitos
 
@@ -58,18 +57,18 @@ npm run preview    # Preview del build local
 
 ## Stack
 
-| Tecnología | Uso |
-|---|---|
-| React 19 + TypeScript | Framework UI |
-| Vite 8 | Build tool |
-| Tailwind CSS v4 | Estilos |
-| Zustand | Estado global |
-| Axios | HTTP client |
-| Supabase JS | Autenticación |
-| React Router v7 | Routing |
-| React Hook Form + Zod | Formularios |
-| shadcn/ui | Componentes base |
-| Sonner | Notificaciones toast |
+| Tecnología            | Uso                  |
+| --------------------- | -------------------- |
+| React 19 + TypeScript | Framework UI         |
+| Vite 8                | Build tool           |
+| Tailwind CSS v4       | Estilos              |
+| Zustand               | Estado global        |
+| Axios                 | HTTP client          |
+| Supabase JS           | Autenticación        |
+| React Router v7       | Routing              |
+| React Hook Form + Zod | Formularios          |
+| shadcn/ui             | Componentes base     |
+| Sonner                | Notificaciones toast |
 
 ## Deployment
 
