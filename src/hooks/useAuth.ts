@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore, getStoredToken } from '../store/authStore'
+import { useAuthStore, getStoredSession } from '../store/authStore'
 import { advisorsService } from '../services/advisors'
 import apiClient from '../lib/axios'
 
@@ -23,10 +23,15 @@ export function useAuth() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const stored = getStoredToken()
+    const stored = getStoredSession()
 
     if (stored) {
-      useAuthStore.getState().setToken(stored)
+      // Restore session state without re-saving to localStorage
+      useAuthStore.setState({
+        token: stored.access_token,
+        refresh_token: stored.refresh_token,
+        expires_at: stored.expires_at,
+      })
       advisorsService.getMe()
         .then(({ advisor }) => {
           useAuthStore.getState().setAdvisor(advisor)
@@ -35,7 +40,7 @@ export function useAuth() {
           }
         })
         .catch(() => {
-          useAuthStore.getState().reset()
+          useAuthStore.getState().clearSession()
         })
         .finally(() => {
           useAuthStore.getState().setLoading(false)
@@ -58,14 +63,17 @@ export function useAuth() {
 
     try {
       const { data } = await apiClient.post('/api/v1/panel/auth/token', { email, password })
-      const token: string = data.access_token
 
-      useAuthStore.getState().setToken(token)
+      useAuthStore.getState().setSession({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_in: data.expires_in,
+      })
 
       const { advisor } = await advisorsService.getMe()
       useAuthStore.getState().setAdvisor(advisor)
 
-      if (advisor.must_change_password) {
+      if (data.must_change_password) {
         useAuthStore.getState().setFirstLogin(true)
         navigate('/first-login')
       } else {
@@ -76,7 +84,7 @@ export function useAuth() {
       const backendMsg = getBackendErrorMessage(err)
       console.error('[useAuth] signIn failed', { backendCode, backendMsg, err })
 
-      useAuthStore.getState().reset()
+      useAuthStore.getState().clearSession()
 
       if (isAdvisorInactiveError(err)) {
         useAuthStore.getState().setError(
@@ -92,7 +100,7 @@ export function useAuth() {
   }
 
   async function signOut() {
-    useAuthStore.getState().reset()
+    useAuthStore.getState().clearSession()
     navigate('/login')
   }
 
