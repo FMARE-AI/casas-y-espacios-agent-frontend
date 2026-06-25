@@ -34,7 +34,7 @@ export default function ProtectedRoute({ requiredRole }: Props) {
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <MobileHeader onOpenSidebar={() => setMobileOpen(true)} />
         <WSDisconnectedBanner onReconnect={reconnect} />
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>

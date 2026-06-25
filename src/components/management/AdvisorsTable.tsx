@@ -51,6 +51,7 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
             <th className="px-6 py-4">Rol</th>
             <th className="px-6 py-4">Área</th>
             <th className="px-6 py-4">Límite Conv.</th>
+            <th className="px-6 py-4">Conv. Activas</th>
             <th className="px-6 py-4">Estado</th>
             <th className="px-6 py-4 text-right">Acciones</th>
           </tr>
@@ -79,6 +80,9 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
                   <div className="h-6 w-12 rounded bg-[#2E2E2B]" />
                 </td>
                 <td className="px-6 py-4">
+                  <div className="h-6 w-12 rounded bg-[#2E2E2B]" />
+                </td>
+                <td className="px-6 py-4">
                   <div className="h-6 w-10 rounded bg-[#2E2E2B]" />
                 </td>
                 <td className="px-6 py-4 text-right">
@@ -88,7 +92,7 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
             ))
           ) : advisors.length === 0 ? (
             <tr>
-              <td colSpan={6} className="px-6 py-10 text-center text-[#8B8FA8]">
+              <td colSpan={7} className="px-6 py-10 text-center text-[#8B8FA8]">
                 No se encontraron asesores con los filtros aplicados.
               </td>
             </tr>
@@ -141,6 +145,12 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
                 <td className="px-6 py-4 align-middle font-medium">
                   <span className="text-white font-bold">{advisor.max_conversations}</span>
                   <span className="text-[#8B8FA8] text-xs font-normal"> máx.</span>
+                </td>
+
+                {/* Conv. Activas */}
+                <td className="px-6 py-4 align-middle font-medium">
+                  <span className="text-white font-bold">{advisor.active_conversations}</span>
+                  <span className="text-[#8B8FA8] text-xs font-normal"> activas</span>
                 </td>
 
                 {/* Estado */}
