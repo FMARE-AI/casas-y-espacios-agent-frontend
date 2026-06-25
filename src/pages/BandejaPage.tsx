@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { conversationsService } from '../services'
-import type { Conversation, WSEscalationNew } from '../types'
+import { conversationsService, advisorsService, metricsService } from '../services'
+import type { Conversation, WSEscalationNew, DashboardMetrics } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
@@ -135,13 +135,15 @@ function TakeModal({
 
 export default function BandejaPage() {
   const navigate = useNavigate()
-  const { advisor, role } = useAuthStore() as { advisor: { id?: string; max_conversations?: number; active_conversations?: number } | null, role: string | null }
+  const advisor = useAuthStore((s) => s.advisor)
+  const role = useAuthStore((s) => s.role)
 
   // Datos del servidor
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0 })
+  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
 
   // Filtros activos — asesor inicia en "mine", admin en todas
   const [statusFilter, setStatusFilter] = useState<string | null>(() =>
@@ -152,6 +154,19 @@ export default function BandejaPage() {
   // Modal tomar conversación
   const [takeTarget, setTakeTarget] = useState<Conversation | null>(null)
   const [isTaking, setIsTaking] = useState(false)
+
+  // Cargar perfil al montar la página
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await advisorsService.getMe()
+        useAuthStore.getState().setAdvisor(res.advisor)
+      } catch (err) {
+        console.error('Error fetching advisor profile:', err)
+      }
+    }
+    fetchProfile()
+  }, [])
 
   const refreshCounts = async (channel?: string) => {
     try {
@@ -167,43 +182,6 @@ export default function BandejaPage() {
       console.error('Error fetching counts', err)
     }
   }
-
-  useEffect(() => {
-    let isMounted = true
-
-    const fetchConversations = async () => {
-      setIsLoading(true)
-      try {
-        const result = await conversationsService.list({
-          status: statusFilter ?? undefined,
-          channel: channelFilter ?? undefined,
-          limit: 50,
-          offset: 0,
-        })
-        if (isMounted) {
-          setConversations(result.conversations || [])
-          setTotal(result.total || 0)
-        }
-      } catch (err) {
-        console.error('Error loading conversations', err)
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    fetchConversations()
-
-    return () => {
-      isMounted = false
-    }
-  }, [statusFilter, channelFilter])
-
-  useEffect(() => {
-    refreshCounts(channelFilter ?? undefined)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channelFilter])
 
   const loadConversations = async () => {
     setIsLoading(true)
@@ -222,7 +200,21 @@ export default function BandejaPage() {
       setIsLoading(false)
     }
     refreshCounts(channelFilter ?? undefined)
+
+    if (role === 'admin') {
+      try {
+        const res = await metricsService.getMetrics()
+        setDashboardMetrics(res.metrics)
+      } catch (err) {
+        console.error('Error loading metrics:', err)
+      }
+    }
   }
+
+  useEffect(() => {
+    loadConversations()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, channelFilter, role])
 
   const confirmTake = async () => {
     if (!takeTarget) return
@@ -230,6 +222,13 @@ export default function BandejaPage() {
     try {
       await conversationsService.assign(takeTarget.id)
       setTakeTarget(null)
+      // Recargar perfil para actualizar active_conversations
+      try {
+        const res = await advisorsService.getMe()
+        useAuthStore.getState().setAdvisor(res.advisor)
+      } catch (profileErr) {
+        console.error('Error refreshing advisor profile after take:', profileErr)
+      }
       await loadConversations()
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
@@ -284,7 +283,7 @@ export default function BandejaPage() {
           <ConnectedAdvisors />
         </div>
         
-        {role === 'admin' && <MetricsDashboard conversations={conversations} />}
+        {role === 'admin' && <MetricsDashboard metrics={dashboardMetrics} />}
       </div>
 
       <FilterBar

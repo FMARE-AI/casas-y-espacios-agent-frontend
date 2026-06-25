@@ -2,9 +2,19 @@ import { create } from 'zustand'
 import type { Advisor, AdvisorRole } from '../types'
 
 const TOKEN_KEY = 'panel_token'
+const REFRESH_TOKEN_KEY = 'panel_refresh_token'
+const EXPIRES_AT_KEY = 'panel_expires_at'
+
+export interface SessionData {
+  access_token: string
+  refresh_token: string
+  expires_in: number // seconds
+}
 
 interface AuthState {
   token: string | null
+  refresh_token: string | null
+  expires_at: number | null // timestamp in ms
   advisor: Advisor | null
   role: AdvisorRole | null
   isLoading: boolean
@@ -12,6 +22,8 @@ interface AuthState {
   sessionExpired: boolean
   error: string | null
 
+  setSession: (data: SessionData) => void
+  clearSession: () => void
   setToken: (token: string | null) => void
   setAdvisor: (advisor: Advisor | null) => void
   setLoading: (loading: boolean) => void
@@ -23,12 +35,38 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
+  refresh_token: null,
+  expires_at: null,
   advisor: null,
   role: null,
   isLoading: true,
   isFirstLogin: false,
   sessionExpired: false,
   error: null,
+
+  setSession: (data) => {
+    const expires_at = Date.now() + data.expires_in * 1000
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token)
+    localStorage.setItem(EXPIRES_AT_KEY, String(expires_at))
+    set({ token: data.access_token, refresh_token: data.refresh_token, expires_at })
+  },
+
+  clearSession: () => {
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    localStorage.removeItem(EXPIRES_AT_KEY)
+    set({
+      token: null,
+      refresh_token: null,
+      expires_at: null,
+      advisor: null,
+      role: null,
+      isFirstLogin: false,
+      sessionExpired: false,
+      error: null,
+    })
+  },
 
   setToken: (token) => {
     if (token) {
@@ -62,8 +100,12 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   reset: () => {
     localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    localStorage.removeItem(EXPIRES_AT_KEY)
     set({
       token: null,
+      refresh_token: null,
+      expires_at: null,
       advisor: null,
       role: null,
       isFirstLogin: false,
@@ -75,3 +117,23 @@ export const useAuthStore = create<AuthState>((set) => ({
 
 export const getStoredToken = (): string | null =>
   localStorage.getItem(TOKEN_KEY)
+
+export interface StoredSession {
+  access_token: string
+  refresh_token: string
+  expires_at: number // absolute timestamp in ms
+}
+
+export const getStoredSession = (): StoredSession | null => {
+  const access_token = localStorage.getItem(TOKEN_KEY)
+  const refresh_token = localStorage.getItem(REFRESH_TOKEN_KEY)
+  const expires_at_str = localStorage.getItem(EXPIRES_AT_KEY)
+
+  if (!access_token || !refresh_token || !expires_at_str) return null
+
+  return {
+    access_token,
+    refresh_token,
+    expires_at: Number(expires_at_str),
+  }
+}
