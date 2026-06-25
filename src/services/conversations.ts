@@ -12,12 +12,21 @@ export const conversationsService = {
     return data.data
   },
 
-  async getById(_id: string): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 4')
+  async getById(id: string): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {
+    const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}`, {
+      params: { limit: 50, offset: 0 },
+    })
+    const conversation = data.data.conversation
+    return {
+      conversation,
+      messages: conversation.messages || [],
+      total_messages: conversation.total_messages || 0,
+    }
   },
 
-  async getMessages(_id: string, _params?: PaginationParams): Promise<PaginatedMessages> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 4')
+  async getMessages(id: string, params?: PaginationParams): Promise<PaginatedMessages> {
+    const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}/messages`, { params })
+    return data.data
   },
 
   async replyText(_id: string, _text: string): Promise<{ message: Message }> {

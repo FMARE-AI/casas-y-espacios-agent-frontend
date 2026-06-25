@@ -302,6 +302,8 @@ export default function ChatPage() {
 
   async function loadMoreMessages() {
     if (isLoadingMore || messages.length >= totalMessages) return
+    const container = feedRef.current
+    const prevScrollHeight = container ? container.scrollHeight : 0
     setIsLoadingMore(true)
     try {
       const { messages: older } = await conversationsService.getMessages(
@@ -309,6 +311,11 @@ export default function ChatPage() {
         { limit: 50, offset: messages.length }
       )
       setMessages((prev) => [...older, ...prev])
+      setTimeout(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - prevScrollHeight
+        }
+      }, 0)
     } catch {
       // silently fail
     } finally {

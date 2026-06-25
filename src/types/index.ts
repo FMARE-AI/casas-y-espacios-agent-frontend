@@ -57,6 +57,7 @@ export interface Message {
   media_url: string | null
   media_mime_type: string | null
   media_size_bytes: number | null
+  transcription?: string | null
   timestamp: string
   delivered_via: string
 }

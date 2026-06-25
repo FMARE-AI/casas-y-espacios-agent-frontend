@@ -84,13 +84,26 @@ function DocumentBubble({ msg }: { msg: Message }) {
 function AudioBubble({ msg }: { msg: Message }) {
   if (msg.media_url) {
     return (
-      <div className="p-1 min-w-[200px] flex items-center justify-center">
+      <div className="p-1 min-w-[200px] flex flex-col items-stretch">
         <audio
           src={msg.media_url}
           controls
-          className="h-8 w-full max-w-[240px]"
+          className="h-8 w-full max-w-[240px] mb-1"
           style={{ accentColor: '#01A4E3' }}
         />
+        {msg.transcription && (
+          <details className="mt-2 text-[10px] text-[#8B8FA8] cursor-pointer select-none">
+            <summary className="hover:text-[#F0F0F5] transition outline-none font-bold flex items-center gap-1 list-none [&::-webkit-details-marker]:hidden">
+              <svg className="w-3.5 h-3.5 text-[#01A4E3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+              </svg>
+              <span>Ver transcripción</span>
+            </summary>
+            <p className="mt-2 pl-2 border-l border-[#3A3A37] whitespace-pre-wrap leading-normal text-[#8B8FA8] cursor-text select-text">
+              {msg.transcription}
+            </p>
+          </details>
+        )}
       </div>
     )
   }
