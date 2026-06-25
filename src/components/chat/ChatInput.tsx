@@ -11,6 +11,7 @@ interface ChatInputProps {
   onMessageSent: (message: Message) => void
   onError: () => void
   variant?: string
+  onTypingChange?: (isTyping: boolean) => void
 }
 
 const FILE_TYPES = {
@@ -92,6 +93,7 @@ export default function ChatInput({
   onMessageSent,
   onError,
   variant = 'assigned',
+  onTypingChange,
 }: ChatInputProps) {
   const [text, setText] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -102,6 +104,26 @@ export default function ChatInput({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
+  const updateTypingStatus = (status: boolean) => {
+    if (typingTimeoutRef.current && !status) {
+      clearTimeout(typingTimeoutRef.current)
+      typingTimeoutRef.current = null
+    }
+    if (onTypingChange) {
+      onTypingChange(status)
+    }
+  }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Cerrar al hacer clic fuera y con Escape
   useEffect(() => {
@@ -169,6 +191,7 @@ export default function ChatInput({
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
+      updateTypingStatus(false)
       handleSend()
     }
   }
@@ -189,6 +212,7 @@ export default function ChatInput({
   }
 
   async function handleSend() {
+    updateTypingStatus(false)
     if (selectedFile) {
       // PW-5 — enviar multimedia
       setSending(true)
@@ -383,7 +407,22 @@ export default function ChatInput({
               value={text}
               disabled={selectedFile !== null || sending || variant !== 'assigned'}
               onChange={(e) => {
-                if (e.target.value.length <= 2000) setText(e.target.value)
+                const val = e.target.value
+                if (val.length <= 2000) {
+                  setText(val)
+                }
+
+                if (!val.trim()) {
+                  updateTypingStatus(false)
+                } else {
+                  updateTypingStatus(true)
+                  if (typingTimeoutRef.current) {
+                    clearTimeout(typingTimeoutRef.current)
+                  }
+                  typingTimeoutRef.current = setTimeout(() => {
+                    updateTypingStatus(false)
+                  }, 1500)
+                }
               }}
               onKeyDown={handleKeyDown}
               placeholder={

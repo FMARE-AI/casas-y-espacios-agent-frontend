@@ -109,6 +109,7 @@ interface MessageFeedProps {
   advisorName?: string
   onScrollTop: () => void
   feedRef: React.RefObject<HTMLDivElement | null>
+  isTyping?: boolean
 }
 
 export default function MessageFeed({
@@ -120,6 +121,7 @@ export default function MessageFeed({
   advisorName,
   onScrollTop,
   feedRef,
+  isTyping,
 }: MessageFeedProps) {
   function handleScroll() {
     if (feedRef.current && feedRef.current.scrollTop === 0) {
@@ -158,7 +160,7 @@ export default function MessageFeed({
           {showEscalationEvent && <EscalationEvent />}
           {showReturnedEvent && <ReturnedBotEvent />}
 
-          {messages.length > 0 && !isLoading && (
+          {isTyping && (
             <TypingIndicator />
           )}
         </>
