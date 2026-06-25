@@ -261,6 +261,7 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [totalMessages, setTotalMessages] = useState(0)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isAdvisorTyping, setIsAdvisorTyping] = useState(false)
 
   const [rightPanelOpen, setRightPanelOpen] = useState(false)
   const [showReturnModal, setShowReturnModal] = useState(false)
@@ -300,8 +301,17 @@ export default function ChatPage() {
     }
   }, [isLoading])
 
+  // Scroll to bottom when typing indicator appears
+  useEffect(() => {
+    if (isAdvisorTyping && feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight
+    }
+  }, [isAdvisorTyping])
+
   async function loadMoreMessages() {
     if (isLoadingMore || messages.length >= totalMessages) return
+    const container = feedRef.current
+    const prevScrollHeight = container ? container.scrollHeight : 0
     setIsLoadingMore(true)
     try {
       const { messages: older } = await conversationsService.getMessages(
@@ -309,6 +319,11 @@ export default function ChatPage() {
         { limit: 50, offset: messages.length }
       )
       setMessages((prev) => [...older, ...prev])
+      setTimeout(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight - prevScrollHeight
+        }
+      }, 0)
     } catch {
       // silently fail
     } finally {
@@ -474,6 +489,7 @@ export default function ChatPage() {
           advisorName={advisor?.full_name}
           onScrollTop={loadMoreMessages}
           feedRef={feedRef}
+          isTyping={isAdvisorTyping}
         />
 
         {/* Input area or banners */}
@@ -485,6 +501,7 @@ export default function ChatPage() {
             waitMinutes={waitMinutes}
             onMessageSent={(msg) => setMessages((prev) => [...prev, msg])}
             onError={() => {}}
+            onTypingChange={setIsAdvisorTyping}
           />
         ) : (
           <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">
