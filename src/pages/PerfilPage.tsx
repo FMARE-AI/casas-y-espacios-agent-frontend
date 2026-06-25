@@ -133,12 +133,14 @@ const STATUS_COLORS: Record<AvailabilityStatus, string> = {
 
 function formatStatusUntil(statusUntil: string): string {
   try {
+    // status_until is a naive Bogotá local time string (no TZ suffix).
+    // Appending -05:00 prevents browsers from misinterpreting it as UTC.
     return new Intl.DateTimeFormat("es-CO", {
       timeZone: "America/Bogota",
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
-    }).format(new Date(statusUntil));
+    }).format(new Date(statusUntil + "-05:00"));
   } catch {
     return "--:--";
   }
@@ -304,7 +306,48 @@ export default function PerfilPage() {
     resolver: zodResolver(passwordSchema),
   });
 
+  const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function scheduleStatusRefresh(delayMs: number | null) {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    statusTimerRef.current = null;
+    if (!delayMs || delayMs <= 0) return;
+    statusTimerRef.current = setTimeout(async () => {
+      try {
+        const { advisor: refreshed } = await advisorsService.getMe();
+        setAdvisor(refreshed);
+        setStoreAdvisor(refreshed);
+        setSelectedStatus(refreshed.availability_status);
+        setSelectedMinutes(refreshed.availability_status === "available" ? null : 30);
+      } catch {
+        // silently fail — user can refresh manually
+      }
+    }, delayMs);
+  }
+
+  useEffect(() => () => {
+    if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+  }, []);
+
   useEffect(() => {
+    const cached = useAuthStore.getState().advisor;
+    if (cached) {
+      setAdvisor(cached);
+      setNameValue(cached.full_name);
+      setSelectedStatus(cached.availability_status);
+      setSelectedMinutes(
+        cached.availability_status === "available" ? null
+        : cached.status_until != null ? 30
+        : null,
+      );
+      setIsLoading(false);
+      scheduleStatusRefresh(
+        cached.status_until
+          ? new Date(cached.status_until + "-05:00").getTime() - Date.now() + 1000
+          : null,
+      );
+      return;
+    }
     async function loadProfile() {
       setIsLoading(true);
       try {
@@ -313,7 +356,14 @@ export default function PerfilPage() {
         setNameValue(fetched.full_name);
         setSelectedStatus(fetched.availability_status);
         setSelectedMinutes(
-          fetched.availability_status === "available" ? null : 30,
+          fetched.availability_status === "available" ? null
+          : fetched.status_until != null ? 30
+          : null,
+        );
+        scheduleStatusRefresh(
+          fetched.status_until
+            ? new Date(fetched.status_until + "-05:00").getTime() - Date.now() + 1000
+            : null,
         );
       } catch {
         // network unavailable — silently fail; skeleton stays hidden
@@ -412,9 +462,8 @@ export default function PerfilPage() {
       setAdvisor(refreshed);
       setStoreAdvisor(refreshed);
       setSelectedStatus(refreshed.availability_status);
-      setSelectedMinutes(
-        refreshed.availability_status === "available" ? null : minutes,
-      );
+      setSelectedMinutes(refreshed.availability_status === "available" ? null : minutes);
+      scheduleStatusRefresh(minutes ? minutes * 60 * 1000 + 1000 : null);
       toast.success("Disponibilidad actualizada");
     } catch {
       toast.error("No se pudo actualizar la disponibilidad");
@@ -855,7 +904,7 @@ export default function PerfilPage() {
                       id="current-password"
                       label="Contraseña Actual"
                       register={register("currentPassword")}
-                      error={errors.currentPassword?.message}
+                      error={passwordError ?? errors.currentPassword?.message}
                     />
                   </div>
 
@@ -869,12 +918,6 @@ export default function PerfilPage() {
                       placeholder="Mínimo 8 caracteres"
                     />
                   </div>
-
-                  {passwordError && (
-                    <p className="text-[#FF5B5B] text-xs pt-1">
-                      {passwordError}
-                    </p>
-                  )}
 
                   {passwordSuccess && (
                     <p className="text-[#00D4AA] text-xs flex items-center gap-1 font-semibold animate-pulse pt-1">
