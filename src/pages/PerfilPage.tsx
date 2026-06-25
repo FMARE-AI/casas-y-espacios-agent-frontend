@@ -341,6 +341,20 @@ export default function PerfilPage() {
     }
 
     setUploadingAvatar(true);
+
+    // Guardar URL original para hacer rollback en caso de error
+    const originalAvatarUrl = advisor.avatar_url;
+
+    // Actualización optimista de UI: leer archivo localmente y mostrarlo al instante
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const localDataUrl = reader.result as string;
+      const optimisticAdvisor = { ...advisor, avatar_url: localDataUrl };
+      setAdvisor(optimisticAdvisor);
+      setStoreAdvisor(optimisticAdvisor);
+    };
+    reader.readAsDataURL(file);
+
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = `avatars/${advisor.id}.${ext}`;
@@ -355,18 +369,18 @@ export default function PerfilPage() {
 
       if (uploadError) throw uploadError;
 
-      // PASO 2 — Obtener la URL pública (solo si el upload fue exitoso)
-      const { data: urlData } = supabase.storage
+      // PASO 2 — Obtener la URL firmada (solo si el upload fue exitoso, ya que el bucket es privado)
+      const { data: signData, error: signError } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .getPublicUrl(path);
+        .createSignedUrl(path, 31536000); // 1 año de expiración en segundos
 
-      if (!urlData?.publicUrl) {
-        throw new Error("No se pudo obtener la URL pública");
+      if (signError || !signData?.signedUrl) {
+        throw signError || new Error("No se pudo obtener la URL firmada");
       }
 
-      // PASO 3 — Guardar la URL en BD (solo si getPublicUrl retornó URL, sin full_name)
+      // PASO 3 — Guardar la URL firmada en BD (sin full_name)
       const { advisor: updated } = await advisorsService.updateMe({
-        avatar_url: urlData.publicUrl,
+        avatar_url: signData.signedUrl,
       });
 
       // PASO 4 — Actualizar el estado local
@@ -376,6 +390,11 @@ export default function PerfilPage() {
     } catch (error) {
       console.error("[handleAvatarUpload] error:", error);
       toast.error("No se pudo subir la imagen");
+
+      // Revertir a la imagen original en caso de error
+      const rollbackAdvisor = { ...advisor, avatar_url: originalAvatarUrl };
+      setAdvisor(rollbackAdvisor);
+      setStoreAdvisor(rollbackAdvisor);
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";

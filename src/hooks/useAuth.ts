@@ -65,7 +65,7 @@ export function useAuth() {
     return () => {
       window.removeEventListener('session-expired', handleExpired)
     }
-  }, [])
+  }, [navigate])
 
   async function signIn(email: string, password: string) {
     useAuthStore.getState().setLoading(true)
