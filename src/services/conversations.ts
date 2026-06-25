@@ -4,6 +4,9 @@ import type { PaginatedConversations, PaginatedMessages, Message, Conversation }
 type ConversationListParams = { status?: string; channel?: string; limit?: number; offset?: number }
 type PaginationParams = { limit?: number; offset?: number }
 type CloseConversationData = { resolution_type?: string; resolution_notes?: string | null; client_satisfied?: string }
+type AssignResponse = { escalation: { id: string; advisor_id: string; advisor_name: string } }
+type ReturnToBotResponse = { conversation: Conversation }
+type CloseResponse = { conversation: Conversation }
 
 export const conversationsService = {
 
@@ -41,15 +44,18 @@ export const conversationsService = {
     throw new Error('NOT IMPLEMENTED — pendiente Tarea 6')
   },
 
-  async assign(_id: string): Promise<{ escalation: object }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 5')
+  async assign(id: string): Promise<AssignResponse> {
+    const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/assign`)
+    return data.data
   },
 
-  async returnToBot(_id: string): Promise<{ conversation: Conversation }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 5')
+  async returnToBot(id: string): Promise<ReturnToBotResponse> {
+    const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/return-bot`)
+    return data.data
   },
 
-  async close(_id: string, _data?: CloseConversationData): Promise<object> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 5')
+  async close(id: string, body?: CloseConversationData): Promise<CloseResponse> {
+    const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/close`, body ?? {})
+    return data.data
   },
 }
