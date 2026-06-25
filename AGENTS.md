@@ -532,11 +532,14 @@ src/
   main.tsx                   — Entry point
 
   hooks/
-    useAuth.ts               — Sync Supabase Auth ↔ authStore; mock login; deps: []
+    useAuth.ts               — Login via POST /auth/token; bootstrap desde getStoredSession();
+                               navega a /first-login si must_change_password en bootstrap y en signIn; deps: []
     useWebSocket.ts          — Ciclo de vida WS; backoff exponencial; socket singleton global
 
   store/
-    authStore.ts             — session, advisor, role, isLoading, isFirstLogin, sessionExpired
+    authStore.ts             — token, refresh_token, expires_at, advisor, role, isLoading,
+                               isFirstLogin, sessionExpired; setSession / clearSession /
+                               getStoredSession (persiste los tres campos en localStorage)
     wsStore.ts               — status, reconnectAttempt, pendingEscalation, unreadAlerts;
                                incrementAlerts / decrementAlerts / resetAlerts
 
@@ -570,12 +573,16 @@ src/
 
   services/
     conversations.ts         — Todas las llamadas HTTP al backend + fallback mock
+    advisors.ts              — getMe, updateMe (PATCH /advisors/me), updateAvailability,
+                               list, create, update
     alerts.ts                — alertsService: list({ reviewed, limit }) + markReviewed(id)
     index.ts                 — Re-exporta conversationsService
 
   lib/
     supabase.ts              — Cliente Supabase (singleton)
-    axios.ts                 — Axios con header Authorization automático
+    axios.ts                 — Axios; interceptor async con renovación proactiva del token
+                               5 min antes de expirar (getValidToken); serializa refreshes
+                               paralelos en un único POST /auth/token/refresh
 
   types/                     — Tipos TypeScript compartidos (Conversation, Message, etc.)
   constants/
@@ -651,12 +658,14 @@ useEffect(() => {
 
 ### Regla 3 — useAuth tiene deps vacíos: no los toques
 
-`useEffect(..., [])` en `useAuth.ts` es intencional. Si agregas deps:
-- `getSession()` se re-invoca en cada cambio de estado
-- Supabase devuelve `null` para el token mock
-- La sesión mock se borra → el usuario es expulsado al login
+`useEffect(..., [])` en `useAuth.ts` es intencional. El effect:
+- Lee `getStoredSession()` de localStorage una sola vez al montar
+- Restaura `token`, `refresh_token` y `expires_at` al store vía `useAuthStore.setState`
+- Llama `advisorsService.getMe()` una sola vez para cargar el perfil
 
-**Todas las escrituras al store dentro de este effect usan `useAuthStore.getState()`.**
+Si agregas deps, la carga del perfil se re-invoca en cada cambio de estado, produciendo loops o re-navegaciones inesperadas a `/first-login`.
+
+**Todas las escrituras al store dentro de este effect usan `useAuthStore.getState()` o `useAuthStore.setState()`** — nunca el `store` del closure.
 
 ### Regla 4 — El socket WebSocket es un singleton de módulo
 
@@ -729,8 +738,9 @@ const data = await conversationsService.list()
 
 | Componente                                          | Estado                                             |
 | --------------------------------------------------- | -------------------------------------------------- |
-| Auth (Supabase + mock login)                        | ✅ mock: `asesor@mock.com` o `admin@mock.com` / `123` |
-| authStore / wsStore (Zustand)                       | ✅ wsStore + decrementAlerts (FE-12)               |
+| Auth real (POST /auth/token + refresh_token)        | ✅ login real; mock legacy: `asesor@mock.com` / `123` |
+| authStore (token, refresh_token, expires_at, setSession, clearSession) | ✅            |
+| wsStore (Zustand)                                   | ✅ + decrementAlerts (FE-12)                       |
 | useWebSocket (singleton + backoff)                  | ✅                                                 |
 | EscalationToast + sonido Web Audio API              | ✅                                                 |
 | ProtectedRoute (guard + WS + toasts)                | ✅                                                 |
@@ -740,9 +750,12 @@ const data = await conversationsService.list()
 | AudioRecorder (MediaRecorder API, webm)             | ✅                                                 |
 | MessageBubble (text/image/video/document/audio)     | ✅                                                 |
 | conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback               |
+| advisorsService.updateMe (PATCH /advisors/me)       | ✅ implementado — soporta cambio de contraseña     |
 | alertsService (list, markReviewed)                  | ✅ sin fallback mock en markReviewed               |
 | GestionPage (admin) — tabla asesores + CRUD         | ✅ FE-11                                           |
 | BehaviorAlertsPanel (admin-only, FE-12)             | ✅ filtros, WS reload, mock fallback               |
+| Renovación automática de token (interceptor axios)  | ✅ 5 min antes de expirar; refresh único paralelo  |
+| First-login: redirect en bootstrap (must_change_pw) | ✅ bug fix — redirige también al reabrir la app    |
 | **Integración real con backend (fase activa)**      | 🔄 En progreso                                     |
 | Conexión real WS con backend                        | ⬜ Pendiente (token mock rechazado en dev)         |
 | HistorialPage / PerfilPage                          | ⬜ Pendientes                                      |
@@ -755,7 +768,9 @@ Esta sección rige toda la integración entre el panel React y la API FastAPI. E
 
 ### 18.1 Autenticación
 
-El JWT viene de `supabase.auth.signInWithPassword()` → `session.access_token`. Ya es inyectado automáticamente por `src/lib/axios.ts`. No agregarlo manualmente.
+El JWT se obtiene vía `POST /api/v1/panel/auth/token` — **nunca llamando directamente a Supabase Auth**. El backend verifica que el asesor exista y esté activo antes de emitir el token. La respuesta incluye `access_token`, `refresh_token` y `expires_in`.
+
+`useAuth.signIn()` llama `setSession({ access_token, refresh_token, expires_in })`, que persiste los tres valores en `localStorage`. El interceptor async de `src/lib/axios.ts` renueva el token automáticamente 5 minutos antes de expirar usando `POST /auth/token/refresh` — múltiples requests simultáneos comparten un único refresh. No agregar el header `Authorization` manualmente.
 
 **WebSocket es la excepción**: el token va en el query param, no como header:
 
@@ -764,8 +779,6 @@ wss://<host>/api/v1/panel/ws?token=<jwt>
 ```
 
 Código de cierre `4001` = JWT inválido o expirado → redirigir al login inmediatamente.
-
-`POST /api/v1/panel/auth/token` emite JWT **sin verificar password**. Solo para pruebas locales. Nunca en el flujo de producción.
 
 ### 18.2 Envelope de respuesta
 
