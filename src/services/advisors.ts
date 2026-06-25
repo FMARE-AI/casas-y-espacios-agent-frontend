@@ -13,8 +13,9 @@ export const advisorsService = {
     return data.data
   },
 
-  async updateMe(_data: UpdateMeData): Promise<{ advisor: Advisor }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 9')
+  async updateMe(data: UpdateMeData): Promise<{ advisor: Advisor }> {
+    const response = await apiClient.patch('/api/v1/panel/advisors/me', data)
+    return response.data.data
   },
 
   async updateAvailability(_status: AvailabilityStatus, _minutesUntil?: number | null): Promise<{ availability_status: AvailabilityStatus }> {
