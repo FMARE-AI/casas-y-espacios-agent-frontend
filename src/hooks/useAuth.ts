@@ -4,6 +4,7 @@ import { useAuthStore, getStoredSession } from '../store/authStore'
 import { advisorsService } from '../services/advisors'
 import { ROUTES } from '../constants/routes'
 import apiClient from '../lib/axios'
+import { supabase } from '../lib/supabase'
 
 type AxiosLike = { response?: { status?: number; data?: { detail?: { code?: string; message?: string } } } }
 
@@ -33,6 +34,13 @@ export function useAuth() {
         refresh_token: stored.refresh_token,
         expires_at: stored.expires_at,
       })
+
+      // Sync restored token session with Supabase client to authorize Storage uploads
+      supabase.auth.setSession({
+        access_token: stored.access_token,
+        refresh_token: stored.refresh_token || '',
+      }).catch((err) => console.error('Supabase setSession failed:', err))
+
       advisorsService.getMe()
         .then(({ advisor }) => {
           useAuthStore.getState().setAdvisor(advisor)
@@ -75,7 +83,7 @@ export function useAuth() {
       const { advisor } = await advisorsService.getMe()
       useAuthStore.getState().setAdvisor(advisor)
 
-      if (data.must_change_password) {
+      if (advisor.must_change_password) {
         useAuthStore.getState().setFirstLogin(true)
         navigate('/first-login')
       } else {
