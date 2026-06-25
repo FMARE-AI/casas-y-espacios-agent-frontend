@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { format, parseISO } from 'date-fns'
 import { alertsService } from '../../services/alerts'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
@@ -29,43 +30,40 @@ const SEVERITY_STYLES: Record<AlertSeverity, string> = {
 
 // ── Helpers ───────────────────────────────────────────────
 
-function getInitials(name: string): string {
+function getInitials(name: string | null | undefined): string {
+  if (!name) return '?'
   return name
-    .split(' ')
+    .trim()
+    .split(/\s+/)
     .slice(0, 2)
-    .map((n) => n[0])
+    .map((n) => n[0] || '')
     .join('')
     .toUpperCase()
 }
 
 function formatBogota(utcString: string): string {
-  const date = new Date(utcString)
-  const now = new Date()
+  try {
+    const utcDate = parseISO(utcString)
+    const bogotaDate = new Date(utcDate.toLocaleString('en-US', { timeZone: 'America/Bogota' }))
+    const nowBogota = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }))
 
-  const bogota = (d: Date) =>
-    new Intl.DateTimeFormat('es-CO', {
-      timeZone: 'America/Bogota',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(d)
+    const d1 = new Date(bogotaDate.getFullYear(), bogotaDate.getMonth(), bogotaDate.getDate())
+    const d2 = new Date(nowBogota.getFullYear(), nowBogota.getMonth(), nowBogota.getDate())
 
-  const timeStr = new Intl.DateTimeFormat('es-CO', {
-    timeZone: 'America/Bogota',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-  }).format(date)
+    const diffDays = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24))
+    const timeStr = format(bogotaDate, 'hh:mm a')
 
-  const dateStr = bogota(date)
-  const todayStr = bogota(now)
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayStr = bogota(yesterday)
+    if (diffDays === 0) {
+      return `Hoy, ${timeStr}`
+    }
+    if (diffDays === 1) {
+      return `Ayer, ${timeStr}`
+    }
 
-  if (dateStr === todayStr) return `Hoy, ${timeStr}`
-  if (dateStr === yesterdayStr) return `Ayer, ${timeStr}`
-  return `${dateStr} ${timeStr}`
+    return format(bogotaDate, 'dd/MM/yyyy hh:mm a')
+  } catch {
+    return ''
+  }
 }
 
 // ── Props ─────────────────────────────────────────────────
@@ -88,6 +86,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
   const [reviewingIds, setReviewingIds] = useState<Set<string>>(new Set())
 
   const loadAlerts = useCallback(async (silent = false) => {
+    if (role !== 'admin') return
     if (silent) {
       setIsRefreshing(true)
     } else {
@@ -95,28 +94,39 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
     }
     try {
       const result = await alertsService.list({ reviewed: false, limit: 50 })
-      setAlerts(result.alerts)
+      setAlerts(result?.alerts || [])
     } catch {
       if (!silent) setAlerts([])
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [])
+  }, [role])
 
   useEffect(() => {
-    loadAlerts()
-  }, [loadAlerts])
+    if (role === 'admin') {
+      const timer = setTimeout(() => {
+        loadAlerts().catch(() => {})
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [loadAlerts, role])
 
   const handleBehaviorAlert = useCallback(() => {
-    loadAlerts(true)
-  }, [loadAlerts])
+    if (role === 'admin') {
+      loadAlerts(true).catch(() => {})
+    }
+  }, [loadAlerts, role])
 
-  useWebSocket({ onBehaviorAlert: handleBehaviorAlert })
+  const wsHandlers = useMemo(() => ({
+    onBehaviorAlert: handleBehaviorAlert
+  }), [handleBehaviorAlert])
+
+  useWebSocket(wsHandlers)
 
   const filteredAlerts = useMemo(() => {
     return alerts.filter((alert) => {
-      if (advisorFilter !== 'todos' && alert.advisor.id !== advisorFilter) return false
+      if (advisorFilter !== 'todos' && alert.advisor?.id !== advisorFilter) return false
       if (severityFilter !== 'todos' && alert.severity !== severityFilter) return false
       return true
     })
@@ -128,13 +138,20 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
       await alertsService.markReviewed(alertId)
       setAlerts((prev) => prev.filter((a) => a.id !== alertId))
       useWSStore.getState().decrementAlerts()
-    } catch {
-      // Silent fail — leave alert in list, re-enable button
-      setReviewingIds((prev) => {
-        const next = new Set(prev)
-        next.delete(alertId)
-        return next
-      })
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: { code?: string } } } }
+      const errorCode = axiosError.response?.data?.detail?.code
+      if (errorCode === 'ALREADY_REVIEWED' || errorCode === 'ALERT_NOT_FOUND') {
+        setAlerts((prev) => prev.filter((a) => a.id !== alertId))
+        useWSStore.getState().decrementAlerts()
+      } else {
+        // Silent fail — leave alert in list, re-enable button
+        setReviewingIds((prev) => {
+          const next = new Set(prev)
+          next.delete(alertId)
+          return next
+        })
+      }
     }
   }
 
@@ -208,25 +225,36 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
         </div>
       )}
 
+      <style>{`
+        @keyframes alertFadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .alert-card-animate {
+          animation: alertFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+      `}</style>
+
       {/* Alert list */}
       {!isLoading && filteredAlerts.length > 0 && (
         <div id="behavior-alerts-list" className="space-y-3">
-          {filteredAlerts.map((alert) => (
+          {filteredAlerts.map((alert, index) => (
             <div
               key={alert.id}
               id={`behavior-alert-item-${alert.id}`}
-              className="bg-[#252522]/65 border border-[#3A3A37]/50 rounded-lg p-4 flex items-start gap-3 hover:border-[#FF5B5B]/30 transition"
+              className="bg-[#252522]/65 border border-[#3A3A37]/50 rounded-lg p-4 flex items-start gap-3 hover:border-[#FF5B5B]/35 hover:shadow-lg hover:shadow-[#FF5B5B]/5 transition-all duration-300 transform hover:-translate-y-0.5 alert-card-animate"
+              style={{ animationDelay: `${index * 40}ms` }}
             >
               {/* Initials avatar */}
               <div className="w-8 h-8 rounded-md bg-[#FF5B5B]/10 flex items-center justify-center text-[#FF5B5B] text-xs font-bold shrink-0">
-                {getInitials(alert.advisor.full_name)}
+                {getInitials(alert.advisor?.full_name)}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap mb-1">
                   <span className="text-xs font-semibold text-[#F0F0F5]">
-                    {alert.advisor.full_name}
+                    {alert.advisor?.full_name ?? 'Asesor desconocido'}
                   </span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${ALERT_TYPE_STYLES[alert.alert_type]}`}
@@ -242,9 +270,9 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
 
                 {/* Message excerpt */}
                 <p className="text-xs text-[#8B8FA8] italic mb-2 line-clamp-2">
-                  &ldquo;{alert.message_content.length > 100
+                  &ldquo;{alert.message_content && alert.message_content.length > 100
                     ? `${alert.message_content.slice(0, 100)}…`
-                    : alert.message_content}&rdquo;
+                    : alert.message_content || ''}&rdquo;
                 </p>
 
                 {/* Footer */}
