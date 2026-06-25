@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore, getStoredToken } from '../store/authStore'
 import { advisorsService } from '../services/advisors'
+import { ROUTES } from '../constants/routes'
 import apiClient from '../lib/axios'
 
 type AxiosLike = { response?: { status?: number; data?: { detail?: { code?: string; message?: string } } } }
@@ -32,6 +33,7 @@ export function useAuth() {
           useAuthStore.getState().setAdvisor(advisor)
           if (advisor.must_change_password) {
             useAuthStore.getState().setFirstLogin(true)
+            navigate(ROUTES.FIRST_LOGIN)
           }
         })
         .catch(() => {
