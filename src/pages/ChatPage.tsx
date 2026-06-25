@@ -335,6 +335,26 @@ export default function ChatPage() {
     onConversationReturned: onConversationReturned,
   })
 
+  function extractErrorCode(err: unknown): string | undefined {
+    const e = err as { response?: { data?: { detail?: { code?: string } } } }
+    return e.response?.data?.detail?.code
+  }
+
+  function extractErrorMessage(err: unknown): string | undefined {
+    const e = err as { response?: { data?: { detail?: { message?: string } } } }
+    return e.response?.data?.detail?.message
+  }
+
+  function getGlobalErrorMessage(code: string | undefined, fallback: string): string {
+    switch (code) {
+      case 'BOT_IS_ACTIVE':            return 'El bot tiene el control de esta conversación.'
+      case 'NOT_ASSIGNED':             return 'No estás asignado a esta conversación.'
+      case 'CONVERSATION_NOT_FOUND':   return 'Conversación no encontrada.'
+      case 'ALREADY_CLOSED':           return 'Esta conversación ya fue cerrada.'
+      default:                         return fallback
+    }
+  }
+
   async function handleTake() {
     if (!conversationId) return
     setIsAssigning(true)
@@ -342,31 +362,18 @@ export default function ChatPage() {
       await conversationsService.assign(conversationId)
       await loadConversation()
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: { code?: string } } } }
-      const code = e.response?.data?.detail?.code
-      if (code === 'MAX_CONVERSATIONS_REACHED') {
-        toast.error('Has alcanzado el límite de conversaciones simultáneas')
-      } else if (code === 'ALREADY_ASSIGNED') {
+      const code = extractErrorCode(err)
+      if (code === 'ALREADY_ASSIGNED') {
         await loadConversation()
+      } else if (code === 'MAX_CONVERSATIONS_REACHED') {
+        toast.error(extractErrorMessage(err) ?? 'Has alcanzado el límite de conversaciones simultáneas')
+      } else if (code === 'CONVERSATION_NOT_ESCALATED') {
+        toast.error('La conversación no está en estado escalado.')
       } else {
-        toast.error('No se pudo tomar la conversación')
+        toast.error(getGlobalErrorMessage(code, 'No se pudo tomar la conversación'))
       }
     } finally {
       setIsAssigning(false)
-    }
-  }
-
-  async function handleClose(data: CloseData) {
-    if (!conversationId) return
-    setIsClosing(true)
-    try {
-      await conversationsService.close(conversationId, data)
-      setShowCloseModal(false)
-      navigate('/')
-    } catch {
-      toast.error('No se pudo cerrar la conversación')
-    } finally {
-      setIsClosing(false)
     }
   }
 
@@ -377,10 +384,36 @@ export default function ChatPage() {
       await conversationsService.returnToBot(conversationId)
       setShowReturnModal(false)
       await loadConversation()
-    } catch {
-      toast.error('No se pudo devolver la conversación al bot')
+    } catch (err: unknown) {
+      const code = extractErrorCode(err)
+      setShowReturnModal(false)
+      if (code === 'BOT_ALREADY_ACTIVE') {
+        toast.info('El bot ya controla esta conversación.')
+        await loadConversation()
+      } else {
+        toast.error(getGlobalErrorMessage(code, 'No se pudo devolver la conversación al bot'))
+      }
     } finally {
       setIsReturning(false)
+    }
+  }
+
+  async function handleClose(data: CloseData) {
+    if (!conversationId) return
+    setIsClosing(true)
+    try {
+      await conversationsService.close(conversationId, data)
+      setShowCloseModal(false)
+      navigate('/')
+    } catch (err: unknown) {
+      const code = extractErrorCode(err)
+      if (code === 'ALREADY_CLOSED') {
+        toast.error('Esta conversación ya fue cerrada.')
+      } else {
+        toast.error(getGlobalErrorMessage(code, 'No se pudo cerrar la conversación'))
+      }
+    } finally {
+      setIsClosing(false)
     }
   }
 
