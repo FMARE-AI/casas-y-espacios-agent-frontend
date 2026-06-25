@@ -50,12 +50,13 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 ```json
 {
   "access_token": "eyJhbGciOiJFUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJFUzI1NiIs...",
   "token_type": "bearer",
+  "expires_in": 3600,
   "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
   "full_name": "Ana Gómez",
   "role": "asesor",
-  "must_change_password": false,
-  "expires_in_hours": 1
+  "must_change_password": false
 }
 ```
 
@@ -69,6 +70,40 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 | 401  | `INVALID_TOKEN`    | Supabase Auth user exists but no matching row in `advisors` |
 | 403  | `ADVISOR_INACTIVE` | Advisor exists but `is_active = false`                      |
 | 503  | `INVALID_TOKEN`    | Connection error to Supabase Auth                           |
+
+---
+
+### POST /api/v1/panel/auth/token/refresh
+
+**Auth required:** No
+
+**Description:** Renews the `access_token` using a valid `refresh_token`. The frontend interceptor should call this automatically before the `access_token` expires. On failure, the frontend must redirect to `/login`.
+
+**Request body:**
+
+```json
+{
+  "refresh_token": "eyJhbGciOiJFUzI1NiIs..."
+}
+```
+
+**Response 200:**
+
+```json
+{
+  "access_token": "eyJhbGciOiJFUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJFUzI1NiIs...",
+  "expires_in": 3600,
+  "token_type": "bearer"
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode       | When                                                                    |
+| ---- | --------------- | ----------------------------------------------------------------------- |
+| 401  | `INVALID_TOKEN` | `refresh_token` invalid or expired — frontend must redirect to `/login` |
+| 503  | `INVALID_TOKEN` | Connection error to Supabase Auth                                       |
 
 ---
 
