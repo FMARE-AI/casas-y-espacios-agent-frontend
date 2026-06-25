@@ -35,8 +35,12 @@ export const advisorsService = {
     return response.data.data
   },
 
-  async updateAvailability(_status: AvailabilityStatus, _minutesUntil?: number | null): Promise<{ availability_status: AvailabilityStatus }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 9')
+  async updateAvailability(status: AvailabilityStatus, minutes?: number | null): Promise<{ availability_status: AvailabilityStatus }> {
+    const { data } = await apiClient.patch('/api/v1/panel/advisors/me/availability', {
+      availability_status: status,
+      minutes: minutes ?? null,
+    })
+    return data.data
   },
 
   async list(params?: AdvisorListParams): Promise<{ advisors: Advisor[] }> {
