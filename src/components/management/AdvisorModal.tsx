@@ -329,7 +329,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             <div className="flex gap-2.5 rounded-lg border border-[#FFB84D]/35 bg-[#FFB84D]/10 p-3.5 text-xs text-[#FFB84D]">
               <Info className="h-4 w-4 shrink-0" />
               <p className="leading-normal">
-                Al crear el perfil se asignará una clave temporal. El asesor deberá cambiarla obligatoriamente en su primer login.
+                Al crear el perfil se utilizará la contraseña temporal definida arriba. El asesor deberá cambiarla obligatoriamente en su primer inicio de sesión.
               </p>
             </div>
           )}
