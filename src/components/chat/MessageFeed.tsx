@@ -1,10 +1,11 @@
+import { memo, useMemo, useCallback } from 'react'
 import { format, parseISO, isToday, isYesterday } from 'date-fns'
 import type { Message } from '../../types'
 import MessageBubble from './MessageBubble'
 
 // ── Local sub-components ──────────────────────────────────
 
-function DateSeparator({ date }: { date: Date }) {
+const DateSeparator = memo(function DateSeparator({ date }: { date: Date }) {
   let label: string
   if (isToday(date)) label = `Hoy, ${format(date, "d 'de' MMMM")}`
   else if (isYesterday(date)) label = `Ayer, ${format(date, "d 'de' MMMM")}`
@@ -17,9 +18,9 @@ function DateSeparator({ date }: { date: Date }) {
       </span>
     </div>
   )
-}
+})
 
-function EscalationEvent() {
+const EscalationEvent = memo(function EscalationEvent() {
   return (
     <div className="text-center my-2 shrink-0">
       <span className="bg-[#FF5B5B]/10 text-[#FF5B5B] text-[9px] font-bold px-2.5 py-1 rounded border border-[#FF5B5B]/30 inline-flex items-center gap-1.5">
@@ -30,9 +31,9 @@ function EscalationEvent() {
       </span>
     </div>
   )
-}
+})
 
-function ReturnedBotEvent() {
+const ReturnedBotEvent = memo(function ReturnedBotEvent() {
   return (
     <div className="text-center my-2 shrink-0">
       <span className="bg-[#00D4AA]/10 text-[#00D4AA] text-[9px] font-bold px-2.5 py-1 rounded border border-[#00D4AA]/30 inline-flex items-center gap-1.5">
@@ -41,9 +42,9 @@ function ReturnedBotEvent() {
       </span>
     </div>
   )
-}
+})
 
-function TypingIndicator() {
+const TypingIndicator = memo(function TypingIndicator() {
   return (
     <div className="flex items-center space-x-2 text-[10px] text-[#8B8FA8] italic py-1 shrink-0">
       <span className="flex space-x-1 items-center">
@@ -58,7 +59,7 @@ function TypingIndicator() {
       <span>Escribiendo...</span>
     </div>
   )
-}
+})
 
 function ChatSkeleton() {
   return (
@@ -112,7 +113,7 @@ interface MessageFeedProps {
   isTyping?: boolean
 }
 
-export default function MessageFeed({
+export default memo(function MessageFeed({
   messages,
   isLoading,
   isLoadingMore,
@@ -123,13 +124,13 @@ export default function MessageFeed({
   feedRef,
   isTyping,
 }: MessageFeedProps) {
-  function handleScroll() {
+  const handleScroll = useCallback(() => {
     if (feedRef.current && feedRef.current.scrollTop === 0) {
       onScrollTop()
     }
-  }
+  }, [feedRef, onScrollTop])
 
-  const groups = groupByDay(messages)
+  const groups = useMemo(() => groupByDay(messages), [messages])
 
   return (
     <div
@@ -167,4 +168,4 @@ export default function MessageFeed({
       )}
     </div>
   )
-}
+})

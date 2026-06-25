@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import type { Conversation } from '../../types'
 
 interface StatusCounts {
@@ -19,7 +20,7 @@ interface FilterBarProps {
   onRefresh: () => void
 }
 
-export function FilterBar({
+export const FilterBar = memo(function FilterBar({
   conversations,
   statusCounts,
   activeStatus,
@@ -32,9 +33,10 @@ export function FilterBar({
 }: FilterBarProps) {
   const totals = statusCounts
 
-  const myCount = conversations.filter(
-    (conv) => conv.escalation?.advisor?.id === currentAdvisorId
-  ).length
+  const myCount = useMemo(
+    () => conversations.filter((conv) => conv.escalation?.advisor?.id === currentAdvisorId).length,
+    [conversations, currentAdvisorId]
+  )
 
   const btnBase = 'px-3 py-1.5 rounded transition flex items-center gap-1.5 text-xs font-semibold border'
   const btnActive = 'bg-[#01A4E3] border-[#01A4E3] text-white'
@@ -116,4 +118,4 @@ export function FilterBar({
       </div>
     </div>
   )
-}
+})

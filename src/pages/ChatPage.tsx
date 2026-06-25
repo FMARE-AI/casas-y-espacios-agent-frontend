@@ -332,17 +332,17 @@ export default function ChatPage() {
   }
 
   // WS handlers — called by useWebSocket hook (FE-10)
-  function onNewMessage(event: { conversation_id: string; message: Message }) {
+  const onNewMessage = useCallback((event: { conversation_id: string; message: Message }) => {
     if (event.conversation_id === conversationId) {
       setMessages((prev) => [...prev, event.message])
     }
-  }
+  }, [conversationId])
 
-  function onConversationReturned(event: { conversation_id: string }) {
+  const onConversationReturned = useCallback((event: { conversation_id: string }) => {
     if (event.conversation_id === conversationId) {
       loadConversation()
     }
-  }
+  }, [conversationId, loadConversation])
 
   // Hook up real-time websocket updates
   useWebSocket({

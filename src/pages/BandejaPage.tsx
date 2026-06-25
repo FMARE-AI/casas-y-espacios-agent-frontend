@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
@@ -247,19 +247,21 @@ export default function BandejaPage() {
   }
 
   // Event handlers for Websockets
-  const handleEscalationNew = (data: WSEscalationNew) => {
+  const handleEscalationNew = useCallback((data: WSEscalationNew) => {
     if (data) {
       // Future FE-10 optimization: append card without reloading
     }
     loadConversations()
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, channelFilter, role])
 
-  const handleEscalationAssigned = (data: { conversation_id: string; advisor_id: string }) => {
+  const handleEscalationAssigned = useCallback((data: { conversation_id: string; advisor_id: string }) => {
     if (data) {
       // Future FE-10 optimization: update card directly
     }
     loadConversations()
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, channelFilter, role])
 
   // Hook up real-time websocket updates
   useWebSocket({
@@ -269,6 +271,10 @@ export default function BandejaPage() {
 
   const advisorMaxConv = advisor?.max_conversations ?? 3
   const advisorActiveConv = advisor?.active_conversations ?? 0
+
+  const handleView = useCallback((id: string) => {
+    navigate(`/chat/${id}`)
+  }, [navigate])
 
   return (
     <section id="screen-bandeja" className="flex-1 flex flex-col p-4 md:p-6 space-y-4">
@@ -318,7 +324,7 @@ export default function BandejaPage() {
                 advisorMaxConversations={advisorMaxConv}
                 advisorActiveConversations={advisorActiveConv}
                 onTake={setTakeTarget}
-                onView={(id) => navigate(`/chat/${id}`)}
+                onView={handleView}
                 isAdmin={role === 'admin'}
               />
             ))

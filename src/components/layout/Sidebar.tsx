@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback, memo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
@@ -42,7 +42,7 @@ interface NavItemProps {
   badgeId?: string
 }
 
-function NavItem({ to, active, label, icon, badge, badgeId }: NavItemProps) {
+const NavItem = memo(function NavItem({ to, active, label, icon, badge, badgeId }: NavItemProps) {
   return (
     <Link
       to={to}
@@ -76,7 +76,7 @@ function NavItem({ to, active, label, icon, badge, badgeId }: NavItemProps) {
       )}
     </Link>
   )
-}
+})
 
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const location = useLocation()
@@ -120,11 +120,11 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
-  async function handleSignOut() {
+  const handleSignOut = useCallback(async () => {
     await supabase.auth.signOut()
     reset()
     navigate('/login')
-  }
+  }, [reset, navigate])
 
   const wsDotClass = WS_DOT_CLASSES[wsStatus]
 

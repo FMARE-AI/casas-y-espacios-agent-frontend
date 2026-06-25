@@ -1,10 +1,11 @@
+import { memo } from 'react'
 import type { DashboardMetrics } from '../../types'
 
 interface MetricsDashboardProps {
   metrics: DashboardMetrics | null
 }
 
-export function MetricsDashboard({ metrics }: MetricsDashboardProps) {
+export const MetricsDashboard = memo(function MetricsDashboard({ metrics }: MetricsDashboardProps) {
   if (!metrics) {
     return (
       <div id="admin-metrics-panel" className="grid grid-cols-2 sm:grid-cols-6 gap-2 bg-[#252522] p-2 border border-[#3A3A37] rounded-lg animate-pulse min-w-[320px] sm:min-w-[450px]" style={{ background: 'rgba(37,37,34,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
@@ -43,4 +44,4 @@ export function MetricsDashboard({ metrics }: MetricsDashboardProps) {
       </div>
     </div>
   )
-}
+})

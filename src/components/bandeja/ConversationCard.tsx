@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import type { Conversation } from '../../types'
 
 interface ConversationCardProps {
@@ -32,7 +32,7 @@ function getVariant(conversation: Conversation, now: number): CardVariant {
   return 'C'
 }
 
-export function ConversationCard({
+export const ConversationCard = memo(function ConversationCard({
   conversation,
   currentAdvisorId,
   advisorMaxConversations,
@@ -47,7 +47,7 @@ export function ConversationCard({
     return () => clearInterval(timer)
   }, [])
 
-  const variant = getVariant(conversation, now)
+  const variant = useMemo(() => getVariant(conversation, now), [conversation, now])
 
   const containerStyles = {
     A: 'border-l-[3px] border-l-[#FF5B5B] hover:bg-[#2E2E2B]/40',
@@ -70,7 +70,7 @@ export function ConversationCard({
     C: conversation.bot_activo ? 'Activa (Bot)' : 'Activa',
   }
 
-  const getElapsed = () => {
+  const elapsed = useMemo(() => {
     const timestamp = (conversation.status === 'escalada' && conversation.escalation?.escalated_at)
       ? conversation.escalation.escalated_at
       : conversation.last_activity
@@ -81,10 +81,10 @@ export function ConversationCard({
     if (hours < 24) return { value: hours, unit: hours === 1 ? 'hora' : 'horas' }
     const days = Math.floor(hours / 24)
     return { value: days, unit: days === 1 ? 'día' : 'días' }
-  }
+  }, [conversation, now])
 
   const renderTopRight = () => {
-    const { value, unit } = getElapsed()
+    const { value, unit } = elapsed
     if (variant === 'A2') {
       return (
         <span className="text-[10px] text-[#FFB84D] font-black flex items-center gap-1">
@@ -188,4 +188,4 @@ export function ConversationCard({
       </div>
     </div>
   )
-}
+})

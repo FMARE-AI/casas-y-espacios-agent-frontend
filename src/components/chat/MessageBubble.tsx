@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { format, parseISO } from 'date-fns'
 import type { Message } from '../../types'
 
@@ -23,7 +24,7 @@ function formatBytes(bytes: number | null): string {
 
 // ── Media placeholders ────────────────────────────────────
 
-function ImageBubble({ msg }: { msg: Message }) {
+const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
   if (msg.media_url) {
     return (
       <div className="rounded overflow-hidden border border-[#3A3A37] max-w-[240px]">
@@ -47,9 +48,9 @@ function ImageBubble({ msg }: { msg: Message }) {
       {msg.content && <p className="text-[#F0F0F5] text-xs p-2">{msg.content}</p>}
     </div>
   )
-}
+})
 
-function DocumentBubble({ msg }: { msg: Message }) {
+const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
   return (
     <div className="flex items-center gap-3 p-3">
       <div className="w-8 h-8 bg-white/20 rounded flex items-center justify-center shrink-0">
@@ -79,9 +80,9 @@ function DocumentBubble({ msg }: { msg: Message }) {
       )}
     </div>
   )
-}
+})
 
-function AudioBubble({ msg }: { msg: Message }) {
+const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
   if (msg.media_url) {
     return (
       <div className="p-1 min-w-[200px] flex flex-col items-stretch">
@@ -115,9 +116,9 @@ function AudioBubble({ msg }: { msg: Message }) {
       <span className="text-xs">Mensaje de voz</span>
     </div>
   )
-}
+})
 
-function VideoBubble({ msg }: { msg: Message }) {
+const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   if (msg.media_url) {
     return (
       <div className="rounded overflow-hidden border border-[#3A3A37] max-w-[240px]">
@@ -138,11 +139,11 @@ function VideoBubble({ msg }: { msg: Message }) {
       </svg>
     </div>
   )
-}
+})
 
 // ── Bubble content ────────────────────────────────────────
 
-function BubbleContent({ msg, isDocument }: { msg: Message; isDocument: boolean }) {
+const BubbleContent = memo(function BubbleContent({ msg, isDocument }: { msg: Message; isDocument: boolean }) {
   if (isDocument) return <DocumentBubble msg={msg} />
   switch (msg.msg_type) {
     case 'image': return <ImageBubble msg={msg} />
@@ -152,11 +153,11 @@ function BubbleContent({ msg, isDocument }: { msg: Message; isDocument: boolean 
       <p className="text-xs leading-relaxed">{msg.content}</p>
     )
   }
-}
+})
 
 // ── Main component ────────────────────────────────────────
 
-export default function MessageBubble({ message, advisorName }: MessageBubbleProps) {
+export default memo(function MessageBubble({ message, advisorName }: MessageBubbleProps) {
   const time = formatTime(message.timestamp)
   const isDocument = message.msg_type === 'document'
 
@@ -201,4 +202,4 @@ export default function MessageBubble({ message, advisorName }: MessageBubblePro
       </span>
     </div>
   )
-}
+})
