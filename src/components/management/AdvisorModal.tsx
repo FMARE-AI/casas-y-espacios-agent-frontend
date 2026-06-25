@@ -1,29 +1,49 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import type { Advisor } from '../../types'
 import { Lock, X, AlertTriangle, Info } from 'lucide-react'
 
-// Crear Schema
+const SPECIALTY_OPTIONS_BY_AREA: Record<string, { value: string; label: string }[]> = {
+  administrativa: [
+    { value: 'financiera', label: 'Financiera' },
+    { value: 'mantenimiento_contratos', label: 'Mantenimiento / Contratos' },
+  ],
+  comercial: [
+    { value: 'comercial', label: 'Comercial' },
+  ],
+  ambas: [],
+}
+
+const specialtyRefinement = (data: { area: string; specialty?: string | null }, ctx: z.RefinementCtx) => {
+  const allowed = SPECIALTY_OPTIONS_BY_AREA[data.area]?.map((o) => o.value) ?? []
+  if (data.area === 'ambas' && data.specialty) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Para área "ambas" la especialidad debe estar vacía', path: ['specialty'] })
+  } else if (data.area !== 'ambas' && data.specialty && !allowed.includes(data.specialty)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Especialidad inválida para el área seleccionada', path: ['specialty'] })
+  }
+}
+
 const createSchema = z.object({
   fullName: z.string().min(1, 'Nombre requerido'),
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres'),
   role: z.enum(['asesor', 'admin']),
   area: z.enum(['administrativa', 'comercial', 'ambas']),
+  specialty: z.string().nullable().optional(),
   maxConversations: z.number().min(1).max(10),
-})
+}).superRefine(specialtyRefinement)
 
-// Editar Schema — incluye email y password opcionales para evitar incompatibilidad de tipos con useForm
 const editSchema = z.object({
   fullName: z.string().min(1, 'Nombre requerido'),
   email: z.string().optional(),
   password: z.string().optional(),
   role: z.enum(['asesor', 'admin']),
   area: z.enum(['administrativa', 'comercial', 'ambas']),
+  specialty: z.string().nullable().optional(),
   maxConversations: z.number().min(1).max(10),
-})
+}).superRefine(specialtyRefinement)
 
 interface AdvisorFormData {
   fullName: string
@@ -31,6 +51,7 @@ interface AdvisorFormData {
   password?: string
   role: 'asesor' | 'admin'
   area: 'administrativa' | 'comercial' | 'ambas'
+  specialty: string | null
   maxConversations: number
 }
 
@@ -53,10 +74,13 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 }) => {
   const isEdit = mode === 'edit'
   const schema = isEdit ? editSchema : createSchema
+  const isFirstRender = useRef(true)
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<AdvisorFormData>({
     resolver: zodResolver(schema),
@@ -65,6 +89,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
           fullName: advisor.full_name,
           role: advisor.role,
           area: advisor.area,
+          specialty: advisor.specialty ?? null,
           maxConversations: advisor.max_conversations,
         }
       : {
@@ -73,9 +98,23 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
           password: '',
           role: 'asesor',
           area: 'administrativa',
+          specialty: null,
           maxConversations: 3,
         },
   })
+
+  const selectedArea = watch('area')
+  const specialtyOptions = SPECIALTY_OPTIONS_BY_AREA[selectedArea] ?? []
+  const isSpecialtyDisabled = selectedArea === 'ambas'
+
+  // Reset specialty when area changes — skip on initial mount to preserve edit defaults
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    setValue('specialty', null)
+  }, [selectedArea, setValue])
 
   const onFormSubmit = (data: AdvisorFormData) => {
     onSubmit(data)
@@ -83,13 +122,13 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay con blur */}
+      {/* Overlay */}
       <div
         className="fixed inset-0 bg-[#1D1D1B]/75 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
-      {/* Contenedor Modal */}
+      {/* Modal card */}
       <div
         id={isEdit ? 'modal-edit-advisor' : 'modal-new-advisor'}
         className="relative z-10 w-full max-w-lg overflow-hidden rounded-lg border border-[#3A3A37] bg-[#252522] text-[#F0F0F5] shadow-xl transition-all"
@@ -107,7 +146,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
           </button>
         </div>
 
-        {/* Formulario */}
+        {/* Form */}
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 p-6">
           {error && (
             <div className="flex items-start gap-2.5 rounded-lg border border-[#FF5B5B]/50 bg-[#FF5B5B]/10 p-3 text-sm text-[#FF5B5B]">
@@ -116,6 +155,8 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
                 <span className="font-semibold">Error al guardar:</span>{' '}
                 {error === 'EMAIL_ALREADY_EXISTS'
                   ? 'El correo ingresado ya existe en el sistema.'
+                  : error === 'INVALID_SPECIALTY_FOR_AREA'
+                  ? 'La especialidad no es válida para el área seleccionada.'
                   : error}
               </div>
             </div>
@@ -171,7 +212,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             )}
           </div>
 
-          {/* Contraseña temporal (sólo crear) */}
+          {/* Contraseña temporal (solo crear) */}
           {!isEdit && (
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
@@ -193,7 +234,6 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Grid Rol + Área */}
           <div className="grid grid-cols-2 gap-4">
-            {/* Rol */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
                 Rol en el panel
@@ -207,7 +247,6 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               </select>
             </div>
 
-            {/* Área */}
             <div>
               <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
                 Área operativa
@@ -221,6 +260,35 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
                 <option value="ambas">Ambas áreas</option>
               </select>
             </div>
+          </div>
+
+          {/* Especialidad */}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
+              Especialidad <span className="font-normal normal-case text-[#8B8FA8]/60">(opcional)</span>
+            </label>
+            <select
+              {...register('specialty')}
+              disabled={isSpecialtyDisabled}
+              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-all focus:border-[#01A4E3] disabled:cursor-not-allowed disabled:opacity-40 ${
+                errors.specialty ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
+              }`}
+            >
+              <option value="">Sin especialidad</option>
+              {specialtyOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            {errors.specialty && (
+              <p className="mt-1 text-xs text-[#FF5B5B]">{errors.specialty.message}</p>
+            )}
+            {isSpecialtyDisabled && (
+              <p className="mt-1 text-xs text-[#8B8FA8]/60">
+                Área "ambas" no admite especialidad.
+              </p>
+            )}
           </div>
 
           {/* Límite de conversaciones */}
@@ -245,7 +313,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             )}
           </div>
 
-          {/* Nota Amarilla (sólo crear) */}
+          {/* Nota informativa (solo crear) */}
           {!isEdit && (
             <div className="flex gap-2.5 rounded-lg border border-[#FFB84D]/35 bg-[#FFB84D]/10 p-3.5 text-xs text-[#FFB84D]">
               <Info className="h-4 w-4 shrink-0" />
@@ -255,7 +323,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             </div>
           )}
 
-          {/* Botones de acción */}
+          {/* Acciones */}
           <div className="flex items-center justify-end gap-3 border-t border-[#3A3A37] pt-4">
             <button
               type="button"

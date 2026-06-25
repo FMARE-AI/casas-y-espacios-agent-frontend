@@ -30,6 +30,7 @@ export interface Advisor {
   full_name: string
   role: AdvisorRole
   area: AdvisorArea
+  specialty?: string | null
   max_conversations: number
   active_conversations: number
   availability_status: AvailabilityStatus
