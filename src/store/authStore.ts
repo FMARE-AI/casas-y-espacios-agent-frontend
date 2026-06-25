@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Advisor, AdvisorRole } from '../types'
+import { supabase } from '../lib/supabase'
 
 const TOKEN_KEY = 'panel_token'
 const REFRESH_TOKEN_KEY = 'panel_refresh_token'
@@ -49,6 +50,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(TOKEN_KEY, data.access_token)
     localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token)
     localStorage.setItem(EXPIRES_AT_KEY, String(expires_at))
+
+    // Synchronize token session with Supabase client to authorize Storage uploads
+    supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    }).catch((err) => console.error('Supabase setSession failed:', err))
+
     set({ token: data.access_token, refresh_token: data.refresh_token, expires_at })
   },
 
@@ -56,6 +64,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(EXPIRES_AT_KEY)
+    supabase.auth.signOut().catch(() => {})
     set({
       token: null,
       refresh_token: null,
@@ -102,6 +111,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(EXPIRES_AT_KEY)
+    supabase.auth.signOut().catch(() => {})
     set({
       token: null,
       refresh_token: null,
@@ -129,11 +139,11 @@ export const getStoredSession = (): StoredSession | null => {
   const refresh_token = localStorage.getItem(REFRESH_TOKEN_KEY)
   const expires_at_str = localStorage.getItem(EXPIRES_AT_KEY)
 
-  if (!access_token || !refresh_token || !expires_at_str) return null
+  if (!access_token) return null
 
   return {
     access_token,
-    refresh_token,
-    expires_at: Number(expires_at_str),
+    refresh_token: refresh_token || '',
+    expires_at: expires_at_str ? Number(expires_at_str) : Date.now() + 3600 * 1000,
   }
 }

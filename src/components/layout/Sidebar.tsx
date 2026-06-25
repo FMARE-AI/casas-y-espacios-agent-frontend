@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
 import { alertsService } from '../../services/alerts'
-import type { WSStatus } from '../../types'
+import type { WSStatus, AvailabilityStatus } from '../../types'
 
 export interface SidebarProps {
   mobileOpen: boolean
@@ -90,6 +90,12 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const wsStatus = useWSStore((s) => s.status)
   const unreadAlerts = useWSStore((s) => s.unreadAlerts)
 
+  const AVAILABILITY_DOT_CLASSES: Record<AvailabilityStatus, string> = {
+    available: 'bg-[#00D4AA]',
+    break: 'bg-[#FFB84D]',
+    offline: 'bg-[#FF5B5B]',
+  }
+
   useEffect(() => {
     onClose()
   }, [location.pathname, onClose])
@@ -160,39 +166,46 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       >
         <div className="space-y-6">
           {/* User profile card */}
-          <div className="flex items-center space-x-3 p-2 bg-[#2E2E2B]/50 rounded-lg border border-[#3A3A37]">
+          <div className="flex items-center space-x-3.5 p-3 bg-gradient-to-r from-[#2E2E2B]/60 to-[#252522]/60 rounded-xl border border-[#3A3A37] hover:border-[#01A4E3]/35 shadow-lg shadow-black/10 hover:shadow-[#01A4E3]/5 hover:bg-[#2E2E2B]/85 transition-all duration-300 ease-in-out cursor-pointer group">
             <div className="relative shrink-0">
               {advisor?.avatar_url ? (
                 <img
                   src={advisor.avatar_url}
                   alt={advisor.full_name ?? 'Avatar'}
-                  className="w-10 h-10 rounded-full border border-[#01A4E3] object-cover"
+                  className="w-10 h-10 rounded-full object-cover border border-[#01A4E3]/30 shadow-sm ring-1 ring-[#01A4E3]/15 transition duration-300 group-hover:ring-[#01A4E3]/30"
                 />
               ) : (
-                <div className="w-10 h-10 rounded-full border border-[#01A4E3] bg-[#01A4E3]/25 flex items-center justify-center">
-                  <span className="text-xs font-bold text-[#01A4E3]">
+                <div className="w-10 h-10 rounded-full border border-[#01A4E3]/30 bg-gradient-to-br from-[#01A4E3]/20 to-[#01A4E3]/5 flex items-center justify-center shadow-sm ring-1 ring-[#01A4E3]/15 transition duration-300 group-hover:ring-[#01A4E3]/30">
+                  <span className="text-xs font-bold text-[#01A4E3] tracking-wider">
                     {getInitials(advisor?.full_name)}
                   </span>
                 </div>
               )}
               <div
-                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#252522] ${wsDotClass}`}
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-[#252522] ${
+                  AVAILABILITY_DOT_CLASSES[advisor?.availability_status ?? 'offline']
+                }`}
               />
             </div>
-            <div className="min-w-0">
-              <h4 className="text-xs font-bold text-[#F0F0F5] truncate">
+            <div className="min-w-0 flex-1">
+              <h4 className="text-xs font-bold text-white group-hover:text-[#01A4E3] truncate tracking-wide transition duration-300">
                 {advisor?.full_name ?? 'Asesor'}
               </h4>
-              <span
-                className={[
-                  'text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase inline-block mt-0.5',
-                  role === 'admin'
-                    ? 'bg-[#FF5B5B]/15 text-[#FF5B5B]'
-                    : 'bg-[#01A4E3]/10 text-[#01A4E3]',
-                ].join(' ')}
-              >
-                {role ?? 'asesor'}
-              </span>
+              <p className="text-[11px] font-medium text-[#8B8FA8] truncate mt-0.5" title={advisor?.email}>
+                {advisor?.email}
+              </p>
+              <div className="flex flex-wrap gap-1 mt-1.5">
+                <span
+                  className={[
+                    'text-[8px] px-2 py-0.5 rounded-full font-extrabold uppercase inline-block border tracking-wider transition duration-300',
+                    role === 'admin'
+                      ? 'bg-[#FF5B5B]/10 text-[#FF5B5B] border-[#FF5B5B]/20 shadow-[0_0_6px_rgba(255,91,91,0.05)] group-hover:border-[#FF5B5B]/35'
+                      : 'bg-[#01A4E3]/10 text-[#01A4E3] border-[#01A4E3]/20 shadow-[0_0_6px_rgba(1,164,227,0.05)] group-hover:border-[#01A4E3]/35',
+                  ].join(' ')}
+                >
+                  {role ?? 'asesor'}
+                </span>
+              </div>
             </div>
           </div>
 

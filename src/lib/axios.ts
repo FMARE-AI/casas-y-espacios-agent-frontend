@@ -15,7 +15,8 @@ let refreshPromise: Promise<string | null> | null = null
 async function getValidToken(): Promise<string | null> {
   const { token, expires_at, refresh_token } = useAuthStore.getState()
 
-  if (!token || !expires_at) return null
+  if (!token) return null
+  if (!expires_at) return token
 
   const fiveMinutes = 5 * 60 * 1000
   if (Date.now() <= expires_at - fiveMinutes) {
