@@ -104,7 +104,7 @@ export default function ChatInput({
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const updateTypingStatus = (status: boolean) => {
     if (typingTimeoutRef.current && !status) {
