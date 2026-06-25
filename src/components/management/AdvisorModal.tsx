@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
+import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import type { Advisor } from '../../types'
@@ -51,7 +52,7 @@ interface AdvisorFormData {
   password?: string
   role: 'asesor' | 'admin'
   area: 'administrativa' | 'comercial' | 'ambas'
-  specialty: string | null
+  specialty?: string | null
   maxConversations: number
 }
 
@@ -83,7 +84,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
     setValue,
     formState: { errors },
   } = useForm<AdvisorFormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as unknown as Resolver<AdvisorFormData>,
     defaultValues: isEdit && advisor
       ? {
           fullName: advisor.full_name,

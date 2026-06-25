@@ -20,7 +20,7 @@ interface AdvisorSubmitData {
   password?: string
   role: 'asesor' | 'admin'
   area: 'administrativa' | 'comercial' | 'ambas'
-  specialty: string | null
+  specialty?: string | null
   maxConversations: number
 }
 
