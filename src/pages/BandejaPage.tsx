@@ -170,7 +170,7 @@ export default function BandejaPage() {
 
   const refreshCounts = async (channel?: string) => {
     try {
-      const result = await conversationsService.list({ channel, limit: 200, offset: 0 })
+      const result = await conversationsService.list({ channel, limit: 100, offset: 0 })
       const all = result.conversations || []
       setStatusCounts({
         all: result.total || all.length,
