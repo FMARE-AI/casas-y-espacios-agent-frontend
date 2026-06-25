@@ -6,6 +6,7 @@ import { AdvisorModal } from '../components/management/AdvisorModal'
 import BehaviorAlertsPanel from '../components/gestion/BehaviorAlertsPanel'
 import { Plus, Search, AlertTriangle, Shield } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAuthStore } from '../store/authStore'
 
 type ModalState =
   | { type: 'none' }
@@ -61,7 +62,15 @@ export const GestionPage: React.FC = () => {
     setIsLoading(true)
     try {
       const { advisors: fetched } = await advisorsService.list()
-      setAdvisors(fetched)
+
+      // El admin no se ve a sí mismo en la tabla
+      // — debe editar su perfil desde /perfil
+      const authStore = useAuthStore.getState()
+      const filtered = fetched.filter(
+        (a) => a.id !== authStore.advisor?.id
+      )
+
+      setAdvisors(filtered)
     } catch (err: unknown) {
       const isNetworkError =
         err instanceof Error &&

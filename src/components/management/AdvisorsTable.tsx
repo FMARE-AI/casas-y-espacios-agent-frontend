@@ -1,6 +1,7 @@
 import React from 'react'
 import type { Advisor } from '../../types'
 import { Edit2 } from 'lucide-react'
+import { useAuthStore } from '../../store/authStore'
 
 interface AdvisorsTableProps {
   advisors: Advisor[]
@@ -26,6 +27,8 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
   onEdit,
   onToggleActive,
 }) => {
+  const currentAdvisor = useAuthStore((state) => state.advisor)
+
   const getInitials = (name: string) => {
     const parts = name.trim().split(/\s+/)
     if (parts.length >= 2) {
@@ -168,13 +171,16 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
 
                 {/* Acciones */}
                 <td className="px-6 py-4 text-right align-middle">
-                  <button
-                    onClick={() => onEdit(advisor)}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#01A4E3] hover:text-[#01A4E3]/80 transition-colors"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                    Editar
-                  </button>
+                  {/* Doble protección */}
+                  {advisor.id !== currentAdvisor?.id && (
+                    <button
+                      onClick={() => onEdit(advisor)}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#01A4E3] hover:text-[#01A4E3]/80 transition-colors"
+                    >
+                      <Edit2 className="h-3.5 w-3.5" />
+                      Editar
+                    </button>
+                  )}
                 </td>
               </tr>
             ))
