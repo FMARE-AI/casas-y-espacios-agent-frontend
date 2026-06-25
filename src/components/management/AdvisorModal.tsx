@@ -126,14 +126,14 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-[#1D1D1B]/75 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-[#1D1D1B]/75 backdrop-blur-sm transition-opacity will-change-[opacity]"
         onClick={onClose}
       />
 
       {/* Modal card */}
       <div
         id={isEdit ? 'modal-edit-advisor' : 'modal-new-advisor'}
-        className="relative z-10 w-full max-w-lg overflow-hidden rounded-lg border border-[#3A3A37] bg-[#252522] text-[#F0F0F5] shadow-xl transition-all"
+        className="relative z-10 w-full max-w-lg overflow-hidden rounded-lg border border-[#3A3A37] bg-[#252522] text-[#F0F0F5] shadow-xl transition-colors will-change-transform"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#3A3A37] px-6 py-4">
@@ -173,7 +173,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               type="text"
               placeholder="Ej: Juan Pérez"
               {...register('fullName')}
-              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-all focus:border-[#01A4E3] ${
+              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-colors focus:border-[#01A4E3] ${
                 errors.fullName ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
               }`}
             />
@@ -203,7 +203,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
                   type="email"
                   placeholder="Ej: jperez@casasyespacios.co"
                   {...register('email')}
-                  className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-all focus:border-[#01A4E3] ${
+                  className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-colors focus:border-[#01A4E3] ${
                     errors.email ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
                   }`}
                 />
@@ -225,7 +225,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Mínimo 8 caracteres"
                   {...register('password')}
-                  className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 pr-10 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-all focus:border-[#01A4E3] ${
+                  className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 pr-10 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-colors focus:border-[#01A4E3] ${
                     errors.password ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
                   }`}
                 />
@@ -251,7 +251,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               </label>
               <select
                 {...register('role')}
-                className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-all focus:border-[#01A4E3]"
+                className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3]"
               >
                 <option value="asesor">Asesor</option>
                 <option value="admin">Administrador</option>
@@ -264,7 +264,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               </label>
               <select
                 {...register('area')}
-                className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-all focus:border-[#01A4E3]"
+                className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3]"
               >
                 <option value="administrativa">Administrativa</option>
                 <option value="comercial">Comercial</option>
@@ -281,7 +281,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             <select
               {...register('specialty')}
               disabled={isSpecialtyDisabled}
-              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-all focus:border-[#01A4E3] disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3] disabled:cursor-not-allowed disabled:opacity-40 ${
                 errors.specialty ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
               }`}
             >
@@ -309,7 +309,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             </label>
             <select
               {...register('maxConversations', { valueAsNumber: true })}
-              className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-all focus:border-[#01A4E3]"
+              className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3]"
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                 <option key={num} value={num}>
