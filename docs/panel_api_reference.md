@@ -137,6 +137,11 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
         "channel": "administrativa",
         "last_activity": "2026-06-22T14:35:00+00:00",
         "intent": "cartera",
+        "resolution_type": null,
+        "resolution_notes": null,
+        "client_satisfied": null,
+        "closed_by": null,
+        "closed_at": null,
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
@@ -212,6 +217,11 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
       "status": "escalada",
       "bot_activo": false,
       "channel": "administrativa",
+      "resolution_type": null,
+      "resolution_notes": null,
+      "client_satisfied": null,
+      "closed_by": null,
+      "closed_at": null,
       "client": {
         "id": "550e8400-e29b-41d4-a716-446655440020",
         "full_name": "Carlos Rodríguez",
@@ -908,7 +918,7 @@ msg_type = "document" → render download link using media_url
 | 409  | `EMAIL_ALREADY_EXISTS` | An advisor with this email already exists in Supabase Auth |
 | 502  | `SUPABASE_AUTH_ERROR`  | Supabase Auth or DB error during creation                  |
 
-**Notes — Specialty/Area validation:** This endpoint does NOT validate `specialty` against `area`. That validation only runs in `PATCH /{advisor_id}`. Valid combinations:
+**Notes — Specialty/Area validation:** Validated on both `POST` and `PATCH /{advisor_id}`. Valid combinations:
 
 | Area             | Allowed specialties                                 |
 | ---------------- | --------------------------------------------------- |
