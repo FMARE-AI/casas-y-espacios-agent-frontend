@@ -40,12 +40,12 @@ export const advisorsService = {
   },
 
   async list(params?: AdvisorListParams): Promise<{ advisors: Advisor[] }> {
-    const { data } = await apiClient.get('/api/v1/panel/advisors/', { params })
+    const { data } = await apiClient.get('/api/v1/panel/advisors', { params })
     return data.data
   },
 
   async create(payload: CreateAdvisorData): Promise<{ advisor: Advisor }> {
-    const { data } = await apiClient.post('/api/v1/panel/advisors/', payload)
+    const { data } = await apiClient.post('/api/v1/panel/advisors', payload)
     return data.data
   },
 
