@@ -228,7 +228,7 @@ export default function BandejaPage() {
     }
   }
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     setIsLoading(true)
     try {
       const result = await conversationsService.list({
@@ -254,17 +254,25 @@ export default function BandejaPage() {
     if (role === 'admin') {
       try {
         const res = await metricsService.getMetrics()
-        setDashboardMetrics(res.metrics)
+        setDashboardMetrics(res)
       } catch (err) {
         console.error('Error loading metrics:', err)
       }
     }
-  }
+  }, [statusFilter, channelFilter, role])
 
   useEffect(() => {
-    loadConversations()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
+    let ignore = false
+    const timer = setTimeout(() => {
+      if (!ignore) {
+        loadConversations()
+      }
+    }, 0)
+    return () => {
+      ignore = true
+      clearTimeout(timer)
+    }
+  }, [loadConversations])
 
   const confirmTake = async () => {
     if (!takeTarget) return
@@ -302,29 +310,27 @@ export default function BandejaPage() {
       // Future FE-10 optimization: append card without reloading
     }
     loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
+  }, [loadConversations])
 
   const handleEscalationAssigned = useCallback(() => {
     loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
+  }, [loadConversations])
 
-  const handleConversationClosed = useCallback((_data: WSConversationClosed) => {
+  const handleConversationClosed = useCallback((data: WSConversationClosed) => {
+    if (data) {
+      // Future FE-10 optimization: handle closed state directly
+    }
     loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
+  }, [loadConversations])
 
   const handleConversationReturned = useCallback(() => {
     loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
+  }, [loadConversations])
 
   const handleQueuePending = useCallback((data: WSQueuePending) => {
     toast.info(data.message, { duration: 6000 })
     loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
+  }, [loadConversations])
 
   // Hook up real-time websocket updates
   useWebSocket({
