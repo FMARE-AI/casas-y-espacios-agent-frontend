@@ -4,7 +4,16 @@ import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
 import { alertsService } from '../../services/alerts'
-import type { WSStatus, AvailabilityStatus } from '../../types'
+import type { AvailabilityStatus, WSStatus } from '../../types'
+
+function getSystemStatus(wsStatus: WSStatus): { label: string; color: string; pulse: boolean } {
+  switch (wsStatus) {
+    case 'connected':    return { label: 'Sistema operativo', color: '#00D4AA', pulse: false }
+    case 'reconnecting': return { label: 'Conexión inestable', color: '#FFB84D', pulse: true }
+    case 'disconnected': return { label: 'Sin conexión',       color: '#FF5B5B', pulse: false }
+    default:             return { label: 'Conectando...',      color: '#8B8FA8', pulse: true }
+  }
+}
 
 export interface SidebarProps {
   mobileOpen: boolean
@@ -19,18 +28,6 @@ function getInitials(name: string | null | undefined): string {
     .map((n) => n[0])
     .join('')
     .toUpperCase()
-}
-
-const WS_DOT_CLASSES: Record<WSStatus, string> = {
-  connected: 'bg-[#01A4E3] ws-pulse-dot',
-  reconnecting: 'bg-[#FFB84D]',
-  disconnected: 'bg-[#FF5B5B]',
-}
-
-const WS_STATUS_LABELS: Record<WSStatus, string> = {
-  connected: 'En línea',
-  reconnecting: 'Reconectando...',
-  disconnected: 'Sin conexión',
 }
 
 interface NavItemProps {
@@ -125,8 +122,6 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     reset()
     navigate('/login')
   }, [reset, navigate])
-
-  const wsDotClass = WS_DOT_CLASSES[wsStatus]
 
   return (
     <>
@@ -269,16 +264,24 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
         {/* Bottom section */}
         <div className="mt-8 pt-4 border-t border-[#3A3A37]/60 space-y-3">
-          {/* WS status widget */}
-          <div className="p-2.5 bg-[#1D1D1B] rounded-lg border border-[#3A3A37] text-center">
-            <p className="text-[9px] text-[#8B8FA8] uppercase font-bold tracking-wider">Túnel WebSocket</p>
-            <div className="flex items-center justify-center gap-2 mt-1" id="sidebar-ws-status-area">
-              <span className={`w-2 h-2 rounded-full inline-block ${wsDotClass}`} />
-              <span className="text-[11px] text-[#F0F0F5] font-semibold">
-                {WS_STATUS_LABELS[wsStatus]}
-              </span>
-            </div>
-          </div>
+          {/* System status indicator */}
+          {(() => {
+            const sys = getSystemStatus(wsStatus)
+            return (
+              <div className="px-3 py-2.5 bg-[#1D1D1B] rounded-lg border border-[#3A3A37] flex items-center gap-2.5">
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{
+                    backgroundColor: sys.color,
+                    animation: sys.pulse ? 'wsPulse 1.6s infinite ease-in-out' : undefined,
+                  }}
+                />
+                <span className="text-[11px] font-semibold truncate" style={{ color: sys.color }}>
+                  {sys.label}
+                </span>
+              </div>
+            )
+          })()}
 
           {/* Sign out */}
           <button

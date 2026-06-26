@@ -116,6 +116,17 @@ export interface DashboardMetrics {
   capacidad_total: number
 }
 
+export interface AdvisorOnline {
+  id: string
+  full_name: string
+  availability_status: 'available' | 'break' | 'offline'
+  area: string
+  is_panel_connected: boolean
+  // Admin-only fields:
+  active_conversations?: number
+  max_conversations?: number
+}
+
 // ── API RESPONSES ─────────────────────────────────────────
 // Todos los endpoints devuelven {"data": {...}}
 
@@ -147,21 +158,63 @@ export interface WSEvent<T = unknown> {
 
 export interface WSEscalationNew {
   conversation_id: string
-  client_name: string
-  reason: string
+  advisor_id: string | null
+  reason: string | null
   channel: string
 }
 
 export interface WSMessageNew {
-  conversation_id: string
-  message: Message
+  message: Message & { conversation_id: string }
+}
+
+export interface WSAdvisorConnected {
+  advisor_id: string
+  advisor_name: string
+  advisor_role: string
+  advisor_area: string
+}
+
+export interface WSAdvisorDisconnected {
+  advisor_id: string
+  advisor_name: string
 }
 
 export interface WSAdvisorStatusChanged {
   advisor_id: string
   availability_status: AvailabilityStatus
+  full_name: string
+  area: string
+  specialty: string | null
 }
 
-export interface WSBehaviorAlert {
-  alert: BehaviorAlert
+export interface WSEscalationAssigned {
+  conversation_id: string
+  escalation_id: string
+  advisor_id: string
+  advisor_name: string
+}
+
+export interface WSConversationReturned {
+  conversation_id: string
+  advisor_id: string
+  advisor_name: string
+}
+
+export interface WSConversationClosed {
+  conversation_id: string
+  closed_by: 'asesor' | 'bot'
+  advisor_id?: string
+  advisor_name?: string
+  resolution_type?: string
+  closed_at?: string
+  reason?: string
+}
+
+export interface WSQueuePending {
+  count: number
+  message: string
+}
+
+export interface WSBehaviorAlertEvent {
+  alert_id: string
 }

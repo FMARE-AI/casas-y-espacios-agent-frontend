@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { conversationsService } from '../services/conversations'
 import { useAuthStore } from '../store/authStore'
-import type { Conversation, Message } from '../types'
+import type { Conversation, Message, WSConversationClosed, WSEscalationAssigned } from '../types'
 import MessageFeed from '../components/chat/MessageFeed'
 import ChatInput from '../components/chat/ChatInput'
 import ClientPanel, { type ChatVariant } from '../components/chat/ClientPanel'
@@ -331,9 +331,9 @@ export default function ChatPage() {
     }
   }
 
-  // WS handlers — called by useWebSocket hook (FE-10)
-  const onNewMessage = useCallback((event: { conversation_id: string; message: Message }) => {
-    if (event.conversation_id === conversationId) {
+  // WS handlers — called by useWebSocket hook
+  const onNewMessage = useCallback((event: { message: Message & { conversation_id: string } }) => {
+    if (event.message.conversation_id === conversationId) {
       setMessages((prev) => [...prev, event.message])
     }
   }, [conversationId])
@@ -344,11 +344,34 @@ export default function ChatPage() {
     }
   }, [conversationId, loadConversation])
 
+  const onConversationClosed = useCallback((event: WSConversationClosed) => {
+    if (event.conversation_id === conversationId) {
+      navigate('/')
+    }
+  }, [conversationId, navigate])
+
+  const onEscalationAssigned = useCallback((event: WSEscalationAssigned) => {
+    if (event.conversation_id === conversationId) {
+      loadConversation()
+    }
+  }, [conversationId, loadConversation])
+
   // Hook up real-time websocket updates
-  useWebSocket({
+  const { subscribeConversation, unsubscribeConversation } = useWebSocket({
     onMessageNew: onNewMessage,
     onConversationReturned: onConversationReturned,
+    onConversationClosed: onConversationClosed,
+    onEscalationAssigned: onEscalationAssigned,
   })
+
+  // Subscribe to the conversation when it's known; unsubscribe on unmount or id change
+  useEffect(() => {
+    if (!conversationId) return
+    subscribeConversation(conversationId)
+    return () => {
+      unsubscribeConversation()
+    }
+  }, [conversationId, subscribeConversation, unsubscribeConversation])
 
   function extractErrorCode(err: unknown): string | undefined {
     const e = err as { response?: { data?: { detail?: { code?: string } } } }

@@ -1115,6 +1115,70 @@ msg_type = "document" → render download link using media_url
 
 ---
 
+### GET /api/v1/panel/advisors/online
+
+**Auth required:** Yes (any active advisor)
+
+**Description:** Returns active asesores for the online indicator in the inbox. The authenticated advisor is excluded from the list. Only advisors with `role='asesor'` and `is_active=true` are returned — admins are never included.
+
+`is_panel_connected` is `true` if the advisor has at least one active WebSocket connection in the `ws_connections` table. It updates in real time via `advisor.connected` and `advisor.disconnected` WebSocket events.
+
+**Response 200 — asesor caller:**
+
+```json
+{
+  "data": {
+    "advisors": [
+      {
+        "id": "uuid",
+        "full_name": "Nathaly",
+        "availability_status": "available",
+        "area": "administrativa",
+        "is_panel_connected": true
+      }
+    ]
+  }
+}
+```
+
+**Response 200 — admin caller:**
+
+```json
+{
+  "data": {
+    "advisors": [
+      {
+        "id": "uuid",
+        "full_name": "Nathaly",
+        "availability_status": "available",
+        "area": "administrativa",
+        "active_conversations": 1,
+        "max_conversations": 3,
+        "is_panel_connected": true
+      }
+    ]
+  }
+}
+```
+
+| Field                  | Type            | Description                                                 |
+| ---------------------- | --------------- | ----------------------------------------------------------- |
+| `id`                   | `string` (UUID) | Advisor ID                                                  |
+| `full_name`            | `string`        | Display name                                                |
+| `availability_status`  | `string`        | `"available"`, `"break"`, or `"offline"`                    |
+| `area`                 | `string`        | `"administrativa"`, `"comercial"`, or `"ambas"`             |
+| `is_panel_connected`   | `boolean`       | `true` if the advisor has at least one active WS connection |
+| `active_conversations` | `integer`       | Active conversation count — admin only                      |
+| `max_conversations`    | `integer`       | Configured cap — admin only                                 |
+
+**Errors:**
+
+| HTTP | ErrorCode       | When                   |
+| ---- | --------------- | ---------------------- |
+| 401  | `INVALID_TOKEN` | Missing or invalid JWT |
+
+---
+
 ## Metrics
 
 ### GET /api/v1/panel/metrics
