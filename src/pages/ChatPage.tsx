@@ -304,8 +304,6 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [totalMessages, setTotalMessages] = useState(0);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [isAdvisorTyping, setIsAdvisorTyping] = useState(false);
-
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
@@ -356,13 +354,6 @@ export default function ChatPage() {
     });
     return () => cancelAnimationFrame(raf);
   }, [isLoading]);
-
-  // Scroll to bottom when typing indicator appears
-  useEffect(() => {
-    if (isAdvisorTyping && feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight;
-    }
-  }, [isAdvisorTyping]);
 
   async function loadMoreMessages() {
     if (isLoadingMore || apiOffsetRef.current >= totalMessages) return;
@@ -703,7 +694,6 @@ export default function ChatPage() {
           advisorName={fromAlert ? alertAdvisorName : advisor?.full_name}
           onScrollTop={loadMoreMessages}
           feedRef={feedRef}
-          isTyping={isAdvisorTyping}
         />
 
         {/* Input area or banners */}
@@ -719,7 +709,6 @@ export default function ChatPage() {
               )
             }
             onError={() => {}}
-            onTypingChange={setIsAdvisorTyping}
           />
         ) : (
           <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">
