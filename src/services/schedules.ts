@@ -1,23 +1,51 @@
+import apiClient from '../lib/axios'
+import { AxiosError } from 'axios'
 import type { AdvisorSchedule } from '../types'
 
-type CreateScheduleData = { label: string; start_time: string; end_time: string; days_of_week: number[] }
-type UpdateScheduleData = { label?: string; start_time?: string; end_time?: string; days_of_week?: number[]; is_active?: boolean }
+export interface CreateScheduleData {
+  label: string
+  start_time: string
+  end_time: string
+  days_of_week: number[]
+}
+
+export interface UpdateScheduleData {
+  label?: string
+  start_time?: string
+  end_time?: string
+  days_of_week?: number[]
+  is_active?: boolean
+}
+
+const BASE = '/api/v1/panel/schedules'
+
+export function getScheduleErrorCode(err: unknown): string | null {
+  if (err instanceof AxiosError) {
+    const detail = err.response?.data?.detail
+    if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+      return (detail as { code?: string }).code ?? null
+    }
+  }
+  return null
+}
 
 export const schedulesService = {
-
   async list(): Promise<{ schedules: AdvisorSchedule[] }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
+    const { data } = await apiClient.get(`${BASE}/`)
+    return data.data
   },
 
-  async create(_data: CreateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
+  async create(payload: CreateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
+    const { data } = await apiClient.post(`${BASE}/`, payload)
+    return data.data
   },
 
-  async update(_id: string, _data: UpdateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
+  async update(id: string, payload: UpdateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
+    const { data } = await apiClient.patch(`${BASE}/${id}`, payload)
+    return data.data
   },
 
-  async remove(_id: string): Promise<void> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 10')
+  async remove(id: string): Promise<void> {
+    await apiClient.delete(`${BASE}/${id}`)
   },
 }
