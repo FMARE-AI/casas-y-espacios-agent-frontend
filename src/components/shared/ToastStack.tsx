@@ -1,5 +1,5 @@
-import { useEffect } from 'react'
 import { useToastStore, type Toast, type ToastType } from '../../store/toastStore'
+import { useAutoDismiss } from '../../hooks/useAutoDismiss'
 
 const AUTO_DISMISS_MS = 4000
 
@@ -50,16 +50,11 @@ function ToastIcon({ type }: { type: ToastType }) {
   )
 }
 
-// Each toast item manages its own auto-dismiss timer.
-// timer depends on toast.id (stable per toast) so it fires exactly once per toast.
 function ToastItem({ toast }: { toast: Toast }) {
   const removeToast = useToastStore((s) => s.removeToast)
   const style = STYLES[toast.type]
 
-  useEffect(() => {
-    const timer = setTimeout(() => removeToast(toast.id), AUTO_DISMISS_MS)
-    return () => clearTimeout(timer)
-  }, [toast.id, removeToast])
+  useAutoDismiss(toast.id, removeToast, AUTO_DISMISS_MS)
 
   return (
     <div
@@ -85,20 +80,8 @@ function ToastItem({ toast }: { toast: Toast }) {
   )
 }
 
-// Bridge: axios dispatches 'api-toast' CustomEvents (no React dependency in axios.ts).
-// This component listens and feeds them into the store.
 export default function ToastStack() {
   const toasts = useToastStore((s) => s.toasts)
-  const showToast = useToastStore((s) => s.showToast)
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const { message, type } = (e as CustomEvent<{ message: string; type: ToastType }>).detail
-      showToast(message, type)
-    }
-    window.addEventListener('api-toast', handler)
-    return () => window.removeEventListener('api-toast', handler)
-  }, [showToast])
 
   if (toasts.length === 0) return null
 
