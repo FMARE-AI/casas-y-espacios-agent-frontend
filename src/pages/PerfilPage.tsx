@@ -3,6 +3,23 @@ import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import {
+  Activity,
+  Briefcase,
+  Camera,
+  Check,
+  Clock,
+  Edit2,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
+  Pause,
+  Shield,
+  ShieldAlert,
+  Sun,
+  X,
+} from "lucide-react";
 import { advisorsService } from "../services/advisors";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../lib/supabase";
@@ -49,8 +66,8 @@ function getInitials(name: string | null | undefined): string {
 const AVATAR_SIZE_CLASSES = {
   sm: "w-8 h-8 text-[10px]",
   md: "w-10 h-10 text-xs",
-  lg: "w-20 h-20 text-lg",
-  xl: "w-28 h-28 text-2xl",
+  lg: "w-16 h-16 text-sm",
+  xl: "w-24 h-24 text-xl",
 };
 
 function AdvisorAvatar({
@@ -71,14 +88,14 @@ function AdvisorAvatar({
         id={id}
         src={avatarUrl}
         alt={fullName}
-        className={`${sizeClass} rounded-full border-[3px] border-[#01A4E3] object-cover`}
+        className={`${sizeClass} rounded-full border border-brand-blue/20 object-cover`}
       />
     );
   }
   return (
     <div
       id={id}
-      className={`${sizeClass} rounded-full bg-[#01A4E3]/20 border-[3px] border-[#01A4E3] flex items-center justify-center text-[#01A4E3] font-bold`}
+      className={`${sizeClass} rounded-full bg-brand-blue/5 border border-brand-blue/15 flex items-center justify-center text-brand-blue font-bold`}
     >
       {getInitials(fullName)}
     </div>
@@ -152,36 +169,36 @@ function formatStatusUntil(statusUntil: string): string {
 // ── Role badge constants ───────────────────────────────────
 
 const ROLE_BADGE_STYLES: Record<AdvisorRole, string> = {
-  asesor: "bg-[#01A4E3]/10 text-[#01A4E3]",
-  admin: "bg-[#FF5B5B]/15 text-[#FF5B5B]",
+  asesor: "bg-brand-blue/5 text-brand-blue border-brand-blue/10",
+  admin: "bg-error/5 text-error border-error/10",
 };
 
 const ROLE_BADGE_TEXT: Record<AdvisorRole, string> = {
-  asesor: "Asesor Senior",
-  admin: "Administrador Global",
+  asesor: "Asesor",
+  admin: "Admin Global",
 };
 
 // ── Skeleton ──────────────────────────────────────────────
 
 function ProfileSkeleton() {
   return (
-    <div className="space-y-5 animate-pulse">
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6">
-        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-          <div className="w-20 h-20 rounded-full bg-[#2E2E2B] shrink-0" />
-          <div className="space-y-3 flex-1 w-full">
-            <div className="h-6 bg-[#2E2E2B] rounded w-48" />
-            <div className="h-3 bg-[#2E2E2B] rounded w-64" />
-            <div className="flex gap-2">
-              <div className="h-5 bg-[#2E2E2B] rounded w-28" />
-              <div className="h-5 bg-[#2E2E2B] rounded w-20" />
+    <div className="space-y-4 animate-pulse">
+      <div className="bg-bg-secondary border border-border-default/50 rounded-2xl p-5">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+          <div className="w-16 h-16 rounded-full bg-bg-tertiary/60 shrink-0" />
+          <div className="space-y-2 flex-1 w-full text-center sm:text-left">
+            <div className="h-5 bg-bg-tertiary/60 rounded-lg w-40 mx-auto sm:mx-0" />
+            <div className="h-3.5 bg-bg-tertiary/60 rounded-lg w-52 mx-auto sm:mx-0" />
+            <div className="flex flex-wrap justify-center sm:justify-start gap-2 pt-1">
+              <div className="h-5 bg-bg-tertiary/60 rounded-full w-20" />
+              <div className="h-5 bg-bg-tertiary/60 rounded-full w-16" />
             </div>
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 h-52" />
-        <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 h-52" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-bg-secondary border border-border-default/50 rounded-2xl h-56" />
+        <div className="bg-bg-secondary border border-border-default/50 rounded-2xl h-56" />
       </div>
     </div>
   );
@@ -190,31 +207,35 @@ function ProfileSkeleton() {
 // ── Password strength ─────────────────────────────────────
 
 function getStrength(pwd: string): { text: string; color: string; bars: number } {
-  if (!pwd) return { text: 'No ingresada', color: '#FF5B5B', bars: 0 }
-  if (pwd.length < 6) return { text: 'Débil', color: '#FF5B5B', bars: 1 }
-  if (pwd.length < 10) return { text: 'Media', color: '#FFB84D', bars: 2 }
-  return { text: 'Fuerte', color: '#00D4AA', bars: 3 }
+  if (!pwd) return { text: "No ingresada", color: "#FF5B5B", bars: 0 };
+  if (pwd.length < 6) return { text: "Débil", color: "#FF5B5B", bars: 1 };
+  if (pwd.length < 10) return { text: "Media", color: "#FFB84D", bars: 2 };
+  return { text: "Fuerte", color: "#00D4AA", bars: 3 };
 }
 
 function PasswordStrengthBar({ password }: { password: string }) {
-  const { text, color, bars } = getStrength(password)
+  const { text, color, bars } = getStrength(password);
   return (
-    <div className="space-y-1">
-      <div className="flex justify-between items-center text-xs">
-        <span className="text-[#8B8FA8]">Seguridad de la contraseña:</span>
-        <span style={{ color }} className="font-bold">{text}</span>
+    <div className="space-y-1.5 mt-1.5">
+      <div className="flex justify-between items-center text-[11px]">
+        <span className="text-text-secondary font-medium">Seguridad de la contraseña:</span>
+        <span style={{ color }} className="font-semibold uppercase tracking-wider">
+          {text}
+        </span>
       </div>
-      <div className="h-2 w-full bg-[#2E2E2B] rounded-full overflow-hidden flex gap-0.5">
+      <div className="h-1.5 w-full bg-bg-tertiary/40 rounded-full overflow-hidden flex gap-1 border border-border-default/30 p-[1px]">
         {[1, 2, 3].map((i) => (
           <div
             key={i}
-            className="h-full w-1/3 rounded-full transition-all duration-300"
-            style={{ backgroundColor: bars >= i ? color : 'transparent' }}
+            className="h-full w-1/3 rounded-full transition-all duration-300 ease-out"
+            style={{
+              backgroundColor: bars >= i ? color : "transparent",
+            }}
           />
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 // ── PasswordInput ──────────────────────────────────────────
@@ -230,41 +251,43 @@ interface PasswordInputProps {
 function PasswordInput({ id, label, register, error, placeholder }: PasswordInputProps) {
   const [show, setShow] = useState(false);
   return (
-    <div>
+    <div className="space-y-1">
       <label
         htmlFor={id}
-        className="text-xs text-[#8B8FA8] uppercase font-semibold tracking-wide block mb-1.5"
+        className="text-[11px] text-text-secondary uppercase font-bold tracking-wider block"
       >
         {label}
       </label>
-      <div className="relative">
+      <div className="relative group">
+        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-text-secondary group-focus-within:text-brand-blue transition-colors">
+          <Lock className="w-3.5 h-3.5" />
+        </div>
         <input
           type={show ? "text" : "password"}
           id={id}
+          placeholder={placeholder}
           {...register}
-          className="w-full bg-[#2E2E2B]/60 border border-[#3A3A37] focus:border-[#01A4E3] text-white text-sm rounded-xl px-3.5 py-3 pr-10 outline-none transition-all duration-200 focus:ring-1 focus:ring-[#01A4E3]/20"
+          className={[
+            "w-full bg-bg-tertiary/10 border text-[13px] text-white rounded-xl pl-9 pr-9 py-2.5 outline-none transition-all duration-200",
+            error
+              ? "border-error/30 focus:border-error/60 focus:ring-2 focus:ring-error/5"
+              : "border-border-default/70 focus:border-brand-blue/80 focus:ring-2 focus:ring-brand-blue/5",
+          ].join(" ")}
         />
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B8FA8] hover:text-white transition-colors"
-          aria-label="Mostrar contraseña"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white transition-colors cursor-pointer"
+          aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
         >
-          {show ? (
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-            </svg>
-          ) : (
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          )}
+          {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
         </button>
       </div>
-      {error && <p className="text-[#FF5B5B] text-xs mt-1 pl-0.5">{error}</p>}
-      {!error && placeholder && (
-        <p className="text-[#8B8FA8] text-xs mt-1 pl-0.5">{placeholder}</p>
+      {error && (
+        <p className="text-error text-[11px] mt-0.5 pl-1 flex items-center gap-1 animate-fadeIn">
+          <span className="w-1 h-1 rounded-full bg-error" />
+          {error}
+        </p>
       )}
     </div>
   );
@@ -303,7 +326,7 @@ export default function PerfilPage() {
     formState: { errors },
   } = useForm<PasswordFormData>({ resolver: zodResolver(passwordSchema) });
 
-  const newPasswordValue = watch('newPassword') ?? '';
+  const newPasswordValue = watch("newPassword") ?? "";
 
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -325,7 +348,9 @@ export default function PerfilPage() {
   }
 
   useEffect(
-    () => () => { if (statusTimerRef.current) clearTimeout(statusTimerRef.current); },
+    () => () => {
+      if (statusTimerRef.current) clearTimeout(statusTimerRef.current);
+    },
     [],
   );
 
@@ -372,6 +397,7 @@ export default function PerfilPage() {
       }
     }
     loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -408,7 +434,9 @@ export default function PerfilPage() {
         .from(STORAGE_BUCKET)
         .createSignedUrl(path, 31536000);
       if (signError || !signData?.signedUrl) throw signError ?? new Error("Sin URL firmada");
-      const { advisor: updated } = await advisorsService.updateMe({ avatar_url: signData.signedUrl });
+      const { advisor: updated } = await advisorsService.updateMe({
+        avatar_url: signData.signedUrl,
+      });
       setAdvisor(updated);
       setStoreAdvisor(updated);
       toast.success("Foto de perfil actualizada");
@@ -442,11 +470,17 @@ export default function PerfilPage() {
 
   function handleStartEdit() {
     setEditingName(true);
-    setTimeout(() => { nameInputRef.current?.focus(); nameInputRef.current?.select(); }, 50);
+    setTimeout(() => {
+      nameInputRef.current?.focus();
+      nameInputRef.current?.select();
+    }, 50);
   }
 
   function handleNameKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter") { e.preventDefault(); nameInputRef.current?.blur(); }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      nameInputRef.current?.blur();
+    }
     if (e.key === "Escape") {
       setNameValue(advisor?.full_name ?? "");
       setEditingName(false);
@@ -457,10 +491,15 @@ export default function PerfilPage() {
   async function handleNameBlur() {
     setEditingName(false);
     if (nameValue.trim() === advisor?.full_name) return;
-    if (!nameValue.trim()) { setNameValue(advisor?.full_name ?? ""); return; }
+    if (!nameValue.trim()) {
+      setNameValue(advisor?.full_name ?? "");
+      return;
+    }
     setIsSavingName(true);
     try {
-      const { advisor: updated } = await advisorsService.updateMe({ full_name: nameValue.trim() });
+      const { advisor: updated } = await advisorsService.updateMe({
+        full_name: nameValue.trim(),
+      });
       setAdvisor(updated);
       setNameValue(updated.full_name);
       setStoreAdvisor(updated);
@@ -503,215 +542,245 @@ export default function PerfilPage() {
   return (
     <section
       id="screen-perfil"
-      className="flex-1 flex flex-col p-4 md:p-6 space-y-6 w-full overflow-y-auto"
+      className="flex-1 flex flex-col p-4 space-y-4 w-full overflow-y-auto"
     >
-      <div className="max-w-6xl w-full space-y-5 mx-auto">
+      <div className="max-w-5xl w-full space-y-4 mx-auto">
         {/* Page header */}
-        <div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">Mi Perfil Profesional</h2>
-          <p className="text-sm text-[#8B8FA8] mt-0.5">
-            Gestiona tu información, disponibilidad y configuración
-          </p>
-          <div className="h-px bg-gradient-to-r from-[#3A3A37] via-[#01A4E3]/20 to-transparent mt-4" />
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-white tracking-tight">Mi Perfil</h2>
+            <p className="text-xs text-text-secondary">Configuración personal y de estado.</p>
+          </div>
         </div>
 
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <div className="space-y-7 w-full">
-
+          <div className="space-y-4 w-full animate-fadeIn">
             {/* ── Hero card ── */}
-            <div
-              className="border border-[#3A3A37]/80 rounded-2xl px-6 py-5 relative flex flex-col sm:flex-row items-center gap-5 shadow-xl overflow-hidden"
-              style={{ background: "rgba(37,37,34,0.97)", contain: "layout style" }}
-            >
-              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 0% 50%, rgba(1,164,227,0.07) 0%, transparent 60%)' }} />
-              {/* Top-right actions */}
-              <div className="hidden sm:flex absolute top-4 right-4 items-center gap-2">
+            <div className="relative overflow-hidden rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm">
+              {/* Top-right actions (desktop) */}
+              <div className="hidden sm:flex absolute top-5 right-5 items-center">
                 <button
                   type="button"
                   onClick={() => handleApplyStatusDirectly("offline", null)}
                   disabled={isSavingStatus || isVacationMode}
                   className={[
-                    "text-[11px] px-3 py-1.5 rounded-full font-semibold border transition-all duration-150 disabled:cursor-default",
+                    "text-[10px] px-3 py-1.5 rounded-lg font-bold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
                     isVacationMode
-                      ? "bg-[#FFB84D]/20 text-[#FFB84D] border-[#FFB84D]/40"
-                      : "bg-transparent text-[#8B8FA8] border-[#3A3A37] hover:text-[#FFB84D] hover:border-[#FFB84D]/40",
+                      ? "bg-warning/10 text-warning border-warning/20"
+                      : "bg-bg-tertiary/40 text-text-secondary border-border-default hover:text-warning hover:border-warning/35",
                   ].join(" ")}
                 >
-                  Vacaciones
-                </button>
-                <button
-                  type="button"
-                  onClick={handleStartEdit}
-                  className="text-[11px] px-3 py-1.5 rounded-lg border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#8B8FA8] transition-all duration-150 font-semibold flex items-center gap-1.5"
-                >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
-                  Editar perfil
-                </button>
-              </div>
-
-              {/* Avatar */}
-              <div className="relative shrink-0">
-                <AdvisorAvatar
-                  avatarUrl={advisor?.avatar_url ?? null}
-                  fullName={advisor?.full_name ?? ""}
-                  size="lg"
-                  id="perfil-avatar-img"
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                  className="absolute bottom-0 right-0 bg-[#01A4E3] hover:bg-[#0190C8] text-white p-1.5 rounded-full transition shadow-lg disabled:opacity-50"
-                  aria-label="Cambiar foto de perfil"
-                >
-                  {uploadingAvatar ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-
-              {/* Info */}
-              <div className="text-center sm:text-left flex-1 space-y-2.5 min-w-0">
-                {/* Editable name */}
-                <div className="flex items-center justify-center sm:justify-start gap-2">
-                  <input
-                    ref={nameInputRef}
-                    id="perfil-name"
-                    type="text"
-                    value={nameValue}
-                    onChange={(e) => setNameValue(e.target.value)}
-                    readOnly={!editingName}
-                    onBlur={handleNameBlur}
-                    onKeyDown={handleNameKeyDown}
-                    className={[
-                      "bg-transparent border-b text-xl font-semibold text-white pb-0.5 max-w-[280px] outline-none transition-colors w-full tracking-tight",
-                      editingName ? "border-[#01A4E3] cursor-text" : "border-transparent cursor-default",
-                    ].join(" ")}
-                  />
-                  {isSavingName && (
-                    <div className="w-4 h-4 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin shrink-0" />
-                  )}
-                </div>
-
-                {/* Email */}
-                <p className="text-sm text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1.5">
-                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                  <span id="perfil-email-txt">{advisor?.email}</span>
-                </p>
-
-                {/* Badges */}
-                <div className="flex flex-wrap gap-2 justify-center sm:justify-start items-center">
-                  <span
-                    id="perfil-role-badge"
-                    className={[
-                      "text-xs px-3 py-1 rounded-md font-bold uppercase tracking-wide",
-                      advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
-                    ].join(" ")}
-                  >
-                    {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : "Asesor Senior"}
-                  </span>
-                  <span
-                    id="perfil-area-badge"
-                    className="text-xs px-3 py-1 rounded-md font-medium border border-[#3A3A37] text-[#8B8FA8] bg-[#2E2E2B]/60 cursor-help"
-                    title="Solo el admin puede cambiar esto"
-                  >
-                    Área: {advisor?.area}
-                  </span>
-                  <div
-                    id="availability-status-display"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border"
-                    style={{
-                      borderColor: `${STATUS_COLORS[currentStatus]}35`,
-                      backgroundColor: `${STATUS_COLORS[currentStatus]}10`,
-                    }}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full shrink-0"
-                      style={{ backgroundColor: STATUS_COLORS[currentStatus] }}
-                    />
-                    <span
-                      id="avail-label"
-                      className="text-xs font-semibold"
-                      style={{ color: STATUS_COLORS[currentStatus] }}
-                    >
-                      {STATUS_LABELS[currentStatus]}
-                    </span>
-                    {advisor?.status_until && (
-                      <span className="text-sm text-[#8B8FA8]">
-                        · {formatStatusUntil(advisor.status_until)}
-                      </span>
-                    )}
+                  <div className="flex items-center gap-1">
+                    <Sun className="w-3 h-3" />
+                    <span>Modo Vacaciones</span>
                   </div>
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center gap-5">
+                {/* Avatar with simple overlay */}
+                <div className="relative shrink-0 group">
+                  <AdvisorAvatar
+                    avatarUrl={advisor?.avatar_url ?? null}
+                    fullName={advisor?.full_name ?? ""}
+                    size="lg"
+                    id="perfil-avatar-img"
+                  />
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                  />
+
+                  {/* Upload overlay */}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingAvatar}
+                    className="absolute inset-0 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[9px] font-semibold transition-opacity duration-200 cursor-pointer"
+                  >
+                    {uploadingAvatar ? (
+                      <div className="w-4 h-4 border border-brand-blue border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <Camera className="w-4 h-4 mb-0.5 text-brand-blue" />
+                        <span>FOTO</span>
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                {/* Mobile quick-actions */}
-                <div className="flex sm:hidden flex-wrap gap-2 justify-center pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleApplyStatusDirectly("offline", null)}
-                    disabled={isSavingStatus || isVacationMode}
-                    className={[
-                      "text-[11px] px-3 py-1.5 rounded-full font-semibold border transition-all duration-150 disabled:cursor-default",
-                      isVacationMode
-                        ? "bg-[#FFB84D]/20 text-[#FFB84D] border-[#FFB84D]/40"
-                        : "text-[#8B8FA8] border-[#3A3A37]",
-                    ].join(" ")}
-                  >
-                    Vacaciones
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleStartEdit}
-                    className="text-[11px] px-3 py-1.5 rounded-lg border border-[#3A3A37] text-[#8B8FA8] font-semibold"
-                  >
-                    Editar perfil
-                  </button>
+                {/* Info block */}
+                <div className="text-center sm:text-left flex-1 space-y-2 min-w-0">
+                  {/* Name Editor */}
+                  {editingName ? (
+                    <div className="flex items-center gap-1.5 max-w-[280px] w-full mx-auto sm:mx-0">
+                      <input
+                        ref={nameInputRef}
+                        id="perfil-name"
+                        type="text"
+                        value={nameValue}
+                        onChange={(e) => setNameValue(e.target.value)}
+                        onKeyDown={handleNameKeyDown}
+                        className="bg-bg-tertiary/60 border border-brand-blue text-[15px] font-semibold text-white px-2.5 py-1 rounded-lg outline-none w-full"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleNameBlur}
+                        className="p-1.5 bg-success/10 text-success rounded-lg border border-success/15 transition-all cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNameValue(advisor?.full_name ?? "");
+                          setEditingName(false);
+                        }}
+                        className="p-1.5 bg-error/10 text-error rounded-lg border border-error/15 transition-all cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 group justify-center sm:justify-start">
+                      <h1
+                        id="perfil-name-display"
+                        className="text-lg font-bold text-white tracking-tight"
+                      >
+                        {advisor?.full_name}
+                      </h1>
+                      <button
+                        type="button"
+                        onClick={handleStartEdit}
+                        className="p-1 text-text-secondary hover:text-white rounded transition-colors cursor-pointer"
+                        title="Editar nombre"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      {isSavingName && (
+                        <div className="w-3 h-3 border border-brand-blue border-t-transparent rounded-full animate-spin shrink-0" />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Email & Contact info */}
+                  <div className="flex justify-center sm:justify-start">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (advisor?.email) {
+                          navigator.clipboard.writeText(advisor.email);
+                          toast.success("Correo copiado al portapapeles");
+                        }
+                      }}
+                      className="inline-flex items-center gap-2 bg-bg-tertiary/20 hover:bg-bg-tertiary/40 border border-border-default/60 rounded-xl px-2.5 py-1 text-xs text-text-secondary hover:text-white transition-colors cursor-pointer group active:scale-95"
+                      title="Copiar correo al portapapeles"
+                    >
+                      <Mail className="w-3 h-3 text-brand-blue group-hover:scale-105 transition-transform" />
+                      <span id="perfil-email-txt" className="font-semibold font-mono text-[11px]">
+                        {advisor?.email}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Badges row */}
+                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start items-center">
+                    <span
+                      id="perfil-role-badge"
+                      className={[
+                        "text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border",
+                        advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
+                      ].join(" ")}
+                    >
+                      {advisor?.role ? ROLE_BADGE_TEXT[advisor.role] : "Asesor"}
+                    </span>
+
+                    <span
+                      id="perfil-area-badge"
+                      className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-border-default/50 text-text-secondary bg-bg-tertiary/20 cursor-help flex items-center gap-1"
+                      title="Solo el administrador puede cambiar tu área asignada"
+                    >
+                      <Briefcase className="w-2.5 h-2.5" />
+                      {advisor?.area}
+                    </span>
+
+                    <div
+                      id="availability-status-display"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        borderColor: `${STATUS_COLORS[currentStatus]}25`,
+                        backgroundColor: `${STATUS_COLORS[currentStatus]}05`,
+                      }}
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: STATUS_COLORS[currentStatus] }}
+                      />
+                      <span id="avail-label" style={{ color: STATUS_COLORS[currentStatus] }}>
+                        {STATUS_LABELS[currentStatus]}
+                      </span>
+                      {advisor?.status_until && (
+                        <span className="text-text-secondary font-medium tracking-normal normal-case">
+                          · hasta {formatStatusUntil(advisor.status_until)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile actions */}
+                  <div className="flex sm:hidden justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={() => handleApplyStatusDirectly("offline", null)}
+                      disabled={isSavingStatus || isVacationMode}
+                      className={[
+                        "text-[11px] px-2.5 py-1 rounded font-bold border transition-all cursor-pointer disabled:opacity-50",
+                        isVacationMode
+                          ? "bg-warning/10 text-warning border-warning/20"
+                          : "bg-bg-tertiary/50 text-text-secondary border-border-default",
+                      ].join(" ")}
+                    >
+                      <div className="flex items-center gap-1">
+                        <Sun className="w-3 h-3" />
+                        <span>Modo Vacaciones</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* ── Grid ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-
+            {/* ── Grid: Availability & Security ── */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
               {/* Disponibilidad */}
               <div
                 id="availability-section"
-                className="border border-[#3A3A37]/60 rounded-2xl px-6 py-7 flex flex-col gap-6 shadow-xl"
-                style={{ background: "rgba(37,37,34,0.97)", contain: "layout style" }}
+                className="rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm"
               >
-                {/* Header con ícono */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-[#01A4E3]/15 flex items-center justify-center shrink-0">
-                    <svg className="w-4.5 h-4.5 text-[#01A4E3]" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                {/* Header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-xl bg-brand-blue/5 flex items-center justify-center shrink-0 border border-brand-blue/10">
+                    <Clock className="w-4 h-4 text-brand-blue" />
                   </div>
                   <div>
-                    <p className="text-base font-bold text-white">Disponibilidad</p>
-                    <p className="text-xs text-[#8B8FA8]">Gestiona tu estado actual</p>
+                    <h3 className="text-base font-bold text-white tracking-tight">Disponibilidad</h3>
+                    <p className="text-[11px] text-text-secondary">
+                      Estado en el panel de distribución.
+                    </p>
                   </div>
                 </div>
 
-                {/* 3 opciones horizontales */}
-                <div className="grid grid-cols-3 gap-3" id="availability-status-pills">
+                {/* 3 Option Pills */}
+                <div
+                  className="grid grid-cols-3 gap-2 mb-4"
+                  id="availability-status-pills"
+                >
                   {STATUS_OPTIONS.map((option) => {
                     const isSelected = selectedStatus === option.value;
                     return (
@@ -729,119 +798,113 @@ export default function PerfilPage() {
                           }
                         }}
                         className={[
-                          "flex items-center gap-3 px-4 py-5 rounded-2xl border transition-all duration-200 text-left active:scale-[0.98]",
+                          "flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-colors text-center active:scale-[0.98] cursor-pointer",
                           isSelected
-                            ? "border-[--c]/40 bg-[--c]/10"
-                            : "border-[#3A3A37] bg-transparent hover:border-[--c]/30 hover:bg-[--c]/5",
+                            ? "border-[--c]/40 bg-[--c]/5"
+                            : "border-border-default bg-bg-tertiary/10 hover:border-[--c]/20 hover:bg-[--c]/5",
                         ].join(" ")}
                         style={{ "--c": option.color } as React.CSSProperties}
                       >
-                        {/* Círculo indicador */}
-                        {option.value === "available" ? (
-                          <span
-                            className="w-[14px] h-[14px] rounded-full shrink-0 transition-all duration-200"
-                            style={{ backgroundColor: option.color, boxShadow: isSelected ? `0 0 8px ${option.color}80` : "none" }}
-                          />
-                        ) : option.value === "break" ? (
-                          <span
-                            className="w-[14px] h-[14px] rounded-full shrink-0 border-2 flex items-center justify-center transition-all duration-200"
-                            style={{ borderColor: option.color }}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: option.color }} />
-                          </span>
-                        ) : (
-                          <span
-                            className="w-[14px] h-[14px] rounded-full shrink-0 border-2 transition-all duration-200"
-                            style={{ borderColor: option.color }}
-                          />
-                        )}
-                        {/* Texto */}
-                        <div className="min-w-0">
-                          <p
-                            className="text-sm font-bold leading-tight truncate"
-                            style={{ color: isSelected ? option.color : "#F0F0F5" }}
-                          >
-                            {option.label}
-                          </p>
-                          <p className="text-xs text-[#8B8FA8] leading-tight truncate mt-0.5">{option.sublabel}</p>
+                        <div
+                          className="w-4 h-4 rounded-full flex items-center justify-center mb-1.5 border"
+                          style={{
+                            borderColor: option.color,
+                            backgroundColor: isSelected ? option.color : "transparent",
+                          }}
+                        >
+                          {isSelected && <Check className="w-2.5 h-2.5 text-bg-main" />}
                         </div>
+                        <p className="text-[12px] font-bold text-white leading-tight">
+                          {option.label}
+                        </p>
                       </button>
                     );
                   })}
                 </div>
 
-                {/* Panel Estado actual */}
+                {/* Dynamic Options Area */}
                 {selectedStatus === "available" ? (
-                  <div className="flex items-center gap-3 p-4 rounded-xl border border-[#00D4AA]/20 bg-[#00D4AA]/5">
-                    <div className="w-9 h-9 rounded-lg bg-[#00D4AA]/15 flex items-center justify-center shrink-0">
-                      <svg className="w-4 h-4 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
-                      </svg>
-                    </div>
+                  <div className="flex items-start gap-3 p-4 rounded-xl border border-success/15 bg-success/5">
+                    <Activity className="w-4 h-4 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-xs text-[#8B8FA8]">Estado actual</p>
-                      <p className="text-base font-bold text-[#00D4AA]">En línea</p>
-                      <p className="text-xs text-[#8B8FA8]">Recibiendo conversaciones normalmente</p>
+                      <p className="text-[11px] font-bold text-success uppercase tracking-wider mb-0.5">
+                        En Línea
+                      </p>
+                      <p className="text-[13px] text-text-secondary leading-normal">
+                        Asignación automática activa. Recibiendo chats de WhatsApp en tiempo real.
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  <div id="availability-timer-options" className="space-y-3">
+                  <div id="availability-timer-options" className="space-y-4">
                     <div
-                      className="flex items-center gap-3 p-3 rounded-xl border"
+                      className="flex items-start gap-3 p-4 rounded-xl border"
                       style={{
-                        borderColor: `${STATUS_COLORS[selectedStatus]}30`,
-                        backgroundColor: `${STATUS_COLORS[selectedStatus]}08`,
+                        borderColor: `${STATUS_COLORS[selectedStatus]}15`,
+                        backgroundColor: `${STATUS_COLORS[selectedStatus]}05`,
                       }}
                     >
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: `${STATUS_COLORS[selectedStatus]}18` }}
-                      >
-                        <svg className="w-4 h-4" style={{ color: STATUS_COLORS[selectedStatus] }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
+                      {selectedStatus === "break" ? (
+                        <Pause
+                          className="w-4 h-4 shrink-0 mt-0.5"
+                          style={{ color: STATUS_COLORS[selectedStatus] }}
+                        />
+                      ) : (
+                        <ShieldAlert
+                          className="w-4 h-4 shrink-0 mt-0.5"
+                          style={{ color: STATUS_COLORS[selectedStatus] }}
+                        />
+                      )}
                       <div>
-                        <p className="text-xs text-[#8B8FA8]">Estado actual</p>
-                        <p className="text-base font-bold" style={{ color: STATUS_COLORS[selectedStatus] }}>
-                          {STATUS_OPTIONS.find((o) => o.value === selectedStatus)?.sublabel}
+                        <p
+                          className="text-[11px] font-bold uppercase tracking-wider mb-0.5"
+                          style={{ color: STATUS_COLORS[selectedStatus] }}
+                        >
+                          {selectedStatus === "break" ? "Pausa Activa" : "Pausa Indefinida"}
                         </p>
-                        <p className="text-xs text-[#8B8FA8]">
-                          {selectedStatus === "break" ? "Pausado temporalmente" : "No recibiendo conversaciones"}
+                        <p className="text-[13px] text-text-secondary leading-normal">
+                          {selectedStatus === "break"
+                            ? "Los chats no serán asignados temporalmente."
+                            : "Asignación desactivada. Activa tu estado para atender clientes."}
                         </p>
                       </div>
                     </div>
 
-                    <p className="text-xs text-[#8B8FA8] uppercase font-bold tracking-wider">
-                      ¿Por cuánto tiempo?
-                    </p>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {TIMER_OPTIONS.map((option) => (
-                        <button
-                          key={String(option.value)}
-                          type="button"
-                          onClick={() => setSelectedMinutes(option.value)}
-                          className={[
-                            "text-sm py-2.5 rounded-lg border transition-all duration-150 font-semibold",
-                            selectedMinutes === option.value
-                              ? "bg-[#2E2E2B] border-[#8B8FA8] text-white shadow-md"
-                              : "border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/10",
-                          ].join(" ")}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-text-secondary uppercase font-bold tracking-wider">
+                        Duración del descanso
+                      </p>
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {TIMER_OPTIONS.map((option) => (
+                          <button
+                            key={String(option.value)}
+                            type="button"
+                            onClick={() => setSelectedMinutes(option.value)}
+                            className={[
+                              "text-xs py-2 rounded-lg border transition-colors font-medium cursor-pointer active:scale-95",
+                              selectedMinutes === option.value
+                                ? "bg-bg-tertiary border-brand-blue/50 text-white"
+                                : "border-border-default text-text-secondary hover:border-text-secondary",
+                            ].join(" ")}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
+
                     <button
                       type="button"
                       onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
                       disabled={isSavingStatus}
-                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-sm font-semibold py-3.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                      className="w-full bg-brand-blue hover:bg-[#0190C8] text-white text-[13px] font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98]"
                     >
-                      {isSavingStatus && (
+                      {isSavingStatus ? (
                         <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5" />
                       )}
-                      Aplicar Disponibilidad
+                      <span>Confirmar cambio</span>
                     </button>
                   </div>
                 )}
@@ -850,23 +913,23 @@ export default function PerfilPage() {
               {/* Seguridad */}
               <form
                 onSubmit={handleSubmit(onPasswordSubmit)}
-                className="border border-[#3A3A37]/60 rounded-2xl px-6 py-7 flex flex-col justify-between shadow-xl"
-                style={{ background: "rgba(37,37,34,0.97)", contain: "layout style" }}
+                className="rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm flex flex-col justify-between"
               >
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-[#01A4E3]/15 flex items-center justify-center shrink-0">
-                      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-[#01A4E3]">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                      </svg>
+                <div className="space-y-3">
+                  {/* Header */}
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="w-8 h-8 rounded-xl bg-brand-blue/5 flex items-center justify-center shrink-0 border border-brand-blue/10">
+                      <Shield className="w-4 h-4 text-brand-blue" />
                     </div>
                     <div>
-                      <p className="text-base font-bold text-white">Seguridad</p>
-                      <p className="text-xs text-[#8B8FA8]">Gestiona tu contraseña</p>
+                      <h3 className="text-base font-bold text-white tracking-tight">Contraseña</h3>
+                      <p className="text-[11px] text-text-secondary">
+                        Actualiza tu clave de acceso.
+                      </p>
                     </div>
                   </div>
 
-                  {/* Contraseña actual — full width */}
+                  {/* Contraseña actual */}
                   <PasswordInput
                     id="current-password"
                     label="Contraseña actual"
@@ -874,8 +937,8 @@ export default function PerfilPage() {
                     error={passwordError ?? errors.currentPassword?.message}
                   />
 
-                  {/* Nueva + Confirmar — 2 columnas */}
-                  <div className="grid grid-cols-2 gap-4">
+                  {/* Nueva y Confirmar en 2 cols */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <PasswordInput
                       id="new-password"
                       label="Nueva contraseña"
@@ -885,25 +948,27 @@ export default function PerfilPage() {
                     />
                     <PasswordInput
                       id="confirm-password"
-                      label="Confirmar nueva contraseña"
+                      label="Confirmar nueva"
                       register={register("confirmPassword")}
                       error={errors.confirmPassword?.message}
                     />
                   </div>
 
-                  {/* Barra de seguridad */}
+                  {/* Strength Bar */}
                   <PasswordStrengthBar password={newPasswordValue} />
                 </div>
 
                 <button
                   type="submit"
                   disabled={isSavingPassword}
-                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-8 active:scale-95"
+                  className="w-full bg-brand-blue hover:bg-[#0190C8] text-white py-3 rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-5 cursor-pointer shadow active:scale-[0.98]"
                 >
-                  {isSavingPassword && (
+                  {isSavingPassword ? (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Shield className="w-3.5 h-3.5" />
                   )}
-                  Actualizar contraseña
+                  <span>Actualizar Contraseña</span>
                 </button>
               </form>
             </div>
