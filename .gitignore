@@ -21,6 +21,10 @@ dist-ssr
 # Local mockups
 mockup.html
 
+# AI tool artifacts
+.atl/
+.gga
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { schedulesService } from '../../services/schedules'
+import { schedulesService, getScheduleErrorCode } from '../../services/schedules'
 import type { AdvisorSchedule } from '../../types'
 
 // ── Constants ─────────────────────────────────────────────
@@ -85,6 +85,7 @@ function ScheduleFormModal({
     register,
     handleSubmit,
     control,
+    setError,
     formState: { errors },
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
@@ -106,8 +107,15 @@ function ScheduleFormModal({
         days_of_week: data.daysOfWeek,
       })
       onCreated(schedule)
-    } catch {
-      toast.error('No se pudo guardar el intervalo')
+    } catch (err) {
+      const code = getScheduleErrorCode(err)
+      if (code === 'INVALID_TIME_RANGE') {
+        setError('endTime', { message: 'La hora de fin debe ser mayor que la de inicio' })
+      } else if (code === 'INVALID_DAYS') {
+        setError('daysOfWeek', { message: 'Días inválidos. Los valores deben estar entre 1 (lunes) y 7 (domingo)' })
+      } else {
+        toast.error('No se pudo guardar el intervalo')
+      }
     } finally {
       setIsSubmitting(false)
     }
