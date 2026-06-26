@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+// @ts-ignore
+import MicRecorder from 'mic-recorder-to-mp3-fixed'
 import { conversationsService } from '../../services/conversations'
 import type { Message } from '../../types'
 
@@ -31,46 +33,24 @@ export default function AudioRecorder({
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const chunksRef = useRef<Blob[]>([])
+  const recorderRef = useRef<any>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+
+  useEffect(() => {
+    // @ts-ignore
+    recorderRef.current = new MicRecorder({ bitRate: 128 })
+  }, [])
 
   async function startRecording() {
     setState('requesting_permission')
     setErrorMessage(null)
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      })
-      streamRef.current = stream
-
-      const mimeType = getSupportedMimeType()
-      const recorder = new MediaRecorder(stream, { mimeType })
-      mediaRecorderRef.current = recorder
-      chunksRef.current = []
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
-      }
-
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType })
-        const url = URL.createObjectURL(blob)
-        setAudioBlob(blob)
-        setAudioUrl(url)
-        setState('preview')
-        stopTimer()
-        releaseStream()
-      }
-
-      recorder.start(100) // chunk every 100ms
+      await recorderRef.current.start()
       setState('recording')
       startTimer()
-    } catch (error) {
-      const err = error as { name?: string }
-      if (err.name === 'NotAllowedError') {
+    } catch (error: any) {
+      if (error?.name === 'NotAllowedError') {
         setErrorMessage('Debes permitir el acceso al micrófono para enviar audios')
       } else {
         setErrorMessage('No se pudo acceder al micrófono')
@@ -80,17 +60,31 @@ export default function AudioRecorder({
   }
 
   function stopRecording() {
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop()
-    }
+    if (!recorderRef.current) return
+    recorderRef.current
+      .stop()
+      .getMp3()
+      .then(([buffer, blob]: [any, Blob]) => {
+        const url = URL.createObjectURL(blob)
+        setAudioBlob(blob)
+        setAudioUrl(url)
+        setState('preview')
+        stopTimer()
+      })
+      .catch((err: any) => {
+        setErrorMessage('Error al detener la grabación')
+        setState('error')
+        stopTimer()
+      })
   }
 
   function cancelRecording() {
     stopTimer()
-    if (mediaRecorderRef.current?.state === 'recording') {
-      mediaRecorderRef.current.stop()
-    }
-    releaseStream()
+    try {
+      if (recorderRef.current) {
+        recorderRef.current.stop()
+      }
+    } catch {}
     if (audioUrl) URL.revokeObjectURL(audioUrl)
     setAudioBlob(null)
     setAudioUrl(null)
@@ -105,8 +99,30 @@ export default function AudioRecorder({
       const { message } = await conversationsService.replyAudio(conversationId, audioBlob)
       onAudioSent(message)
       cancelRecording() // Clear state after success
-    } catch {
-      setErrorMessage('No se pudo enviar el audio. Intenta de nuevo.')
+
+      // Auto scroll to bottom
+      setTimeout(() => {
+        const feed = document.getElementById('chat-message-feed')
+        if (feed) feed.scrollTop = feed.scrollHeight
+      }, 50)
+    } catch (error) {
+      const err = error as { response?: { data?: { detail?: { code?: string } } } }
+      const code = err.response?.data?.detail?.code
+      if (code === 'FILE_TOO_LARGE') {
+        setErrorMessage('El audio supera el límite de 16MB')
+      } else if (code === 'FILE_TYPE_NOT_ALLOWED') {
+        setErrorMessage('Tipo de audio no permitido')
+      } else if (code === 'META_API_ERROR') {
+        setErrorMessage('No se pudo enviar el audio a WhatsApp. Intenta nuevamente.')
+      } else if (code === 'STORAGE_ERROR') {
+        setErrorMessage('Error al subir el audio a almacenamiento. Intenta de nuevo.')
+      } else if (code === 'BOT_IS_ACTIVE') {
+        setErrorMessage('El bot tiene el control de esta conversación.')
+      } else if (code === 'NOT_ASSIGNED') {
+        setErrorMessage('No estás asignado a esta conversación.')
+      } else {
+        setErrorMessage('No se pudo enviar el audio. Intenta de nuevo.')
+      }
       setState('error')
     }
   }
@@ -132,20 +148,7 @@ export default function AudioRecorder({
     }
   }
 
-  function releaseStream() {
-    streamRef.current?.getTracks().forEach((track) => track.stop())
-    streamRef.current = null
-  }
-
-  function getSupportedMimeType(): string {
-    const types = [
-      'audio/webm;codecs=opus',
-      'audio/webm',
-      'audio/ogg;codecs=opus',
-      'audio/mp4',
-    ]
-    return types.find((t) => MediaRecorder.isTypeSupported(t)) ?? 'audio/webm'
-  }
+  // Stream release is managed by mic-recorder-to-mp3 internally
 
   function formatTime(seconds: number): string {
     const mm = String(Math.floor(seconds / 60)).padStart(2, '0')
@@ -157,7 +160,6 @@ export default function AudioRecorder({
   useEffect(() => {
     return () => {
       stopTimer()
-      releaseStream()
       if (audioUrl) URL.revokeObjectURL(audioUrl)
     }
   }, [audioUrl])
@@ -271,10 +273,17 @@ export default function AudioRecorder({
       <span className="text-[#FF5B5B] text-xs">{errorMessage}</span>
       <button
         type="button"
-        onClick={() => setState('idle')}
-        className="text-[10px] text-[#8B8FA8] hover:text-white underline"
+        onClick={sendAudio}
+        className="text-[10px] text-[#01A4E3] hover:text-[#0190C8] font-bold uppercase transition"
       >
         Reintentar
+      </button>
+      <button
+        type="button"
+        onClick={cancelRecording}
+        className="text-[10px] text-[#8B8FA8] hover:text-[#FF5B5B] transition ml-1"
+      >
+        Cancelar
       </button>
     </div>
   )

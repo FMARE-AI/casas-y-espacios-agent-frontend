@@ -85,6 +85,38 @@ function FileIcon({ category }: { category: keyof typeof FILE_TYPES }) {
   )
 }
 
+function getErrorMessage(error: any, fallback: string, file?: File): string {
+  const code = error.response?.data?.detail?.code
+  const backendMsg = error.response?.data?.detail?.message
+
+  switch (code) {
+    case 'EMPTY_MESSAGE':
+      return 'El mensaje no puede estar vacío o contener solo espacios.'
+    case 'MESSAGE_TOO_LONG':
+      return 'El mensaje supera el límite de 4096 caracteres.'
+    case 'BOT_IS_ACTIVE':
+      return 'El bot tiene el control de esta conversación.'
+    case 'NOT_ASSIGNED':
+      return 'No estás asignado a esta conversación.'
+    case 'FILE_TOO_LARGE': {
+      if (file) {
+        const category = getFileType(file.type)
+        const limitMB = category ? FILE_TYPES[category].maxMB : 20
+        return `El archivo supera el límite de tamaño permitido (${limitMB} MB).`
+      }
+      return 'El archivo supera el límite de tamaño permitido.'
+    }
+    case 'FILE_TYPE_NOT_ALLOWED':
+      return 'El tipo de archivo no está permitido.'
+    case 'META_API_ERROR':
+      return 'No se pudo enviar el mensaje a WhatsApp. Intenta nuevamente.'
+    case 'STORAGE_ERROR':
+      return 'Error de almacenamiento al subir el archivo. Intenta de nuevo.'
+    default:
+      return backendMsg || fallback
+  }
+}
+
 export default function ChatInput({
   conversationId,
   clientName,
@@ -203,8 +235,14 @@ export default function ChatInput({
       const { message } = await conversationsService.replyText(conversationId, text.trim())
       onMessageSent(message)
       setText('')
-    } catch {
-      setSendError('No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.')
+
+      // Auto scroll to bottom
+      setTimeout(() => {
+        const feed = document.getElementById('chat-message-feed')
+        if (feed) feed.scrollTop = feed.scrollHeight
+      }, 50)
+    } catch (error) {
+      setSendError(getErrorMessage(error, 'No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.'))
       onError()
     } finally {
       setSending(false)
@@ -223,16 +261,14 @@ export default function ChatInput({
         onMessageSent(message)
         setSelectedFile(null)
         setText('')
+
+        // Auto scroll to bottom
+        setTimeout(() => {
+          const feed = document.getElementById('chat-message-feed')
+          if (feed) feed.scrollTop = feed.scrollHeight
+        }, 50)
       } catch (error) {
-        const err = error as { response?: { data?: { detail?: { code?: string } } } }
-        const code = err.response?.data?.detail?.code
-        if (code === 'FILE_TOO_LARGE') {
-          setSendError('El archivo es demasiado grande')
-        } else if (code === 'FILE_TYPE_NOT_ALLOWED') {
-          setSendError('Tipo de archivo no permitido')
-        } else {
-          setSendError('No se pudo enviar el archivo')
-        }
+        setSendError(getErrorMessage(error, 'No se pudo enviar el archivo.', selectedFile))
       } finally {
         setSending(false)
       }

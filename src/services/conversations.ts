@@ -32,16 +32,49 @@ export const conversationsService = {
     return data.data
   },
 
-  async replyText(_id: string, _text: string): Promise<{ message: Message }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 6')
+  async replyText(id: string, text: string): Promise<{ message: Message }> {
+    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply`, { text })
+    return data.data
   },
 
-  async replyMedia(_id: string, _file: File, _caption?: string): Promise<{ message: Message }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 6')
+  async replyMedia(id: string, file: File, caption?: string): Promise<{ message: Message }> {
+    const formData = new FormData()
+    formData.append('file', file)
+    if (caption) {
+      formData.append('caption', caption)
+    }
+    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply/media`, formData, {
+      headers: {
+        'Content-Type': undefined,
+      },
+    })
+    return data.data
   },
 
-  async replyAudio(_id: string, _file: Blob): Promise<{ message: Message }> {
-    throw new Error('NOT IMPLEMENTED — pendiente Tarea 6')
+  async replyAudio(id: string, file: Blob): Promise<{ message: Message }> {
+    const formData = new FormData()
+    
+    let audioFile = file
+    let filename = 'voice_note.ogg'
+    
+    if (file.type.includes('mpeg') || file.type.includes('mp3')) {
+      filename = 'voice_note.mp3'
+      audioFile = new Blob([file], { type: 'audio/mpeg' })
+    } else if (file.type.includes('mp4')) {
+      filename = 'voice_note.mp4'
+      audioFile = new Blob([file], { type: 'audio/mp4' })
+    } else if (file.type.includes('ogg')) {
+      filename = 'voice_note.ogg'
+      audioFile = new Blob([file], { type: 'audio/ogg' })
+    }
+
+    formData.append('file', audioFile, filename)
+    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply/audio`, formData, {
+      headers: {
+        'Content-Type': undefined,
+      },
+    })
+    return data.data
   },
 
   async assign(id: string): Promise<AssignResponse> {
