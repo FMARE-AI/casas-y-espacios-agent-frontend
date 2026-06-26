@@ -6,6 +6,7 @@
 
 **Authentication:** All endpoints except the debug token endpoint require a JWT in the `Authorization` header:
 
+
 ```
 Authorization: Bearer <jwt_token>
 ```
@@ -64,12 +65,12 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Errors:**
 
-| HTTP | ErrorCode          | When                                                        |
-| ---- | ------------------ | ----------------------------------------------------------- |
-| 401  | `INVALID_TOKEN`    | Wrong email or password                                     |
-| 401  | `INVALID_TOKEN`    | Supabase Auth user exists but no matching row in `advisors` |
-| 403  | `ADVISOR_INACTIVE` | Advisor exists but `is_active = false`                      |
-| 503  | `INVALID_TOKEN`    | Connection error to Supabase Auth                           |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Wrong email or password |
+| 401 | `INVALID_TOKEN` | Supabase Auth user exists but no matching row in `advisors` |
+| 403 | `ADVISOR_INACTIVE` | Advisor exists but `is_active = false` |
+| 503 | `INVALID_TOKEN` | Connection error to Supabase Auth |
 
 ---
 
@@ -100,10 +101,10 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Errors:**
 
-| HTTP | ErrorCode       | When                                                                    |
-| ---- | --------------- | ----------------------------------------------------------------------- |
-| 401  | `INVALID_TOKEN` | `refresh_token` invalid or expired — frontend must redirect to `/login` |
-| 503  | `INVALID_TOKEN` | Connection error to Supabase Auth                                       |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | `refresh_token` invalid or expired — frontend must redirect to `/login` |
+| 503 | `INVALID_TOKEN` | Connection error to Supabase Auth |
 
 ---
 
@@ -117,12 +118,12 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Query params:**
 
-| Param     | Type      | Default | Description                                                              |
-| --------- | --------- | ------- | ------------------------------------------------------------------------ |
-| `status`  | `string`  | none    | Filter by status: `activa`, `escalada`, `cerrada`, or `mine` (see below) |
-| `channel` | `string`  | none    | Filter by channel: `administrativa`, `comercial`                         |
-| `limit`   | `integer` | 20      | Page size (1–100)                                                        |
-| `offset`  | `integer` | 0       | Pagination offset                                                        |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `status` | `string` | none | Filter by status: `activa`, `escalada`, `cerrada`, or `mine` (see below) |
+| `channel` | `string` | none | Filter by channel: `administrativa`, `comercial` |
+| `limit` | `integer` | 20 | Page size (1–100) |
+| `offset` | `integer` | 0 | Pagination offset |
 
 **Response 200:**
 
@@ -142,6 +143,7 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
         "client_satisfied": null,
         "closed_by": null,
         "closed_at": null,
+        "unread_count": 0,
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
@@ -176,15 +178,14 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Errors:**
 
-| HTTP | ErrorCode          | When                                            |
-| ---- | ------------------ | ----------------------------------------------- |
-| 400  | `INVALID_STATUS`   | `status` query param has an unrecognized value  |
-| 400  | `INVALID_STATUS`   | `channel` query param has an unrecognized value |
-| 401  | `INVALID_TOKEN`    | Missing or invalid JWT                          |
-| 403  | `ADVISOR_INACTIVE` | Advisor account is deactivated                  |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_STATUS` | `status` query param has an unrecognized value |
+| 400 | `INVALID_STATUS` | `channel` query param has an unrecognized value |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
 
 **Notes:**
-
 - The `escalation.wait_seconds` field is computed at request time as the number of seconds since `escalated_at`.
 - An `escalation` object is included only if there is an unresolved escalation (`resolved_at IS NULL`).
 - Advisors with `area = "ambas"` see conversations from both channels.
@@ -201,16 +202,16 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Path params:**
 
-| Param             | Type            | Description         |
-| ----------------- | --------------- | ------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation ID |
 
 **Query params:**
 
-| Param    | Type      | Default | Description                         |
-| -------- | --------- | ------- | ----------------------------------- |
-| `limit`  | `integer` | 50      | Number of messages to fetch (1–100) |
-| `offset` | `integer` | 0       | Message pagination offset           |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `limit` | `integer` | 50 | Number of messages to fetch (1–100) |
+| `offset` | `integer` | 0 | Message pagination offset |
 
 **Response 200:**
 
@@ -270,12 +271,12 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Errors:**
 
-| HTTP | ErrorCode                   | When                                                     |
-| ---- | --------------------------- | -------------------------------------------------------- |
-| 401  | `INVALID_TOKEN`             | Missing or invalid JWT                                   |
-| 403  | `ADVISOR_INACTIVE`          | Advisor account is deactivated                           |
-| 403  | `CONVERSATION_OUTSIDE_AREA` | Advisor's area does not match the conversation's channel |
-| 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                        |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Advisor's area does not match the conversation's channel |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
 
 ---
 
@@ -287,16 +288,16 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Path params:**
 
-| Param             | Type            | Description         |
-| ----------------- | --------------- | ------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation ID |
 
 **Query params:**
 
-| Param    | Type      | Default | Description       |
-| -------- | --------- | ------- | ----------------- |
-| `limit`  | `integer` | 20      | Page size (1–100) |
-| `offset` | `integer` | 0       | Pagination offset |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `limit` | `integer` | 20 | Page size (1–100) |
+| `offset` | `integer` | 0 | Pagination offset |
 
 **Response 200:**
 
@@ -362,13 +363,13 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 **Message field reference:**
 
-| Field           | Type             | Description                                                                                                                                                              |
-| --------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `msg_type`      | `string`         | `"text"`, `"audio"`, `"image"`, `"video"`, `"document"`                                                                                                                  |
-| `content`       | `string \| null` | Text content. Non-null only for `msg_type = "text"`                                                                                                                      |
-| `media_url`     | `string \| null` | Signed Supabase Storage URL (valid 1 year). Non-null for `audio`, `image`, `video`, `document`. Always a full HTTPS URL — never a raw Meta media ID                      |
+| Field | Type | Description |
+|-------|------|-------------|
+| `msg_type` | `string` | `"text"`, `"audio"`, `"image"`, `"video"`, `"document"` |
+| `content` | `string \| null` | Text content. Non-null only for `msg_type = "text"` |
+| `media_url` | `string \| null` | Signed Supabase Storage URL (valid 1 year). Non-null for `audio`, `image`, `video`, `document`. Always a full HTTPS URL — never a raw Meta media ID |
 | `transcription` | `string \| null` | Whisper transcription of the audio. Non-null only for `msg_type = "audio"` that the bot processed. `null` for audio sent by the advisor or processed before this feature |
-| `advisor_name`  | `string \| null` | Full name of the advisor who sent the message. Non-null only when `direction = "outbound_advisor"`. `null` for `inbound` and `outbound_bot` messages                     |
+| `advisor_name` | `string \| null` | Full name of the advisor who sent the message. Non-null only when `direction = "outbound_advisor"`. `null` for `inbound` and `outbound_bot` messages |
 
 **Audio rendering rule — important:**
 
@@ -384,11 +385,11 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                   | When                                                     |
-| ---- | --------------------------- | -------------------------------------------------------- |
-| 401  | `INVALID_TOKEN`             | Missing or invalid JWT                                   |
-| 403  | `CONVERSATION_OUTSIDE_AREA` | Advisor's area does not match the conversation's channel |
-| 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                        |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Advisor's area does not match the conversation's channel |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
 
 ---
 
@@ -400,8 +401,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param             | Type            | Description         |
-| ----------------- | --------------- | ------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation ID |
 
 **Request body:**
@@ -412,8 +413,8 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field  | Type     | Constraints                              |
-| ------ | -------- | ---------------------------------------- |
+| Field | Type | Constraints |
+|-------|------|-------------|
 | `text` | `string` | Required, non-empty, max 4096 characters |
 
 **Response 200:**
@@ -441,26 +442,24 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                   | When                                                                        |
-| ---- | --------------------------- | --------------------------------------------------------------------------- |
-| 400  | `EMPTY_MESSAGE`             | `text` is empty or whitespace only                                          |
-| 400  | `MESSAGE_TOO_LONG`          | `text` exceeds 4096 characters                                              |
-| 401  | `INVALID_TOKEN`             | Missing or invalid JWT                                                      |
-| 403  | `ADVISOR_INACTIVE`          | Advisor account is deactivated                                              |
-| 403  | `BOT_IS_ACTIVE`             | Bot currently controls the conversation                                     |
-| 403  | `NOT_ASSIGNED`              | Advisor is not the assigned advisor for this conversation (non-admins only) |
-| 403  | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match the advisor's area                       |
-| 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                                           |
-| 502  | `META_API_ERROR`            | WhatsApp API call failed or the line record was not found                   |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `EMPTY_MESSAGE` | `text` is empty or whitespace only |
+| 400 | `MESSAGE_TOO_LONG` | `text` exceeds 4096 characters |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `BOT_IS_ACTIVE` | Bot currently controls the conversation |
+| 403 | `NOT_ASSIGNED` | Advisor is not the assigned advisor for this conversation (non-admins only) |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match the advisor's area |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
+| 502 | `META_API_ERROR` | WhatsApp API call failed or the line record was not found |
 
 **Notes:**
-
 - Background moderation runs asynchronously via `asyncio.create_task`. If moderation detects inappropriate content, a `behavior.alert` WebSocket event is emitted to admins only.
 - The message is persisted and the WhatsApp delivery happens before the response is returned. If Meta API fails, no message is saved.
 - Admins can reply to any conversation in their area regardless of assignment.
 
 **WebSocket events emitted:**
-
 - `message.new` — broadcast to all connected advisors
 
 ---
@@ -473,29 +472,29 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param             | Type            | Description         |
-| ----------------- | --------------- | ------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation ID |
 
 **Request body:** `multipart/form-data`
 
-| Field     | Type     | Description                             |
-| --------- | -------- | --------------------------------------- |
-| `file`    | `File`   | Required. The media file                |
+| Field | Type | Description |
+|-------|------|-------------|
+| `file` | `File` | Required. The media file |
 | `caption` | `string` | Optional. Caption for images and videos |
 
 **Allowed MIME types and size limits:**
 
-| MIME type                                                                 | Max size |
-| ------------------------------------------------------------------------- | -------- |
-| `image/jpeg`                                                              | 5 MB     |
-| `image/png`                                                               | 5 MB     |
-| `image/webp`                                                              | 5 MB     |
-| `video/mp4`                                                               | 16 MB    |
-| `video/3gpp`                                                              | 16 MB    |
-| `application/pdf`                                                         | 20 MB    |
-| `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | 20 MB    |
-| `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`       | 20 MB    |
+| MIME type | Max size |
+|-----------|----------|
+| `image/jpeg` | 5 MB |
+| `image/png` | 5 MB |
+| `image/webp` | 5 MB |
+| `video/mp4` | 16 MB |
+| `video/3gpp` | 16 MB |
+| `application/pdf` | 20 MB |
+| `application/vnd.openxmlformats-officedocument.wordprocessingml.document` | 20 MB |
+| `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` | 20 MB |
 
 **Response 200:**
 
@@ -522,25 +521,23 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                   | When                                                    |
-| ---- | --------------------------- | ------------------------------------------------------- |
-| 400  | `FILE_TYPE_NOT_ALLOWED`     | MIME type is not in the allowed list                    |
-| 400  | `FILE_TOO_LARGE`            | File exceeds the size limit for its MIME type           |
-| 401  | `INVALID_TOKEN`             | Missing or invalid JWT                                  |
-| 403  | `BOT_IS_ACTIVE`             | Bot currently controls the conversation                 |
-| 403  | `NOT_ASSIGNED`              | Advisor is not the assigned advisor                     |
-| 403  | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match advisor's area       |
-| 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                       |
-| 502  | `META_API_ERROR`            | WhatsApp API call failed                                |
-| 503  | `STORAGE_ERROR`             | Supabase Storage upload or signed URL generation failed |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `FILE_TYPE_NOT_ALLOWED` | MIME type is not in the allowed list |
+| 400 | `FILE_TOO_LARGE` | File exceeds the size limit for its MIME type |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `BOT_IS_ACTIVE` | Bot currently controls the conversation |
+| 403 | `NOT_ASSIGNED` | Advisor is not the assigned advisor |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match advisor's area |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
+| 502 | `META_API_ERROR` | WhatsApp API call failed |
+| 503 | `STORAGE_ERROR` | Supabase Storage upload or signed URL generation failed |
 
 **Notes:**
-
 - If Meta API fails after the file has already been uploaded to Storage, the file remains in Storage but no message is created. This is a known trade-off.
 - `msg_type` in the response is derived from the MIME type: `image/*` → `"image"`, `video/*` → `"video"`, everything else → `"document"`.
 
 **WebSocket events emitted:**
-
 - `message.new` — broadcast to all connected advisors
 
 ---
@@ -553,14 +550,14 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param             | Type            | Description         |
-| ----------------- | --------------- | ------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation ID |
 
 **Request body:** `multipart/form-data`
 
-| Field  | Type   | Description              |
-| ------ | ------ | ------------------------ |
+| Field | Type | Description |
+|-------|------|-------------|
 | `file` | `File` | Required. The audio file |
 
 **Allowed MIME types:** `audio/ogg`, `audio/mpeg`, `audio/mp4`, `audio/aac`, `audio/amr`
@@ -592,20 +589,19 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                   | When                                                    |
-| ---- | --------------------------- | ------------------------------------------------------- |
-| 400  | `FILE_TYPE_NOT_ALLOWED`     | MIME type is not in the allowed audio list              |
-| 400  | `FILE_TOO_LARGE`            | Audio file exceeds 16 MB                                |
-| 401  | `INVALID_TOKEN`             | Missing or invalid JWT                                  |
-| 403  | `BOT_IS_ACTIVE`             | Bot currently controls the conversation                 |
-| 403  | `NOT_ASSIGNED`              | Advisor is not the assigned advisor                     |
-| 403  | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match advisor's area       |
-| 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                       |
-| 502  | `META_API_ERROR`            | WhatsApp API call failed or line not found              |
-| 502  | `STORAGE_ERROR`             | Supabase Storage upload or signed URL generation failed |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `FILE_TYPE_NOT_ALLOWED` | MIME type is not in the allowed audio list |
+| 400 | `FILE_TOO_LARGE` | Audio file exceeds 16 MB |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `BOT_IS_ACTIVE` | Bot currently controls the conversation |
+| 403 | `NOT_ASSIGNED` | Advisor is not the assigned advisor |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match advisor's area |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
+| 502 | `META_API_ERROR` | WhatsApp API call failed or line not found |
+| 502 | `STORAGE_ERROR` | Supabase Storage upload or signed URL generation failed |
 
 **WebSocket events emitted:**
-
 - `message.new` — broadcast to all connected advisors
 
 ---
@@ -618,8 +614,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param             | Type            | Description                |
-| ----------------- | --------------- | -------------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation to assign |
 
 **Response 200:**
@@ -638,24 +634,22 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                    | When                                                              |
-| ---- | ---------------------------- | ----------------------------------------------------------------- |
-| 401  | `INVALID_TOKEN`              | Missing or invalid JWT                                            |
-| 403  | `ADVISOR_INACTIVE`           | Advisor account is deactivated                                    |
-| 403  | `CONVERSATION_OUTSIDE_AREA`  | Conversation's channel is outside the advisor's area              |
-| 404  | `CONVERSATION_NOT_FOUND`     | No conversation with the given ID                                 |
-| 409  | `CONVERSATION_NOT_ESCALATED` | Conversation status is not `escalada` or has no active escalation |
-| 409  | `ALREADY_ASSIGNED`           | Another advisor is already assigned to this escalation            |
-| 409  | `MAX_CONVERSATIONS_REACHED`  | Advisor has reached their `max_conversations` limit               |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Conversation's channel is outside the advisor's area |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
+| 409 | `CONVERSATION_NOT_ESCALATED` | Conversation status is not `escalada` or has no active escalation |
+| 409 | `ALREADY_ASSIGNED` | Another advisor is already assigned to this escalation |
+| 409 | `MAX_CONVERSATIONS_REACHED` | Advisor has reached their `max_conversations` limit |
 
 **Notes:**
-
 - The `MAX_CONVERSATIONS_REACHED` error message includes the current and maximum counts: `"Tienes X de Y conversaciones activas — llegaste al límite"`.
 - After a successful assign, the conversation `status` transitions from `escalada` → `activa`.
 - Race condition: two advisors clicking "take conversation" simultaneously can both pass the `ALREADY_ASSIGNED` check if the read happens before either write completes. There is no optimistic lock on this operation.
 
 **WebSocket events emitted:**
-
 - `escalation.assigned` — broadcast to all connected advisors
 
 ---
@@ -668,8 +662,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param             | Type            | Description                           |
-| ----------------- | --------------- | ------------------------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation to return to the bot |
 
 **Response 200:**
@@ -688,17 +682,49 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                | When                                          |
-| ---- | ------------------------ | --------------------------------------------- |
-| 401  | `INVALID_TOKEN`          | Missing or invalid JWT                        |
-| 403  | `ADVISOR_INACTIVE`       | Advisor account is deactivated                |
-| 403  | `BOT_ALREADY_ACTIVE`     | Bot already controls this conversation        |
-| 403  | `NOT_ASSIGNED`           | Non-admin advisor is not the assigned advisor |
-| 404  | `CONVERSATION_NOT_FOUND` | No conversation with the given ID             |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `BOT_ALREADY_ACTIVE` | Bot already controls this conversation |
+| 403 | `NOT_ASSIGNED` | Non-admin advisor is not the assigned advisor |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
 
 **WebSocket events emitted:**
-
 - `conversation.returned` — broadcast to all connected advisors
+
+---
+
+### PATCH /api/v1/panel/conversations/{conversation_id}/seen
+
+**Auth required:** Yes (any active advisor)
+
+**Description:** Marks the conversation as seen by resetting the unread message count to 0. Any active advisor can mark a conversation as seen (it does not have to be assigned to them).
+
+**Path params:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `conversation_id` | `string` (UUID) | The conversation to mark as seen |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "unread_count": 0
+  }
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `CONVERSATION_OUTSIDE_AREA` | Advisor does not have access to the conversation's channel |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
 
 ---
 
@@ -710,8 +736,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param             | Type            | Description               |
-| ----------------- | --------------- | ------------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `conversation_id` | `string` (UUID) | The conversation to close |
 
 **Request body (all fields optional):**
@@ -724,25 +750,25 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field              | Type               | Default           | Constraints                                                 |
-| ------------------ | ------------------ | ----------------- | ----------------------------------------------------------- |
-| `resolution_type`  | `string`           | `"otro"`          | Must be one of the `ResolutionType` enum values (see below) |
-| `resolution_notes` | `string` or `null` | `null`            | Optional, max 1000 characters                               |
-| `client_satisfied` | `string`           | `"sin_confirmar"` | `"si"`, `"no"`, or `"sin_confirmar"`                        |
+| Field | Type | Default | Constraints |
+|-------|------|---------|-------------|
+| `resolution_type` | `string` | `"otro"` | Must be one of the `ResolutionType` enum values (see below) |
+| `resolution_notes` | `string` or `null` | `null` | Optional, max 1000 characters |
+| `client_satisfied` | `string` | `"sin_confirmar"` | `"si"`, `"no"`, or `"sin_confirmar"` |
 
 **`resolution_type` allowed values:**
 
-| Value                            | When to use                                        |
-| -------------------------------- | -------------------------------------------------- |
-| `consulta_cartera_resuelta`      | Cartera/balance inquiry answered satisfactorily    |
-| `pago_acordado`                  | Payment agreement reached with the owner           |
-| `orden_mantenimiento_creada`     | Maintenance work order created in SIMI             |
-| `queja_pqrs_registrada`          | Complaint or PQR formally registered               |
-| `informacion_contrato_entregada` | Lease or contract information delivered            |
-| `derivado_otro_canal`            | Client redirected to another channel or department |
-| `sin_respuesta_cliente`          | Client stopped responding                          |
-| `consulta_resuelta_confirmada`   | Client explicitly confirmed the issue is resolved  |
-| `otro`                           | Default. Use when no other type fits               |
+| Value | When to use |
+|-------|-------------|
+| `consulta_cartera_resuelta` | Cartera/balance inquiry answered satisfactorily |
+| `pago_acordado` | Payment agreement reached with the owner |
+| `orden_mantenimiento_creada` | Maintenance work order created in SIMI |
+| `queja_pqrs_registrada` | Complaint or PQR formally registered |
+| `informacion_contrato_entregada` | Lease or contract information delivered |
+| `derivado_otro_canal` | Client redirected to another channel or department |
+| `sin_respuesta_cliente` | Client stopped responding |
+| `consulta_resuelta_confirmada` | Client explicitly confirmed the issue is resolved |
+| `otro` | Default. Use when no other type fits |
 
 **Response 200:**
 
@@ -764,24 +790,22 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                | When                                                              |
-| ---- | ------------------------ | ----------------------------------------------------------------- |
-| 400  | `INVALID_STATUS`         | `resolution_type` or `client_satisfied` has an unrecognized value |
-| 401  | `INVALID_TOKEN`          | Missing or invalid JWT                                            |
-| 403  | `ADVISOR_INACTIVE`       | Advisor account is deactivated                                    |
-| 403  | `NOT_ASSIGNED`           | Non-admin advisor is not the assigned advisor                     |
-| 404  | `CONVERSATION_NOT_FOUND` | No conversation with the given ID                                 |
-| 409  | `ALREADY_CLOSED`         | Conversation status is already `cerrada`                          |
-| 422  | _(Pydantic)_             | `resolution_notes` exceeds 1000 characters                        |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_STATUS` | `resolution_type` or `client_satisfied` has an unrecognized value |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `NOT_ASSIGNED` | Non-admin advisor is not the assigned advisor |
+| 404 | `CONVERSATION_NOT_FOUND` | No conversation with the given ID |
+| 409 | `ALREADY_CLOSED` | Conversation status is already `cerrada` |
+| 422 | _(Pydantic)_ | `resolution_notes` exceeds 1000 characters |
 
 **Notes:**
-
 - `closed_by` is always set to `"asesor"` by this endpoint. Bot-initiated closure (see below) sets `"bot"`.
 - The bot can close conversations in two ways: (1) the inactivity job closes after no client response to a follow-up message, and (2) the AI agent closes proactively when it detects a farewell or satisfaction signal from the client (e.g., "gracias, ya quedó", "adiós"). Both cases emit `conversation.closed` via WebSocket with `closed_by: "bot"` and no `advisor_id`.
 - `resolution_notes` accepts `null` — sending `null` or omitting the field stores `NULL` in the database.
 
 **WebSocket events emitted:**
-
 - `conversation.closed` — broadcast to all connected advisors
 
 ---
@@ -818,13 +842,12 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode          | When                           |
-| ---- | ------------------ | ------------------------------ |
-| 401  | `INVALID_TOKEN`    | Missing or invalid JWT         |
-| 403  | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
 
 **Notes:**
-
 - `active_conversations` may return `0` if the Supabase RPC call fails — the failure is logged as a warning but does not surface as an error.
 - `must_change_password` is `true` for newly created advisors. The `FirstLoginPage` flow sets it to `false` via `PATCH /advisors/me` after the advisor establishes their permanent password.
 
@@ -838,11 +861,11 @@ msg_type = "document" → render download link using media_url
 
 **Query params:**
 
-| Param       | Type      | Default | Description                                            |
-| ----------- | --------- | ------- | ------------------------------------------------------ |
-| `role`      | `string`  | none    | Filter by role: `asesor` or `admin`                    |
-| `area`      | `string`  | none    | Filter by area: `administrativa`, `comercial`, `ambas` |
-| `is_active` | `boolean` | none    | Filter by active status                                |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `role` | `string` | none | Filter by role: `asesor` or `admin` |
+| `area` | `string` | none | Filter by area: `administrativa`, `comercial`, `ambas` |
+| `is_active` | `boolean` | none | Filter by active status |
 
 **Response 200:**
 
@@ -869,14 +892,13 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode             | When                   |
-| ---- | --------------------- | ---------------------- |
-| 401  | `INVALID_TOKEN`       | Missing or invalid JWT |
-| 403  | `FORBIDDEN`           | Caller is not an admin |
-| 500  | `SUPABASE_AUTH_ERROR` | Database query failed  |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `FORBIDDEN` | Caller is not an admin |
+| 500 | `SUPABASE_AUTH_ERROR` | Database query failed |
 
 **Notes:**
-
 - `active_conversations` is fetched via a separate RPC call per advisor. If the call fails for a given advisor, their count is set to `0`.
 
 ---
@@ -903,15 +925,15 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field               | Type               | Constraints                                               |
-| ------------------- | ------------------ | --------------------------------------------------------- |
-| `email`             | `string`           | Required                                                  |
-| `password`          | `string`           | Required, min 8 characters                                |
-| `full_name`         | `string`           | Required, min 1 character                                 |
-| `role`              | `string`           | Required, must be `"asesor"` or `"admin"`                 |
-| `area`              | `string`           | Required: `"administrativa"`, `"comercial"`, or `"ambas"` |
-| `specialty`         | `string` or `null` | Optional. Must be valid for the given area (see notes)    |
-| `max_conversations` | `integer`          | Default 3, range 1–10                                     |
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `email` | `string` | Required |
+| `password` | `string` | Required, min 8 characters |
+| `full_name` | `string` | Required, min 1 character |
+| `role` | `string` | Required, must be `"asesor"` or `"admin"` |
+| `area` | `string` | Required: `"administrativa"`, `"comercial"`, or `"ambas"` |
+| `specialty` | `string` or `null` | Optional. Must be valid for the given area (see notes) |
+| `max_conversations` | `integer` | Default 3, range 1–10 |
 
 **Response 201:**
 
@@ -936,20 +958,20 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode              | When                                                       |
-| ---- | ---------------------- | ---------------------------------------------------------- |
-| 401  | `INVALID_TOKEN`        | Missing or invalid JWT                                     |
-| 403  | `FORBIDDEN`            | Caller is not an admin                                     |
-| 409  | `EMAIL_ALREADY_EXISTS` | An advisor with this email already exists in Supabase Auth |
-| 502  | `SUPABASE_AUTH_ERROR`  | Supabase Auth or DB error during creation                  |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `FORBIDDEN` | Caller is not an admin |
+| 409 | `EMAIL_ALREADY_EXISTS` | An advisor with this email already exists in Supabase Auth |
+| 502 | `SUPABASE_AUTH_ERROR` | Supabase Auth or DB error during creation |
 
 **Notes — Specialty/Area validation:** Validated on both `POST` and `PATCH /{advisor_id}`. Valid combinations:
 
-| Area             | Allowed specialties                                 |
-| ---------------- | --------------------------------------------------- |
-| `comercial`      | `"comercial"`, `null`                               |
+| Area | Allowed specialties |
+|------|---------------------|
+| `comercial` | `"comercial"`, `null` |
 | `administrativa` | `"financiera"`, `"mantenimiento_contratos"`, `null` |
-| `ambas`          | `null` only                                         |
+| `ambas` | `null` only |
 
 ---
 
@@ -970,11 +992,11 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field                  | Type                | Constraints                                                     |
-| ---------------------- | ------------------- | --------------------------------------------------------------- |
-| `full_name`            | `string` or `null`  | Optional, min 1 character                                       |
-| `current_password`     | `string` or `null`  | Required if `new_password` is provided                          |
-| `new_password`         | `string` or `null`  | Optional, min 8 characters                                      |
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `full_name` | `string` or `null` | Optional, min 1 character |
+| `current_password` | `string` or `null` | Required if `new_password` is provided |
+| `new_password` | `string` or `null` | Optional, min 8 characters |
 | `must_change_password` | `boolean` or `null` | Optional. Only `false` is accepted — sending `true` returns 422 |
 
 **Response 200:**
@@ -1001,17 +1023,16 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                  | When                                                             |
-| ---- | -------------------------- | ---------------------------------------------------------------- |
-| 400  | `INVALID_CURRENT_PASSWORD` | `new_password` was provided but `current_password` was omitted   |
-| 400  | `INVALID_CURRENT_PASSWORD` | `current_password` is incorrect                                  |
-| 401  | `INVALID_TOKEN`            | Missing or invalid JWT                                           |
-| 403  | `ADVISOR_INACTIVE`         | Advisor account is deactivated                                   |
-| 422  | _(Pydantic)_               | `must_change_password: true` was sent — only `false` is accepted |
-| 500  | `SUPABASE_AUTH_ERROR`      | Database or Auth update failed                                   |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_CURRENT_PASSWORD` | `new_password` was provided but `current_password` was omitted |
+| 400 | `INVALID_CURRENT_PASSWORD` | `current_password` is incorrect |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 422 | _(Pydantic)_ | `must_change_password: true` was sent — only `false` is accepted |
+| 500 | `SUPABASE_AUTH_ERROR` | Database or Auth update failed |
 
 **Notes:**
-
 - `must_change_password` only accepts `false`. Use this after the advisor sets their permanent password on `FirstLoginPage`. Sending `true` returns 422.
 
 ---
@@ -1031,10 +1052,10 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field                 | Type                | Constraints                                                                    |
-| --------------------- | ------------------- | ------------------------------------------------------------------------------ |
-| `availability_status` | `string`            | Required: `"available"`, `"break"`, or `"offline"`                             |
-| `minutes`             | `integer` or `null` | Optional, range 1–480. Only meaningful when status is `"break"` or `"offline"` |
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `availability_status` | `string` | Required: `"available"`, `"break"`, or `"offline"` |
+| `minutes` | `integer` or `null` | Optional, range 1–480. Only meaningful when status is `"break"` or `"offline"` |
 
 **Response 200:**
 
@@ -1048,20 +1069,18 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode             | When                                                       |
-| ---- | --------------------- | ---------------------------------------------------------- |
-| 400  | `INVALID_STATUS`      | `availability_status` is not one of the three valid values |
-| 401  | `INVALID_TOKEN`       | Missing or invalid JWT                                     |
-| 403  | `ADVISOR_INACTIVE`    | Advisor account is deactivated                             |
-| 500  | `SUPABASE_AUTH_ERROR` | Database update failed                                     |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_STATUS` | `availability_status` is not one of the three valid values |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 500 | `SUPABASE_AUTH_ERROR` | Database update failed |
 
 **Notes:**
-
 - When setting `"available"`, `status_until` is always set to `null` regardless of `minutes`.
 - The `minutes` field causes `status_until` to be stored as a naive Bogotá local time. The background availability checker job uses it to auto-restore the status.
 
 **WebSocket events emitted:**
-
 - `advisor.status_changed` — broadcast to all connected advisors
 
 ---
@@ -1074,8 +1093,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param        | Type            | Description           |
-| ------------ | --------------- | --------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `advisor_id` | `string` (UUID) | The advisor to update |
 
 **Request body (all fields optional):**
@@ -1091,14 +1110,14 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field               | Type                | Constraints                                            |
-| ------------------- | ------------------- | ------------------------------------------------------ |
-| `full_name`         | `string` or `null`  | Optional, min 1 character                              |
-| `role`              | `string` or `null`  | Optional: `"asesor"` or `"admin"`                      |
-| `area`              | `string` or `null`  | Optional: `"administrativa"`, `"comercial"`, `"ambas"` |
-| `specialty`         | `string` or `null`  | Optional. Validated against effective area             |
-| `max_conversations` | `integer` or `null` | Optional, range 1–10                                   |
-| `is_active`         | `boolean` or `null` | Optional                                               |
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `full_name` | `string` or `null` | Optional, min 1 character |
+| `role` | `string` or `null` | Optional: `"asesor"` or `"admin"` |
+| `area` | `string` or `null` | Optional: `"administrativa"`, `"comercial"`, `"ambas"` |
+| `specialty` | `string` or `null` | Optional. Validated against effective area |
+| `max_conversations` | `integer` or `null` | Optional, range 1–10 |
+| `is_active` | `boolean` or `null` | Optional |
 
 **Response 200:**
 
@@ -1124,17 +1143,16 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode                    | When                                                    |
-| ---- | ---------------------------- | ------------------------------------------------------- |
-| 400  | `INVALID_SPECIALTY_FOR_AREA` | `specialty` is not valid for the effective area         |
-| 401  | `INVALID_TOKEN`              | Missing or invalid JWT                                  |
-| 403  | `FORBIDDEN`                  | Caller is not an admin                                  |
-| 403  | `CANNOT_EDIT_YOURSELF`       | Admin tried to edit their own account via this endpoint |
-| 404  | `ADVISOR_NOT_FOUND`          | No advisor with the given ID                            |
-| 500  | `SUPABASE_AUTH_ERROR`        | Database update failed                                  |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_SPECIALTY_FOR_AREA` | `specialty` is not valid for the effective area |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `FORBIDDEN` | Caller is not an admin |
+| 403 | `CANNOT_EDIT_YOURSELF` | Admin tried to edit their own account via this endpoint |
+| 404 | `ADVISOR_NOT_FOUND` | No advisor with the given ID |
+| 500 | `SUPABASE_AUTH_ERROR` | Database update failed |
 
 **Notes:**
-
 - `"warning"` is present and non-null only when the advisor was deactivated (`is_active: false`) while having active conversations. Display this warning to the admin.
 - Specialty validation: when `specialty` is in the request body, the effective area is `body.area` if also present, otherwise the current advisor's area from DB.
 
@@ -1186,22 +1204,22 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field                  | Type            | Description                                                            |
-| ---------------------- | --------------- | ---------------------------------------------------------------------- |
-| `id`                   | `string` (UUID) | Advisor ID                                                             |
-| `full_name`            | `string`        | Display name                                                           |
-| `availability_status`  | `string`        | `"available"`, `"break"`, or `"offline"`                               |
-| `area`                 | `string`        | `"administrativa"`, `"comercial"`, or `"ambas"`                        |
-| `is_panel_connected`   | `boolean`       | `true` if at least one active WS connection exists in `ws_connections` |
-| `active_conversations` | `integer`       | Active conversation count — admin caller only                          |
-| `max_conversations`    | `integer`       | Configured cap — admin caller only                                     |
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | `string` (UUID) | Advisor ID |
+| `full_name` | `string` | Display name |
+| `availability_status` | `string` | `"available"`, `"break"`, or `"offline"` |
+| `area` | `string` | `"administrativa"`, `"comercial"`, or `"ambas"` |
+| `is_panel_connected` | `boolean` | `true` if at least one active WS connection exists in `ws_connections` |
+| `active_conversations` | `integer` | Active conversation count — admin caller only |
+| `max_conversations` | `integer` | Configured cap — admin caller only |
 
 **Errors:**
 
-| HTTP | ErrorCode             | When                   |
-| ---- | --------------------- | ---------------------- |
-| 401  | `INVALID_TOKEN`       | Missing or invalid JWT |
-| 500  | `SUPABASE_AUTH_ERROR` | Database query failed  |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 500 | `SUPABASE_AUTH_ERROR` | Database query failed |
 
 ---
 
@@ -1219,13 +1237,13 @@ msg_type = "document" → render download link using media_url
 {
   "data": {
     "metrics": {
-      "activas": 2,
-      "escaladas": 2,
-      "en_atencion": 1,
+      "activas":             2,
+      "escaladas":           2,
+      "en_atencion":         1,
       "tiempo_promedio_min": 10,
-      "bot_ok_pct": 50,
-      "capacidad_actual": 1,
-      "capacidad_total": 9
+      "bot_ok_pct":          50,
+      "capacidad_actual":    1,
+      "capacidad_total":     9
     }
   }
 }
@@ -1233,26 +1251,25 @@ msg_type = "document" → render download link using media_url
 
 **Metric definitions:**
 
-| Field                 | Type    | Description                                                                                                                                       |
-| --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `activas`             | integer | Conversations where the bot is actively resolving (`status='activa'` AND `bot_activo=true`)                                                       |
-| `escaladas`           | integer | Conversations waiting or being attended by an advisor (`status='escalada'`). Includes `en_atencion`                                               |
-| `en_atencion`         | integer | Subset of `escaladas` that already have an assigned advisor (`escalation.advisor_id IS NOT NULL`)                                                 |
-| `tiempo_promedio_min` | integer | Average minutes elapsed since `escalated_at` for unresolved active escalations. `0` when none exist                                               |
-| `bot_ok_pct`          | integer | Percentage of conversations closed in the last 24h that the bot resolved without escalating. `0` when no conversations were closed in that period |
-| `capacidad_actual`    | integer | Active escalations with an assigned advisor right now (occupied capacity slots)                                                                   |
-| `capacidad_total`     | integer | Sum of `max_conversations` across all active advisors with `role='asesor'`. Admins are excluded                                                   |
+| Field | Type | Description |
+|-------|------|-------------|
+| `activas` | integer | Conversations where the bot is actively resolving (`status='activa'` AND `bot_activo=true`) |
+| `escaladas` | integer | Conversations waiting or being attended by an advisor (`status='escalada'`). Includes `en_atencion` |
+| `en_atencion` | integer | Subset of `escaladas` that already have an assigned advisor (`escalation.advisor_id IS NOT NULL`) |
+| `tiempo_promedio_min` | integer | Average minutes elapsed since `escalated_at` for unresolved active escalations. `0` when none exist |
+| `bot_ok_pct` | integer | Percentage of conversations closed in the last 24h that the bot resolved without escalating. `0` when no conversations were closed in that period |
+| `capacidad_actual` | integer | Active escalations with an assigned advisor right now (occupied capacity slots) |
+| `capacidad_total` | integer | Sum of `max_conversations` across all active advisors with `role='asesor'`. Admins are excluded |
 
 **Errors:**
 
-| HTTP | ErrorCode        | When                     |
-| ---- | ---------------- | ------------------------ |
-| 401  | `INVALID_TOKEN`  | Missing or invalid JWT   |
-| 403  | `FORBIDDEN`      | Caller is not an admin   |
-| 500  | `SUPABASE_ERROR` | RPC function call failed |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `FORBIDDEN` | Caller is not an admin |
+| 500 | `SUPABASE_ERROR` | RPC function call failed |
 
 **Notes:**
-
 - `escaladas` ≥ `en_atencion` — they are not mutually exclusive.
 - Returns all zeros (not an error) when the database has no data.
 - `capacidad_total` only counts advisors with `role='asesor'` — admins are never included.
@@ -1269,12 +1286,12 @@ msg_type = "document" → render download link using media_url
 
 **Query params:**
 
-| Param        | Type            | Default | Description                                         |
-| ------------ | --------------- | ------- | --------------------------------------------------- |
-| `reviewed`   | `boolean`       | `false` | `false` = pending review; `true` = already reviewed |
-| `advisor_id` | `string` (UUID) | none    | Filter alerts for a specific advisor                |
-| `limit`      | `integer`       | 20      | Page size (1–100)                                   |
-| `offset`     | `integer`       | 0       | Pagination offset                                   |
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `reviewed` | `boolean` | `false` | `false` = pending review; `true` = already reviewed |
+| `advisor_id` | `string` (UUID) | none | Filter alerts for a specific advisor |
+| `limit` | `integer` | 20 | Page size (1–100) |
+| `offset` | `integer` | 0 | Pagination offset |
 
 **Response 200:**
 
@@ -1305,13 +1322,12 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode       | When                   |
-| ---- | --------------- | ---------------------- |
-| 401  | `INVALID_TOKEN` | Missing or invalid JWT |
-| 403  | `FORBIDDEN`     | Caller is not an admin |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `FORBIDDEN` | Caller is not an admin |
 
 **Notes:**
-
 - `total` is the full matching row count, ignoring `limit`/`offset`.
 - `alert_type` values: `lenguaje_inapropiado`, `tono_agresivo`, `comportamiento_inadecuado`
 - `severity` values: `baja`, `media`, `alta`
@@ -1326,8 +1342,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param      | Type            | Description                   |
-| ---------- | --------------- | ----------------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `alert_id` | `string` (UUID) | The alert to mark as reviewed |
 
 **Response 200:**
@@ -1356,15 +1372,14 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode          | When                            |
-| ---- | ------------------ | ------------------------------- |
-| 401  | `INVALID_TOKEN`    | Missing or invalid JWT          |
-| 403  | `FORBIDDEN`        | Caller is not an admin          |
-| 404  | `ALERT_NOT_FOUND`  | No alert with the given ID      |
-| 409  | `ALREADY_REVIEWED` | Alert has already been reviewed |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `FORBIDDEN` | Caller is not an admin |
+| 404 | `ALERT_NOT_FOUND` | No alert with the given ID |
+| 409 | `ALREADY_REVIEWED` | Alert has already been reviewed |
 
 **Notes:**
-
 - `reviewed_by` in the response is the admin's UUID, not their name. The frontend must resolve the name from the advisors list if needed.
 
 ---
@@ -1379,8 +1394,8 @@ msg_type = "document" → render download link using media_url
 
 **Query params:**
 
-| Param        | Type            | Description                                                                                  |
-| ------------ | --------------- | -------------------------------------------------------------------------------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `advisor_id` | `string` (UUID) | Admin-only: view a specific advisor's schedules. Non-admins: this param is silently ignored. |
 
 **Response 200:**
@@ -1405,10 +1420,10 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode          | When                           |
-| ---- | ------------------ | ------------------------------ |
-| 401  | `INVALID_TOKEN`    | Missing or invalid JWT         |
-| 403  | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
 
 ---
 
@@ -1431,11 +1446,11 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field          | Type             | Constraints                                                         |
-| -------------- | ---------------- | ------------------------------------------------------------------- |
-| `label`        | `string`         | Required, 1–50 characters                                           |
-| `start_time`   | `string`         | Required, format `HH:MM` (24h)                                      |
-| `end_time`     | `string`         | Required, format `HH:MM` (24h)                                      |
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `label` | `string` | Required, 1–50 characters |
+| `start_time` | `string` | Required, format `HH:MM` (24h) |
+| `end_time` | `string` | Required, format `HH:MM` (24h) |
 | `days_of_week` | `array[integer]` | Required, at least 1 element. Values: 1 (Monday) through 7 (Sunday) |
 
 **Response 201:**
@@ -1458,13 +1473,13 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode            | When                                                |
-| ---- | -------------------- | --------------------------------------------------- |
-| 400  | `INVALID_TIME_RANGE` | `start_time` >= `end_time`                          |
-| 400  | `INVALID_DAYS`       | One or more values in `days_of_week` is outside 1–7 |
-| 401  | `INVALID_TOKEN`      | Missing or invalid JWT                              |
-| 403  | `ADVISOR_INACTIVE`   | Advisor account is deactivated                      |
-| 500  | `DATABASE_ERROR`     | Insert returned no data                             |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_TIME_RANGE` | `start_time` >= `end_time` |
+| 400 | `INVALID_DAYS` | One or more values in `days_of_week` is outside 1–7 |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 500 | `DATABASE_ERROR` | Insert returned no data |
 
 ---
 
@@ -1476,8 +1491,8 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param         | Type            | Description            |
-| ------------- | --------------- | ---------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `schedule_id` | `string` (UUID) | The schedule to update |
 
 **Request body (all fields optional):**
@@ -1512,17 +1527,16 @@ msg_type = "document" → render download link using media_url
 
 **Errors:**
 
-| HTTP | ErrorCode            | When                                                        |
-| ---- | -------------------- | ----------------------------------------------------------- |
-| 400  | `INVALID_TIME_RANGE` | Resulting `start_time` >= resulting `end_time`              |
-| 400  | `INVALID_DAYS`       | A value in `days_of_week` is outside 1–7                    |
-| 401  | `INVALID_TOKEN`      | Missing or invalid JWT                                      |
-| 403  | `ADVISOR_INACTIVE`   | Advisor account is deactivated                              |
-| 403  | `NOT_YOUR_SCHEDULE`  | Non-admin advisor trying to edit another advisor's schedule |
-| 404  | `SCHEDULE_NOT_FOUND` | No schedule with the given ID                               |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 400 | `INVALID_TIME_RANGE` | Resulting `start_time` >= resulting `end_time` |
+| 400 | `INVALID_DAYS` | A value in `days_of_week` is outside 1–7 |
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `NOT_YOUR_SCHEDULE` | Non-admin advisor trying to edit another advisor's schedule |
+| 404 | `SCHEDULE_NOT_FOUND` | No schedule with the given ID |
 
 **Notes:**
-
 - Sending an empty body (no fields) is valid — the current schedule is returned unchanged without hitting the DB.
 - DB stores times as `HH:MM:SS`. The API normalizes the output to `HH:MM`.
 
@@ -1538,20 +1552,20 @@ msg_type = "document" → render download link using media_url
 
 **Path params:**
 
-| Param         | Type            | Description            |
-| ------------- | --------------- | ---------------------- |
+| Param | Type | Description |
+|-------|------|-------------|
 | `schedule_id` | `string` (UUID) | The schedule to delete |
 
 **Response 204:** No body.
 
 **Errors:**
 
-| HTTP | ErrorCode            | When                                                          |
-| ---- | -------------------- | ------------------------------------------------------------- |
-| 401  | `INVALID_TOKEN`      | Missing or invalid JWT                                        |
-| 403  | `ADVISOR_INACTIVE`   | Advisor account is deactivated                                |
-| 403  | `NOT_YOUR_SCHEDULE`  | Non-admin advisor trying to delete another advisor's schedule |
-| 404  | `SCHEDULE_NOT_FOUND` | No schedule with the given ID                                 |
+| HTTP | ErrorCode | When |
+|------|-----------|------|
+| 401 | `INVALID_TOKEN` | Missing or invalid JWT |
+| 403 | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+| 403 | `NOT_YOUR_SCHEDULE` | Non-admin advisor trying to delete another advisor's schedule |
+| 404 | `SCHEDULE_NOT_FOUND` | No schedule with the given ID |
 
 ---
 
@@ -1566,7 +1580,6 @@ msg_type = "document" → render download link using media_url
 **Auth:** Pass the JWT as a **query parameter** (`?token=`). Bearer header auth is not supported for WebSocket connections. The server closes with code `4001` if the token is invalid, expired, or the advisor is inactive.
 
 **Connection lifecycle:**
-
 1. Client opens connection with JWT in query string.
 2. Server validates JWT, fetches advisor from DB, rejects inactive advisors.
 3. Server accepts the connection, registers it in the in-memory `WebSocketManager`.
@@ -1580,7 +1593,7 @@ msg_type = "document" → render download link using media_url
 
 ```javascript
 const ws = new WebSocket(
-  `wss://casasyespacios-agent.railway.app/api/v1/panel/ws?token=${jwt}`,
+  `wss://casasyespacios-agent.railway.app/api/v1/panel/ws?token=${jwt}`
 );
 
 ws.onmessage = (event) => {
@@ -1785,7 +1798,6 @@ Emitted to **all connected advisors** when an advisor returns a conversation to 
 Emitted to **all connected advisors** when a conversation is closed — either by an advisor via `PATCH /conversations/{id}/close`, or by the bot automatically.
 
 **Advisor-initiated** (`closed_by: "asesor"`):
-
 ```json
 {
   "event": "conversation.closed",
@@ -1801,7 +1813,6 @@ Emitted to **all connected advisors** when a conversation is closed — either b
 ```
 
 **Bot-initiated** (`closed_by: "bot"`): emitted when the AI agent detects a farewell or satisfaction signal from the client, or when the inactivity job closes after no response. `advisor_id` and `advisor_name` are absent.
-
 ```json
 {
   "event": "conversation.closed",
@@ -1831,12 +1842,12 @@ Emitted to **all connected advisors** when the bot escalates a conversation — 
 }
 ```
 
-| Field             | Type                      | Description                                                     |
-| ----------------- | ------------------------- | --------------------------------------------------------------- |
-| `conversation_id` | `string` (UUID)           | The escalated conversation                                      |
-| `advisor_id`      | `string` (UUID) or `null` | Assigned advisor, or `null` when placed in the unassigned queue |
-| `reason`          | `string` or `null`        | The escalation reason. May be `null` if unclassified            |
-| `channel`         | `string`                  | `"administrativa"` or `"comercial"`                             |
+| Field | Type | Description |
+|-------|------|-------------|
+| `conversation_id` | `string` (UUID) | The escalated conversation |
+| `advisor_id` | `string` (UUID) or `null` | Assigned advisor, or `null` when placed in the unassigned queue |
+| `reason` | `string` or `null` | The escalation reason. May be `null` if unclassified |
+| `channel` | `string` | `"administrativa"` or `"comercial"` |
 
 **When `advisor_id` is `null`:** the conversation is in the unassigned queue — any available advisor in the channel can take it via `PATCH /conversations/{id}/assign`.
 
@@ -1858,13 +1869,12 @@ Emitted **only to the connecting advisor** (not a broadcast) immediately after `
 }
 ```
 
-| Field     | Type      | Description                                                |
-| --------- | --------- | ---------------------------------------------------------- |
-| `count`   | `integer` | Number of unassigned escalations in the advisor's area     |
-| `message` | `string`  | Human-readable message for display in a toast notification |
+| Field | Type | Description |
+|-------|------|-------------|
+| `count` | `integer` | Number of unassigned escalations in the advisor's area |
+| `message` | `string` | Human-readable message for display in a toast notification |
 
 **Area filtering:**
-
 - `area = "administrativa"` → only counts escalations from the administrative channel.
 - `area = "comercial"` → only counts escalations from the commercial channel.
 - `area = "ambas"` → counts escalations from both channels.
@@ -1894,101 +1904,101 @@ Emitted to **admin advisors only** when background moderation detects inappropri
 
 ### ConversationStatus
 
-| Value      | When it applies                                                                                                                           |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `activa`   | Conversation is ongoing. Either the bot is handling it (`bot_activo = true`) or an advisor is actively responding (`bot_activo = false`). |
-| `escalada` | The bot triggered a handover and the conversation is waiting for an advisor to take it. The escalation record has no `advisor_id` yet.    |
-| `cerrada`  | Conversation has ended. No further messages can be sent. `closed_at` is set.                                                              |
+| Value | When it applies |
+|-------|----------------|
+| `activa` | Conversation is ongoing. Either the bot is handling it (`bot_activo = true`) or an advisor is actively responding (`bot_activo = false`). |
+| `escalada` | The bot triggered a handover and the conversation is waiting for an advisor to take it. The escalation record has no `advisor_id` yet. |
+| `cerrada` | Conversation has ended. No further messages can be sent. `closed_at` is set. |
 
 ### ConversationIntent
 
-| Value             | Description                                                                    | Routed to                                    |
-| ----------------- | ------------------------------------------------------------------------------ | -------------------------------------------- |
-| `cartera`         | Portfolio/receivables management questions                                     | Advisor specialty: `financiera`              |
-| `pagos`           | Payment inquiries and processing                                               | Advisor specialty: `financiera`              |
-| `facturacion`     | Billing and invoice requests                                                   | Advisor specialty: `financiera`              |
-| `disputa_cobro`   | Billing dispute or charge contestation                                         | Advisor specialty: `financiera`              |
-| `mantenimiento`   | Property maintenance requests                                                  | Advisor specialty: `mantenimiento_contratos` |
-| `contratos`       | Lease or contract questions                                                    | Advisor specialty: `mantenimiento_contratos` |
-| `quejas_inmueble` | Property complaints                                                            | Advisor specialty: `mantenimiento_contratos` |
-| `comercial`       | Commercial/sales inquiries (prospects)                                         | Advisor specialty: `comercial`               |
-| `faq`             | Frequently asked questions the bot resolves alone                              | No escalation                                |
-| `sin_clasificar`  | Bot could not classify the intent after `MAX_CLASSIFICATION_ATTEMPTS` attempts | Channel: `administrativa`                    |
+| Value | Description | Routed to |
+|-------|-------------|-----------|
+| `cartera` | Portfolio/receivables management questions | Advisor specialty: `financiera` |
+| `pagos` | Payment inquiries and processing | Advisor specialty: `financiera` |
+| `facturacion` | Billing and invoice requests | Advisor specialty: `financiera` |
+| `disputa_cobro` | Billing dispute or charge contestation | Advisor specialty: `financiera` |
+| `mantenimiento` | Property maintenance requests | Advisor specialty: `mantenimiento_contratos` |
+| `contratos` | Lease or contract questions | Advisor specialty: `mantenimiento_contratos` |
+| `quejas_inmueble` | Property complaints | Advisor specialty: `mantenimiento_contratos` |
+| `comercial` | Commercial/sales inquiries (prospects) | Advisor specialty: `comercial` |
+| `faq` | Frequently asked questions the bot resolves alone | No escalation |
+| `sin_clasificar` | Bot could not classify the intent after `MAX_CLASSIFICATION_ATTEMPTS` attempts | Channel: `administrativa` |
 
 ### AdvisorRole
 
-| Value    | Permissions                                                                                                                                                                                                                                                                |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `asesor` | Sees only conversations in their area. Can reply, assign, return-bot, close (own), manage own profile and schedules.                                                                                                                                                       |
-| `admin`  | Sees all conversations regardless of channel. Can reply to any assigned conversation, close any conversation, manage all advisors (CRUD), view and review behavior alerts, view any advisor's schedules. Cannot use `PATCH /advisors/{id}` on themselves — must use `/me`. |
+| Value | Permissions |
+|-------|-------------|
+| `asesor` | Sees only conversations in their area. Can reply, assign, return-bot, close (own), manage own profile and schedules. |
+| `admin` | Sees all conversations regardless of channel. Can reply to any assigned conversation, close any conversation, manage all advisors (CRUD), view and review behavior alerts, view any advisor's schedules. Cannot use `PATCH /advisors/{id}` on themselves — must use `/me`. |
 
 ### AdvisorArea
 
-| Value            | Description                                                             |
-| ---------------- | ----------------------------------------------------------------------- |
+| Value | Description |
+|-------|-------------|
 | `administrativa` | Handles the administrative WhatsApp line (owners, maintenance, billing) |
-| `comercial`      | Handles the commercial WhatsApp line (prospects, sales)                 |
-| `ambas`          | Handles both lines. Advisor sees all conversations.                     |
+| `comercial` | Handles the commercial WhatsApp line (prospects, sales) |
+| `ambas` | Handles both lines. Advisor sees all conversations. |
 
 ### AdvisorSpecialty
 
-| Value                     | Valid for area   | Description                                             |
-| ------------------------- | ---------------- | ------------------------------------------------------- |
-| `financiera`              | `administrativa` | Cartera, pagos, facturación, disputas                   |
+| Value | Valid for area | Description |
+|-------|---------------|-------------|
+| `financiera` | `administrativa` | Cartera, pagos, facturación, disputas |
 | `mantenimiento_contratos` | `administrativa` | Mantenimiento de inmuebles y contratos de arrendamiento |
-| `comercial`               | `comercial`      | Atención a prospectos y gestión comercial               |
-| `null`                    | All areas        | General advisor — handles any intent within the channel |
+| `comercial` | `comercial` | Atención a prospectos y gestión comercial |
+| `null` | All areas | General advisor — handles any intent within the channel |
 
 ### AvailabilityStatus
 
-| Value       | Description                                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `available` | Advisor is online and available to receive new escalations                                                                      |
-| `break`     | Advisor is temporarily unavailable. New escalations will not be auto-routed to them. `status_until` may be set to auto-restore. |
-| `offline`   | Advisor is offline. Same routing behavior as `break`.                                                                           |
+| Value | Description |
+|-------|-------------|
+| `available` | Advisor is online and available to receive new escalations |
+| `break` | Advisor is temporarily unavailable. New escalations will not be auto-routed to them. `status_until` may be set to auto-restore. |
+| `offline` | Advisor is offline. Same routing behavior as `break`. |
 
 ### MessageDirection
 
-| Value              | Description                                                  |
-| ------------------ | ------------------------------------------------------------ |
-| `inbound`          | Message received from the client via WhatsApp                |
-| `outbound_bot`     | Message sent to the client by the AI agent                   |
+| Value | Description |
+|-------|-------------|
+| `inbound` | Message received from the client via WhatsApp |
+| `outbound_bot` | Message sent to the client by the AI agent |
 | `outbound_advisor` | Message sent to the client by a human advisor from the panel |
 
 ### MessageType
 
-| Value      | Description                                         |
-| ---------- | --------------------------------------------------- |
-| `text`     | Plain text message                                  |
-| `image`    | Image (JPEG, PNG, WebP)                             |
-| `video`    | Video (MP4, 3GPP)                                   |
-| `document` | Document (PDF, DOCX, XLSX)                          |
-| `audio`    | Voice note or audio file (OGG, MPEG, MP4, AAC, AMR) |
+| Value | Description |
+|-------|-------------|
+| `text` | Plain text message |
+| `image` | Image (JPEG, PNG, WebP) |
+| `video` | Video (MP4, 3GPP) |
+| `document` | Document (PDF, DOCX, XLSX) |
+| `audio` | Voice note or audio file (OGG, MPEG, MP4, AAC, AMR) |
 
 ### DeliveredVia
 
-| Value             | Description                                                                           |
-| ----------------- | ------------------------------------------------------------------------------------- |
-| `webhook_meta`    | Message delivered via the Meta WhatsApp webhook (inbound from client or bot outbound) |
-| `websocket_panel` | Message sent by an advisor from the internal panel                                    |
+| Value | Description |
+|-------|-------------|
+| `webhook_meta` | Message delivered via the Meta WhatsApp webhook (inbound from client or bot outbound) |
+| `websocket_panel` | Message sent by an advisor from the internal panel |
 
 ### EscalationReason
 
-| Value                   | Description                                                            |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `solicitud_usuario`     | Client explicitly requested to speak with a human advisor              |
-| `no_clasificado`        | Bot could not classify the intent after the maximum number of attempts |
-| `error_simi`            | SIMI external service failed the maximum number of times               |
-| `frustracion_detectada` | LLM detected frustration signals in the client's messages              |
+| Value | Description |
+|-------|-------------|
+| `solicitud_usuario` | Client explicitly requested to speak with a human advisor |
+| `no_clasificado` | Bot could not classify the intent after the maximum number of attempts |
+| `error_simi` | SIMI external service failed the maximum number of times |
+| `frustracion_detectada` | LLM detected frustration signals in the client's messages |
 
 ### ClientType
 
-| Value         | Description                            |
-| ------------- | -------------------------------------- |
-| `inquilino`   | Tenant                                 |
-| `propietario` | Property owner                         |
-| `prospecto`   | Commercial prospect (not yet a client) |
-| `desconocido` | Identity not yet established           |
+| Value | Description |
+|-------|-------------|
+| `inquilino` | Tenant |
+| `propietario` | Property owner |
+| `prospecto` | Commercial prospect (not yet a client) |
+| `desconocido` | Identity not yet established |
 
 ---
 
@@ -2003,7 +2013,7 @@ Always authenticate through the backend endpoint — never call Supabase Auth di
 const response = await fetch("/api/v1/panel/auth/token", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email, password }),
+  body: JSON.stringify({ email, password })
 });
 
 if (!response.ok) {
@@ -2027,8 +2037,8 @@ if (data.must_change_password) {
 
 // 4. Use in every API call
 const headers = {
-  Authorization: `Bearer ${localStorage.getItem("panel_token")}`,
-  "Content-Type": "application/json",
+  "Authorization": `Bearer ${localStorage.getItem("panel_token")}`,
+  "Content-Type": "application/json"
 };
 
 // 5. Handle token expiry (Supabase tokens expire in 1 hour)
@@ -2042,14 +2052,13 @@ const headers = {
 
 ```javascript
 // 1. Fetch the advisor profile first (to know role, area, name)
-const profile = await fetch("/api/v1/panel/advisors/me", { headers }).then(
-  (r) => r.json(),
-);
+const profile = await fetch("/api/v1/panel/advisors/me", { headers }).then(r => r.json());
 
 // 2. Fetch conversations
-const inbox = await fetch("/api/v1/panel/conversations/?limit=20&offset=0", {
-  headers,
-}).then((r) => r.json());
+const inbox = await fetch(
+  "/api/v1/panel/conversations/?limit=20&offset=0",
+  { headers }
+).then(r => r.json());
 
 // conversations in inbox.data.conversations, total in inbox.data.total
 ```
@@ -2080,11 +2089,7 @@ function renderMessage(msg) {
       return <video src={msg.media_url} controls />;
 
     case "document":
-      return (
-        <a href={msg.media_url} target="_blank">
-          Descargar documento
-        </a>
-      );
+      return <a href={msg.media_url} target="_blank">Descargar documento</a>;
 
     default:
       return null;
@@ -2104,22 +2109,20 @@ function renderMessage(msg) {
 // Fetch conversation detail with first 50 messages
 const detail = await fetch(
   `/api/v1/panel/conversations/${conversationId}?limit=50&offset=0`,
-  { headers },
-).then((r) => r.json());
+  { headers }
+).then(r => r.json());
 
 // Register the subscription on the WebSocket
-ws.send(
-  JSON.stringify({
-    type: "subscribe_conversation",
-    conversation_id: conversationId,
-  }),
-);
+ws.send(JSON.stringify({
+  type: "subscribe_conversation",
+  conversation_id: conversationId
+}));
 
 // Load older messages on scroll (infinite scroll upward)
 const older = await fetch(
   `/api/v1/panel/conversations/${conversationId}/messages?limit=20&offset=50`,
-  { headers },
-).then((r) => r.json());
+  { headers }
+).then(r => r.json());
 ```
 
 ---
@@ -2134,9 +2137,9 @@ const response = await fetch(
   {
     method: "POST",
     headers,
-    body: JSON.stringify({ text: "Tu respuesta aquí" }),
-  },
-).then((r) => r.json());
+    body: JSON.stringify({ text: "Tu respuesta aquí" })
+  }
+).then(r => r.json());
 
 // response.data.message contains the saved message object
 ```
@@ -2152,10 +2155,10 @@ const response = await fetch(
   `/api/v1/panel/conversations/${conversationId}/reply/media`,
   {
     method: "POST",
-    headers: { Authorization: `Bearer ${jwt}` }, // NO Content-Type — let browser set multipart boundary
-    body: formData,
-  },
-).then((r) => r.json());
+    headers: { "Authorization": `Bearer ${jwt}` }, // NO Content-Type — let browser set multipart boundary
+    body: formData
+  }
+).then(r => r.json());
 ```
 
 **Audio (voice note):**
@@ -2168,10 +2171,10 @@ const response = await fetch(
   `/api/v1/panel/conversations/${conversationId}/reply/audio`,
   {
     method: "POST",
-    headers: { Authorization: `Bearer ${jwt}` },
-    body: formData,
-  },
-).then((r) => r.json());
+    headers: { "Authorization": `Bearer ${jwt}` },
+    body: formData
+  }
+).then(r => r.json());
 ```
 
 ---
@@ -2183,8 +2186,8 @@ const response = await fetch(
 ```javascript
 const response = await fetch(
   `/api/v1/panel/conversations/${conversationId}/assign`,
-  { method: "PATCH", headers },
-).then((r) => r.json());
+  { method: "PATCH", headers }
+).then(r => r.json());
 ```
 
 **Returning to bot:**
@@ -2192,8 +2195,8 @@ const response = await fetch(
 ```javascript
 const response = await fetch(
   `/api/v1/panel/conversations/${conversationId}/return-bot`,
-  { method: "PATCH", headers },
-).then((r) => r.json());
+  { method: "PATCH", headers }
+).then(r => r.json());
 ```
 
 **Closing:**
@@ -2208,16 +2211,16 @@ const response = await fetch(
     body: JSON.stringify({
       resolution_type: "consulta_cartera_resuelta",
       resolution_notes: "El propietario confirmó recibo.",
-      client_satisfied: "si",
-    }),
-  },
-).then((r) => r.json());
+      client_satisfied: "si"
+    })
+  }
+).then(r => r.json());
 
 // Without body — applies defaults (resolution_type: "otro", client_satisfied: "sin_confirmar")
 const response = await fetch(
   `/api/v1/panel/conversations/${conversationId}/close`,
-  { method: "PATCH", headers },
-).then((r) => r.json());
+  { method: "PATCH", headers }
+).then(r => r.json());
 
 // response.data.conversation includes: status, resolution_type, resolution_notes,
 // client_satisfied, closed_by, closed_at
@@ -2230,7 +2233,7 @@ const response = await fetch(
 ```javascript
 const jwt = localStorage.getItem("panel_token");
 const ws = new WebSocket(
-  `wss://<host>/api/v1/panel/ws?token=${encodeURIComponent(jwt)}`,
+  `wss://<host>/api/v1/panel/ws?token=${encodeURIComponent(jwt)}`
 );
 
 // Keepalive
@@ -2257,15 +2260,14 @@ ws.onmessage = (event) => {
       // New escalation arrived from the bot
       if (data.advisor_id) {
         // Auto-assigned — update the card to show the assigned advisor
-        updateConversationAssignment(
-          data.conversation_id,
-          data.advisor_id,
-          null,
-        );
+        updateConversationAssignment(data.conversation_id, data.advisor_id, null);
       } else {
         // Unassigned queue — add or highlight in the inbox
         addToUnassignedQueue(data.conversation_id, data.channel);
-        showToast(`Nueva conversación en cola (${data.channel})`, "warning");
+        showToast(
+          `Nueva conversación en cola (${data.channel})`,
+          "warning"
+        );
       }
       break;
 
@@ -2279,11 +2281,7 @@ ws.onmessage = (event) => {
 
     case "escalation.assigned":
       // An advisor self-assigned via the panel — update the conversation card
-      updateConversationAssignment(
-        data.conversation_id,
-        data.advisor_id,
-        data.advisor_name,
-      );
+      updateConversationAssignment(data.conversation_id, data.advisor_id, data.advisor_name);
       break;
 
     case "conversation.returned":
@@ -2350,10 +2348,10 @@ async function apiCall(url, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers: {
-      Authorization: `Bearer ${localStorage.getItem("panel_token")}`,
+      "Authorization": `Bearer ${localStorage.getItem("panel_token")}`,
       "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+      ...(options.headers || {})
+    }
   });
 
   if (!response.ok) {
@@ -2369,9 +2367,7 @@ async function apiCall(url, options = {}) {
 
       case 403:
         if (code === "ADVISOR_INACTIVE") {
-          showModal(
-            "Tu cuenta ha sido desactivada. Contacta a un administrador.",
-          );
+          showModal("Tu cuenta ha sido desactivada. Contacta a un administrador.");
           redirectToLogin();
         } else if (code === "FORBIDDEN") {
           showToast("No tienes permiso para realizar esta acción.", "error");
@@ -2404,10 +2400,7 @@ async function apiCall(url, options = {}) {
         } else if (code === "CONVERSATION_NOT_ESCALATED") {
           showToast("La conversación no está en estado escalado.", "warning");
         } else {
-          showToast(
-            message || "Conflicto al procesar la solicitud.",
-            "warning",
-          );
+          showToast(message || "Conflicto al procesar la solicitud.", "warning");
         }
         break;
 
@@ -2417,15 +2410,9 @@ async function apiCall(url, options = {}) {
 
       case 502:
         if (code === "META_API_ERROR") {
-          showToast(
-            "No se pudo enviar el mensaje a WhatsApp. Intenta nuevamente.",
-            "error",
-          );
+          showToast("No se pudo enviar el mensaje a WhatsApp. Intenta nuevamente.", "error");
         } else if (code === "STORAGE_ERROR") {
-          showToast(
-            "Error al guardar el archivo. Intenta nuevamente.",
-            "error",
-          );
+          showToast("Error al guardar el archivo. Intenta nuevamente.", "error");
         } else {
           showToast("Error de comunicación con un servicio externo.", "error");
         }
