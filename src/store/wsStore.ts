@@ -1,7 +1,7 @@
 // Estado global del WebSocket con Zustand.
 
 import { create } from 'zustand'
-import type { WSStatus } from '../types'
+import type { WSStatus, WSAdvisorConnected, WSAdvisorStatusChanged, AdvisorOnline } from '../types'
 
 interface WSState {
   status: WSStatus
@@ -12,6 +12,7 @@ interface WSState {
     reason: string
     conversationId: string
   } | null
+  advisors: AdvisorOnline[]
 
   setStatus: (status: WSStatus) => void
   setReconnectAttempt: (attempt: number) => void
@@ -19,12 +20,14 @@ interface WSState {
   decrementAlerts: () => void
   resetAlerts: () => void
   setUnreadAlerts: (count: number) => void
-  setPendingEscalation: (data: {
-    clientName: string
-    reason: string
-    conversationId: string
-  }) => void
+  setPendingEscalation: (data: { clientName: string; reason: string; conversationId: string }) => void
   clearPendingEscalation: () => void
+  setAdvisors: (advisors: AdvisorOnline[]) => void
+  addConnectedAdvisor: (data: WSAdvisorConnected) => void
+  removeConnectedAdvisor: (advisorId: string) => void
+  updateAdvisorStatus: (data: WSAdvisorStatusChanged) => void
+  incrementAdvisorConversations: (advisorId: string) => void
+  decrementAdvisorConversations: (advisorId: string) => void
 }
 
 export const useWSStore = create<WSState>((set) => ({
@@ -32,6 +35,7 @@ export const useWSStore = create<WSState>((set) => ({
   reconnectAttempt: 0,
   unreadAlerts: 0,
   pendingEscalation: null,
+  advisors: [],
 
   setStatus: (status) => set({ status }),
   setReconnectAttempt: (reconnectAttempt) => set({ reconnectAttempt }),
@@ -41,4 +45,48 @@ export const useWSStore = create<WSState>((set) => ({
   setUnreadAlerts: (unreadAlerts) => set({ unreadAlerts }),
   setPendingEscalation: (data) => set({ pendingEscalation: data }),
   clearPendingEscalation: () => set({ pendingEscalation: null }),
+
+  setAdvisors: (advisors) => set({ advisors }),
+
+  // advisor.connected → flip is_panel_connected; does NOT touch availability_status
+  addConnectedAdvisor: (data) =>
+    set((s) => ({
+      advisors: s.advisors.map((a) =>
+        a.id === data.advisor_id ? { ...a, is_panel_connected: true } : a
+      ),
+    })),
+
+  // advisor.disconnected → flip is_panel_connected; does NOT touch availability_status
+  removeConnectedAdvisor: (advisorId) =>
+    set((s) => ({
+      advisors: s.advisors.map((a) =>
+        a.id === advisorId ? { ...a, is_panel_connected: false } : a
+      ),
+    })),
+
+  // advisor.status_changed → only action that updates availability_status
+  updateAdvisorStatus: (data) =>
+    set((s) => ({
+      advisors: s.advisors.map((a) =>
+        a.id === data.advisor_id ? { ...a, availability_status: data.availability_status } : a
+      ),
+    })),
+
+  incrementAdvisorConversations: (advisorId) =>
+    set((s) => ({
+      advisors: s.advisors.map((a) =>
+        a.id === advisorId
+          ? { ...a, active_conversations: Math.min((a.active_conversations ?? 0) + 1, a.max_conversations ?? 99) }
+          : a
+      ),
+    })),
+
+  decrementAdvisorConversations: (advisorId) =>
+    set((s) => ({
+      advisors: s.advisors.map((a) =>
+        a.id === advisorId
+          ? { ...a, active_conversations: Math.max(0, (a.active_conversations ?? 0) - 1) }
+          : a
+      ),
+    })),
 }))

@@ -61,6 +61,15 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // For FormData (multipart/form-data), remove Content-Type so the browser
+  // sets it automatically with the correct multipart boundary.
+  // Without this, axios 1.x detects Content-Type: application/json and
+  // serializes FormData to JSON, causing 422 on the backend.
+  if (config.data instanceof FormData) {
+    config.headers.delete('Content-Type')
+  }
+
   return config
 })
 
