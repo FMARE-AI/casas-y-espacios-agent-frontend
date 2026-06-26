@@ -15,12 +15,18 @@ export const MetricsDashboard = memo(function MetricsDashboard({ metrics }: Metr
   }
 
   const capacity = `${metrics.capacidad_actual}/${metrics.capacidad_total}`
+  const capacityColor = metrics.capacidad_actual >= metrics.capacidad_total
+    ? 'text-[#FF5B5B]'
+    : 'text-[#00D4AA]'
+
+  const avgTimeDisplay = metrics.tiempo_promedio_min === 0 ? '— m' : `${metrics.tiempo_promedio_min} m`
+  const botOkDisplay = metrics.bot_ok_pct === 0 ? '—%' : `${metrics.bot_ok_pct}%`
 
   return (
     <div id="admin-metrics-panel" className="grid grid-cols-2 sm:grid-cols-6 gap-2 bg-[#252522] p-2 border border-[#3A3A37] rounded-lg" style={{ background: 'rgba(37,37,34,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>
       <div className="text-center px-2 py-1 border-r border-[#3A3A37]/60">
         <span className="text-[9px] text-[#8B8FA8] font-bold block uppercase">Activas</span>
-        <span className="text-xs font-black text-white">{metrics.activas}</span>
+        <span className="text-xs font-black text-[#00D4AA]">{metrics.activas}</span>
       </div>
       <div className="text-center px-2 py-1 border-r border-[#3A3A37]/60">
         <span className="text-[9px] text-[#8B8FA8] font-bold block uppercase">Escaladas</span>
@@ -32,15 +38,15 @@ export const MetricsDashboard = memo(function MetricsDashboard({ metrics }: Metr
       </div>
       <div className="text-center px-2 py-1 border-r border-[#3A3A37]/60">
         <span className="text-[9px] text-[#8B8FA8] font-bold block uppercase">T. Promedio</span>
-        <span className="text-xs font-black text-[#00D4AA]">{metrics.tiempo_promedio_min} m</span>
+        <span className="text-xs font-black text-[#00D4AA]">{avgTimeDisplay}</span>
       </div>
       <div className="text-center px-2 py-1 border-r border-[#3A3A37]/60">
         <span className="text-[9px] text-[#8B8FA8] font-bold block uppercase">Bot OK</span>
-        <span className="text-xs font-black text-white">{metrics.bot_ok_pct}%</span>
+        <span className="text-xs font-black text-white">{botOkDisplay}</span>
       </div>
       <div className="text-center px-2 py-1">
         <span className="text-[9px] text-[#8B8FA8] font-bold block uppercase">Capacidad</span>
-        <span className="text-xs font-black text-[#FFB84D]">{capacity}</span>
+        <span className={`text-xs font-black ${capacityColor}`}>{capacity}</span>
       </div>
     </div>
   )

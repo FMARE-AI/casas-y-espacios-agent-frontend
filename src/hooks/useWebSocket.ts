@@ -17,6 +17,7 @@ interface WSHandlers {
   onConversationReturned?: (data: { conversation_id: string }) => void
   onAdvisorStatusChanged?: (data: WSAdvisorStatusChanged) => void
   onBehaviorAlert?: (data: WSBehaviorAlert) => void
+  onConversationClosed?: (data: { conversation_id: string }) => void
 }
 
 const _handlers: WSHandlers = {}
@@ -80,6 +81,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (handlers.onConversationReturned) _handlers.onConversationReturned = handlers.onConversationReturned
       if (handlers.onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = handlers.onAdvisorStatusChanged
       if (handlers.onBehaviorAlert) _handlers.onBehaviorAlert = handlers.onBehaviorAlert
+      if (handlers.onConversationClosed) _handlers.onConversationClosed = handlers.onConversationClosed
     }
 
     return () => {
@@ -101,6 +103,9 @@ export function useWebSocket(handlers?: WSHandlers) {
         }
         if (handlers.onBehaviorAlert && _handlers.onBehaviorAlert === handlers.onBehaviorAlert) {
           delete _handlers.onBehaviorAlert
+        }
+        if (handlers.onConversationClosed && _handlers.onConversationClosed === handlers.onConversationClosed) {
+          delete _handlers.onConversationClosed
         }
       }
     }
