@@ -11,9 +11,18 @@ interface ConversationCardProps {
   isAdmin?: boolean
 }
 
-type CardVariant = 'A' | 'A2' | 'B' | 'C'
+const CLIENT_TYPE_LABELS: Record<string, string> = {
+  inquilino:   'Inquilino',
+  propietario: 'Propietario',
+  prospecto:   'Prospecto',
+  desconocido: 'Sin clasificar',
+}
+
+type CardVariant = 'A' | 'A2' | 'B' | 'C' | 'D'
 
 function getVariant(conversation: Conversation, now: number): CardVariant {
+  if (conversation.status === 'cerrada') return 'D'
+
   if (conversation.status === 'activa') return 'C'
 
   if (conversation.status === 'escalada') {
@@ -25,7 +34,7 @@ function getVariant(conversation: Conversation, now: number): CardVariant {
       : (conversation.escalation?.escalated_at
         ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
         : 0)
-    
+
     return waitSeconds >= 900 ? 'A2' : 'A'
   }
 
@@ -54,6 +63,7 @@ export const ConversationCard = memo(function ConversationCard({
     A2: 'critical-pulse-card hover:bg-[#2E2E2B]/40',
     B: 'border-l-[3px] border-l-[#FFB84D] hover:bg-[#2E2E2B]/40',
     C: 'border-l-[3px] border-l-[#00D4AA] hover:bg-[#2E2E2B]/40',
+    D: 'border-l-[3px] border-l-[#3A3A37] opacity-70 hover:opacity-90 hover:bg-[#2E2E2B]/40',
   }
 
   const statusChipStyles = {
@@ -61,6 +71,7 @@ export const ConversationCard = memo(function ConversationCard({
     A2: 'bg-[#FF5B5B] text-white',
     B: 'bg-[#FFB84D]/15 text-[#FFB84D]',
     C: 'bg-[#00D4AA]/15 text-[#00D4AA]',
+    D: 'bg-[#3A3A37] text-[#8B8FA8]',
   }
 
   const statusChipText = {
@@ -68,6 +79,7 @@ export const ConversationCard = memo(function ConversationCard({
     A2: 'CRÍTICO',
     B: 'En Atención',
     C: conversation.bot_activo ? 'Activa (Bot)' : 'Activa',
+    D: 'Cerrada',
   }
 
   const elapsed = useMemo(() => {
@@ -111,7 +123,7 @@ export const ConversationCard = memo(function ConversationCard({
             <span className={`${statusChipStyles[variant]} text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider`}>
               {statusChipText[variant]}
             </span>
-            <span className="bg-[#2E2E2B] text-[#F0F0F5] text-[8px] px-1.5 py-0.5 rounded font-semibold">{conversation.client?.client_type || 'Desconocido'}</span>
+            <span className="bg-[#2E2E2B] text-[#F0F0F5] text-[8px] px-1.5 py-0.5 rounded font-semibold">{CLIENT_TYPE_LABELS[conversation.client?.client_type] ?? 'Sin clasificar'}</span>
             <span className="bg-[#2E2E2B] text-[#01A4E3] text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase">{conversation.channel || 'Desconocido'}</span>
             {isAssignedToMe && (
               <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#01A4E3]/15 text-[#01A4E3] border border-[#01A4E3]/20 font-semibold">
@@ -132,7 +144,9 @@ export const ConversationCard = memo(function ConversationCard({
           {variant === 'C' && (
              <p className="text-[11px] text-[#8B8FA8] mt-0.5">Último del Bot: <span className="text-[#00D4AA] font-semibold">"..."</span></p>
           )}
-          <p className="text-[11px] text-[#F0F0F5]/85 italic mt-1 truncate bg-[#2E2E2B]/40 p-2 rounded border border-[#3A3A37]/40">"{conversation.escalation?.summary || '...'}"</p>
+          {variant !== 'D' && (
+            <p className="text-[11px] text-[#F0F0F5]/85 italic mt-1 truncate bg-[#2E2E2B]/40 p-2 rounded border border-[#3A3A37]/40">"{conversation.escalation?.summary || '...'}"</p>
+          )}
         </div>
       </div>
       
@@ -183,6 +197,16 @@ export const ConversationCard = memo(function ConversationCard({
               El bot está resolviendo
             </span>
             <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] px-2.5 py-1 rounded text-[10px] font-semibold transition">Ver</button>
+          </>
+        )}
+
+        {variant === 'D' && (
+          <>
+            <span className="text-[#8B8FA8] flex items-center gap-1 text-[10px] truncate max-w-[70%]">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>
+              Resuelta
+            </span>
+            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-[#2E2E2B] border border-[#3A3A37] text-[#8B8FA8] hover:text-[#F0F0F5] px-2.5 py-1 rounded text-[10px] font-semibold transition">Ver</button>
           </>
         )}
       </div>

@@ -88,12 +88,6 @@ export const FilterBar = memo(function FilterBar({
         >
           Activas ({totals.activas})
         </button>
-        <button
-          className={`${btnBase} ${activeStatus === 'cerrada' ? btnActive : btnInactive}`}
-          onClick={() => onStatusChange('cerrada')}
-        >
-          Cerradas ({totals.cerradas})
-        </button>
       </div>
 
       <div className="flex items-center space-x-2 w-full sm:w-auto">

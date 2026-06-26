@@ -172,10 +172,12 @@ export default function BandejaPage() {
     try {
       const result = await conversationsService.list({ channel, limit: 100, offset: 0 })
       const all = result.conversations || []
+      const escaladas = all.filter(c => c.status === 'escalada').length
+      const activas = all.filter(c => c.status === 'activa').length
       setStatusCounts({
-        all: result.total || all.length,
-        escaladas: all.filter(c => c.status === 'escalada').length,
-        activas: all.filter(c => c.status === 'activa').length,
+        all: escaladas + activas,
+        escaladas,
+        activas,
         cerradas: all.filter(c => c.status === 'cerrada').length,
       })
     } catch (err) {
@@ -192,8 +194,13 @@ export default function BandejaPage() {
         limit: 50,
         offset: 0,
       })
-      setConversations(result.conversations || [])
-      setTotal(result.total || 0)
+      let convs = result.conversations || []
+      // "Todas" and "mine" tabs never show closed conversations — those live in /historial
+      if (!statusFilter || statusFilter === 'mine') {
+        convs = convs.filter(c => c.status !== 'cerrada')
+      }
+      setConversations(convs)
+      setTotal(convs.length)
     } catch (err) {
       console.error('Error loading conversations', err)
     } finally {
