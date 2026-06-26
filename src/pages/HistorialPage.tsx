@@ -14,19 +14,10 @@ import type { Conversation } from '../types'
 // intent exists in the backend response but is not yet declared in types/index.ts
 type ConvRow = Conversation & { intent?: string }
 
-const RESOLUTION_LABELS: Record<string, string> = {
-  consulta_cartera_resuelta:       'Cartera resuelta',
-  pago_acordado:                   'Pago acordado',
-  orden_mantenimiento_creada:      'Mantenimiento creado',
-  queja_pqrs_registrada:           'PQRS registrada',
-  informacion_contrato_entregada:  'Info contrato',
-  derivado_otro_canal:             'Derivado',
-  sin_respuesta_cliente:           'Sin respuesta',
-  otro:                            'Otro',
-}
-
 // ── Helpers ───────────────────────────────────────────────
 
+// TODO: El backend tiene un bug conocido donde closed_at puede retornar null
+// incluso si la conversación está cerrada. Se usa last_activity como el fallback.
 function formatClosedDate(iso: string): string {
   const date = parseISO(iso)
   if (isToday(date)) return `Hoy, ${format(date, 'hh:mm aa')}`
@@ -75,6 +66,12 @@ export default function HistorialPage() {
   const [lineFilter, setLineFilter] = useState<string>('todos')
   const [dateFilter, setDateFilter] = useState<string>('todos')
 
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({})
+
+  const toggleNote = (id: string) => {
+    setExpandedNotes((prev) => ({ ...prev, [id]: !prev[id] }))
+  }
+
   useEffect(() => {
     conversationsService
       .list({ status: 'cerrada', limit: 100, offset: 0 })
@@ -103,7 +100,8 @@ export default function HistorialPage() {
       }
 
       if (dateFilter !== 'todos') {
-        const lastActivity = parseISO(conv.last_activity)
+        const closedDateStr = conv.closed_at ?? conv.last_activity
+        const lastActivity = parseISO(closedDateStr)
         const today = startOfDay(new Date())
         if (dateFilter === 'hoy') {
           if (!isToday(lastActivity)) return false
@@ -119,15 +117,46 @@ export default function HistorialPage() {
   }, [conversations, searchText, lineFilter, dateFilter])
 
   function exportCSV() {
-    const headers = ['Cliente', 'Cédula', 'Canal', 'Fecha de cierre', 'Motivo', 'Resolutor']
-    const rows = filteredConversations.map((conv) => [
-      conv.client.full_name ?? '',
-      conv.client.document_id ?? '',
-      conv.channel,
-      format(parseISO(conv.last_activity), 'dd/MM/yyyy HH:mm'),
-      conv.intent ?? '',
-      conv.escalation?.advisor?.full_name ?? 'Bot',
-    ])
+    const headers = [
+      'Cliente',
+      'Cédula',
+      'Línea',
+      'Fecha de Cierre',
+      'Notas de resolución',
+      'Resolutor',
+      'Cliente satisfecho',
+    ]
+    const rows = filteredConversations.map((conv) => {
+      const closedDateStr = conv.closed_at ?? conv.last_activity
+      let formattedDate = '—'
+      if (closedDateStr) {
+        try {
+          formattedDate = format(parseISO(closedDateStr), 'dd/MM/yyyy HH:mm')
+        } catch {
+          formattedDate = '—'
+        }
+      }
+
+      const resolutor = conv.closed_by === 'bot'
+        ? 'Bot'
+        : conv.closed_by === 'asesor'
+          ? (conv.escalation?.advisor?.full_name ?? '—')
+          : '—'
+
+      let satisfaccion = 'Sin confirmar'
+      if (conv.client_satisfied === 'si') satisfaccion = 'Sí'
+      if (conv.client_satisfied === 'no') satisfaccion = 'No'
+
+      return [
+        conv.client.full_name ?? '—',
+        conv.client.document_id ?? '—',
+        channelLabel(conv.channel),
+        formattedDate,
+        conv.resolution_notes ?? 'Sin notas',
+        resolutor,
+        satisfaccion,
+      ]
+    })
     const csvContent = [headers, ...rows]
       .map((row) =>
         row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
@@ -242,15 +271,16 @@ export default function HistorialPage() {
                 <th className="p-4 whitespace-nowrap">Cliente</th>
                 <th className="p-4 whitespace-nowrap">Línea</th>
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
-                <th className="p-4 whitespace-nowrap">Motivo / Resolución</th>
+                <th className="p-4 whitespace-nowrap">Notas de resolución</th>
                 <th className="p-4 whitespace-nowrap">Resolutor</th>
+                <th className="p-4 whitespace-nowrap text-center">¿El cliente está satisfecho?</th>
                 <th className="p-4 text-center whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
             <tbody id="history-table-body" className="divide-y divide-[#3A3A37]">
               {filteredConversations.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={7}>
                     <div className="text-center py-12">
                       <p className="text-[#8B8FA8] text-sm">
                         No se encontraron conversaciones cerradas
@@ -279,29 +309,52 @@ export default function HistorialPage() {
                       </span>
                     </td>
                     <td className="p-4 text-[#8B8FA8] whitespace-nowrap">
-                      {formatClosedDate(conv.last_activity)}
+                      {formatClosedDate(conv.closed_at ?? conv.last_activity)}
                     </td>
-                    <td className="p-4 max-w-[200px]">
-                      <span className="text-xs text-[#8B8FA8] italic">
-                        {conv.resolution_type
-                          ? (RESOLUTION_LABELS[conv.resolution_type] ?? conv.resolution_type)
-                          : (conv.intent ?? '—')}
-                      </span>
-                      {conv.resolution_notes && (
-                        <p
-                          className="text-[10px] text-[#8B8FA8]/60 mt-0.5 truncate max-w-[200px]"
+                    <td className="p-4 max-w-[250px] min-w-[200px]">
+                      {conv.resolution_notes ? (
+                        <div
+                          className="cursor-pointer text-xs text-[#F0F0F5] hover:underline break-words"
                           title={conv.resolution_notes}
+                          onClick={() => toggleNote(conv.id)}
                         >
-                          {conv.resolution_notes}
-                        </p>
+                          {expandedNotes[conv.id] ? (
+                            conv.resolution_notes
+                          ) : (
+                            conv.resolution_notes.length > 60
+                              ? conv.resolution_notes.slice(0, 60) + '...'
+                              : conv.resolution_notes
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#8B8FA8] italic">
+                          Sin notas
+                        </span>
                       )}
                     </td>
                     <td className="p-4 font-bold whitespace-nowrap">
                       {conv.closed_by === 'bot' ? (
-                        <span className="text-[#00D4AA] text-xs">Bot</span>
-                      ) : (
-                        <span className="text-[#F0F0F5] text-xs">
+                        <span className="text-[#00D4AA] text-xs font-semibold">Bot</span>
+                      ) : conv.closed_by === 'asesor' ? (
+                        <span className="text-[#F0F0F5] text-xs font-semibold">
                           {conv.escalation?.advisor?.full_name ?? '—'}
+                        </span>
+                      ) : (
+                        <span className="text-[#8B8FA8] text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-center whitespace-nowrap">
+                      {conv.client_satisfied === 'si' ? (
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#00D4AA]/15 text-[#00D4AA]">
+                          Sí
+                        </span>
+                      ) : conv.client_satisfied === 'no' ? (
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#FF5C5C]/15 text-[#FF5C5C]">
+                          No
+                        </span>
+                      ) : (
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#3A3A37] text-[#8B8FA8]">
+                          Sin confirmar
                         </span>
                       )}
                     </td>
