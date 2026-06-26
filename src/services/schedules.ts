@@ -31,12 +31,12 @@ export function getScheduleErrorCode(err: unknown): string | null {
 
 export const schedulesService = {
   async list(): Promise<{ schedules: AdvisorSchedule[] }> {
-    const { data } = await apiClient.get(`${BASE}/`)
+    const { data } = await apiClient.get(BASE)
     return data.data
   },
 
   async create(payload: CreateScheduleData): Promise<{ schedule: AdvisorSchedule }> {
-    const { data } = await apiClient.post(`${BASE}/`, payload)
+    const { data } = await apiClient.post(BASE, payload)
     return data.data
   },
 
