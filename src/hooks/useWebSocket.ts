@@ -35,7 +35,6 @@ let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
-let currentSubscribedConversationId: string | null = null
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 30000]
 
@@ -357,12 +356,10 @@ export function useWebSocket(handlers?: WSHandlers) {
   }, [])
 
   const subscribeConversation = useCallback((conversationId: string) => {
-    currentSubscribedConversationId = conversationId
     sendMessage({ type: 'subscribe_conversation', conversation_id: conversationId })
   }, [])
 
   const unsubscribeConversation = useCallback(() => {
-    currentSubscribedConversationId = null
     sendMessage({ type: 'unsubscribe_conversation' })
   }, [])
 
