@@ -4,10 +4,10 @@ import { useToastStore, type Toast, type ToastType } from '../../store/toastStor
 const AUTO_DISMISS_MS = 4000
 
 const STYLES: Record<ToastType, { border: string; bg: string; color: string }> = {
-  success: { border: 'border-l-[#00D4AA]', bg: 'bg-[#00D4AA]/10', color: 'text-[#00D4AA]' },
-  error:   { border: 'border-l-[#FF5B5B]', bg: 'bg-[#FF5B5B]/10', color: 'text-[#FF5B5B]' },
-  warning: { border: 'border-l-[#FFB84D]', bg: 'bg-[#FFB84D]/10', color: 'text-[#FFB84D]' },
-  info:    { border: 'border-l-[#01A4E3]', bg: 'bg-[#01A4E3]/10', color: 'text-[#01A4E3]' },
+  success: { border: 'border-l-success',    bg: 'bg-success/10',    color: 'text-success' },
+  error:   { border: 'border-l-error',      bg: 'bg-error/10',      color: 'text-error' },
+  warning: { border: 'border-l-warning',    bg: 'bg-warning/10',    color: 'text-warning' },
+  info:    { border: 'border-l-brand-blue', bg: 'bg-brand-blue/10', color: 'text-brand-blue' },
 }
 
 const TITLES: Record<ToastType, string> = {
