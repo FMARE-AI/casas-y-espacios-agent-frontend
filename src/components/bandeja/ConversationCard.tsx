@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo } from 'react'
-import type { Conversation } from '../../types'
+import type { Conversation, ConversationLastMessage } from '../../types'
 
 interface ConversationCardProps {
   conversation: Conversation
@@ -16,6 +16,39 @@ const CLIENT_TYPE_LABELS: Record<string, string> = {
   propietario: 'Propietario',
   prospecto:   'Prospecto',
   desconocido: 'Sin clasificar',
+}
+
+const ESCALATION_REASON_LABELS: Record<string, string> = {
+  solicitud_usuario:     'Solicitó asesor',
+  frustracion_detectada: 'Frustración detectada',
+  no_clasificado:        'Sin clasificar',
+  error_simi:            'Error del sistema',
+}
+
+function formatWaitTime(seconds: number): string {
+  if (seconds < 60) return 'Ahora'
+  if (seconds < 3600) {
+    const mins = Math.floor(seconds / 60)
+    return `hace ${mins} min`
+  }
+  const hours = Math.floor(seconds / 3600)
+  return `hace ${hours}h`
+}
+
+function getLastMessagePreview(lastMessage: ConversationLastMessage | null): string {
+  if (!lastMessage) return 'Sin mensajes'
+  switch (lastMessage.msg_type) {
+    case 'audio':    return '🎤 Mensaje de audio'
+    case 'image':    return '📷 Imagen'
+    case 'video':    return '🎥 Video'
+    case 'document': return '📄 Documento'
+    case 'text':
+      if (!lastMessage.content) return 'Sin mensajes'
+      return lastMessage.content.length > 50
+        ? lastMessage.content.slice(0, 50) + '...'
+        : lastMessage.content
+    default:         return 'Sin mensajes'
+  }
 }
 
 type CardVariant = 'A' | 'A2' | 'B' | 'C' | 'D'
@@ -88,24 +121,23 @@ export const ConversationCard = memo(function ConversationCard({
       : conversation.last_activity
     const seconds = timestamp ? Math.max(0, Math.floor((now - new Date(timestamp).getTime()) / 1000)) : 0
     const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return { value: minutes, unit: 'min' }
+    if (minutes < 60) return { value: minutes, unit: 'min', seconds }
     const hours = Math.floor(minutes / 60)
-    if (hours < 24) return { value: hours, unit: hours === 1 ? 'hora' : 'horas' }
+    if (hours < 24) return { value: hours, unit: hours === 1 ? 'hora' : 'horas', seconds }
     const days = Math.floor(hours / 24)
-    return { value: days, unit: days === 1 ? 'día' : 'días' }
+    return { value: days, unit: days === 1 ? 'día' : 'días', seconds }
   }, [conversation, now])
 
   const renderTopRight = () => {
-    const { value, unit } = elapsed
     if (variant === 'A2') {
       return (
         <span className="text-[10px] text-[#FFB84D] font-black flex items-center gap-1">
           <svg className="w-3.5 h-3.5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          ⚠️ {value} {unit}
+          ⚠️ {formatWaitTime(elapsed.seconds)}
         </span>
       )
     }
-    return <span className="text-[10px] text-[#8B8FA8]">hace {value} {unit}</span>
+    return <span className="text-[10px] text-[#8B8FA8]">{formatWaitTime(elapsed.seconds)}</span>
   }
 
   const clientName = conversation.client?.full_name || 'Desconocido'
@@ -123,7 +155,9 @@ export const ConversationCard = memo(function ConversationCard({
             <span className={`${statusChipStyles[variant]} text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider`}>
               {statusChipText[variant]}
             </span>
-            <span className="bg-[#2E2E2B] text-[#F0F0F5] text-[8px] px-1.5 py-0.5 rounded font-semibold">{CLIENT_TYPE_LABELS[conversation.client?.client_type] ?? 'Sin clasificar'}</span>
+            {conversation.client?.client_type && conversation.client.client_type !== 'desconocido' && (
+              <span className="bg-[#2E2E2B] text-[#F0F0F5] text-[8px] px-1.5 py-0.5 rounded font-semibold">{CLIENT_TYPE_LABELS[conversation.client.client_type]}</span>
+            )}
             <span className="bg-[#2E2E2B] text-[#01A4E3] text-[8px] px-1.5 py-0.5 rounded font-extrabold uppercase">{conversation.channel || 'Desconocido'}</span>
             {isAssignedToMe && (
               <span className="text-[8px] px-1.5 py-0.5 rounded bg-[#01A4E3]/15 text-[#01A4E3] border border-[#01A4E3]/20 font-semibold">
@@ -136,16 +170,15 @@ export const ConversationCard = memo(function ConversationCard({
         <div>
           <h3 className="text-xs font-bold text-white truncate" title={clientName}>{clientName}</h3>
           {(variant === 'A' || variant === 'A2') && (
-            <p className="text-[11px] text-[#8B8FA8] mt-0.5">Motivo: <span className="font-mono text-[#F0F0F5] font-bold">{conversation.escalation?.reason || 'Sin motivo'}</span></p>
+            <p className="text-[11px] text-[#8B8FA8] mt-0.5">Motivo: <span className="font-mono text-[#F0F0F5] font-bold">{ESCALATION_REASON_LABELS[conversation.escalation?.reason ?? ''] ?? conversation.escalation?.reason ?? 'Sin motivo'}</span></p>
           )}
           {variant === 'B' && conversation.escalation?.reason && (
-             <p className="text-[11px] text-[#8B8FA8] mt-0.5">Motivo: <span className="font-mono text-[#F0F0F5]">{conversation.escalation?.reason}</span></p>
-          )}
-          {variant === 'C' && (
-             <p className="text-[11px] text-[#8B8FA8] mt-0.5">Último del Bot: <span className="text-[#00D4AA] font-semibold">"..."</span></p>
+             <p className="text-[11px] text-[#8B8FA8] mt-0.5">Motivo: <span className="font-mono text-[#F0F0F5]">{ESCALATION_REASON_LABELS[conversation.escalation.reason] ?? conversation.escalation.reason}</span></p>
           )}
           {variant !== 'D' && (
-            <p className="text-[11px] text-[#F0F0F5]/85 italic mt-1 truncate bg-[#2E2E2B]/40 p-2 rounded border border-[#3A3A37]/40">"{conversation.escalation?.summary || '...'}"</p>
+            <p className="text-xs text-[#8B8FA8] truncate mt-1">
+              {getLastMessagePreview(conversation.last_message)}
+            </p>
           )}
         </div>
       </div>

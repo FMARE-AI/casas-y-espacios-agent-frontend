@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuthStore } from '../store/authStore'
+import { useWSStore } from '../store/wsStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
-import type { Conversation, WSEscalationNew, DashboardMetrics } from '../types'
+import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
@@ -11,24 +13,52 @@ import { useWebSocket } from '../hooks/useWebSocket'
 // --- LOCAL COMPONENTS ---
 
 function ConnectedAdvisors() {
+  const advisors = useWSStore((s) => s.advisors)
+  const isAdmin = useAuthStore((s) => s.role) === 'admin'
+
+  if (advisors.length === 0) {
+    return (
+      <div className="text-[11px] text-[#8B8FA8] mt-1" id="connected-advisors-panel">
+        Sin asesoras conectadas
+      </div>
+    )
+  }
+
   return (
-    <div className="text-[11px] text-[#8B8FA8] mt-1 flex flex-wrap items-center gap-1.5" id="connected-advisors-panel">
-      <span>En línea ahora:</span>
-      <span className="inline-flex items-center gap-1 text-white bg-[#252522] px-2 py-0.5 rounded border border-[#3A3A37]">
-        <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full"></span>
-        Andrés
-        <span className="text-[#00D4AA] font-bold">1/3</span>
-      </span>
-      <span className="inline-flex items-center gap-1 text-white bg-[#252522] px-2 py-0.5 rounded border border-[#3A3A37]">
-        <span className="w-1.5 h-1.5 bg-[#00D4AA] rounded-full"></span>
-        Diana
-        <span className="text-[#FF5B5B] font-bold">3/3</span>
-      </span>
-      <span className="inline-flex items-center gap-1 text-[#8B8FA8] bg-[#252522] px-2 py-0.5 rounded border border-[#3A3A37]">
-        <span className="w-1.5 h-1.5 bg-zinc-600 rounded-full"></span>
-        Julio
-        <span className="text-[#8B8FA8]">Off</span>
-      </span>
+    <div className="flex items-center gap-3 flex-wrap text-xs mt-1" id="connected-advisors-panel">
+      <span className="text-[#8B8FA8] text-[10px] uppercase tracking-wider">En línea:</span>
+      {advisors.map((advisor) => (
+        <span key={advisor.id} className="flex items-center gap-1">
+          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+            !advisor.is_panel_connected       ? 'bg-[#8B8FA8]'
+            : advisor.availability_status === 'available' ? 'bg-[#00D4AA]'
+            : advisor.availability_status === 'break'     ? 'bg-[#FFB84D] animate-pulse'
+            : 'bg-[#8B8FA8]'
+          }`} />
+
+          <span className={advisor.is_panel_connected ? 'text-[#F0F0F5]' : 'text-[#8B8FA8]'}>
+            {advisor.full_name.split(' ')[0]}
+          </span>
+
+          {isAdmin && advisor.is_panel_connected && advisor.availability_status === 'available' && advisor.active_conversations !== undefined && (
+            <span className={`text-[10px] ${
+              (advisor.active_conversations ?? 0) >= (advisor.max_conversations ?? 3)
+                ? 'text-[#FF5B5B] font-semibold'
+                : 'text-[#8B8FA8]'
+            }`}>
+              {advisor.active_conversations}/{advisor.max_conversations}
+            </span>
+          )}
+
+          {advisor.is_panel_connected && advisor.availability_status === 'break' && (
+            <span className="text-[10px] text-[#FFB84D]">Descanso</span>
+          )}
+
+          {!advisor.is_panel_connected && (
+            <span className="text-[10px] text-[#8B8FA8]">Fuera</span>
+          )}
+        </span>
+      ))}
     </div>
   )
 }
@@ -168,6 +198,19 @@ export default function BandejaPage() {
     fetchProfile()
   }, [])
 
+  // Cargar indicador de asesores en línea al montar (disponible para todos los roles)
+  useEffect(() => {
+    const loadOnlineAdvisors = async () => {
+      try {
+        const advisors = await advisorsService.getOnline()
+        useWSStore.getState().setAdvisors(advisors)
+      } catch {
+        // fail silently — indicator stays empty, panel is not broken
+      }
+    }
+    loadOnlineAdvisors()
+  }, [])
+
   const refreshCounts = async (channel?: string) => {
     try {
       const result = await conversationsService.list({ channel, limit: 100, offset: 0 })
@@ -249,10 +292,10 @@ export default function BandejaPage() {
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
       if (code === 'MAX_CONVERSATIONS_REACHED') {
-        alert('Límite de conversaciones alcanzado')
-      }
-      if (code === 'ALREADY_ASSIGNED') {
-        alert('Esta conversación ya fue asignada')
+        toast.error('Has alcanzado el límite de conversaciones simultáneas.')
+        setTakeTarget(null)
+      } else if (code === 'ALREADY_ASSIGNED') {
+        toast.error('Otro asesor ya tomó esta conversación primero.')
         setTakeTarget(null)
         await loadConversations()
       }
@@ -269,10 +312,23 @@ export default function BandejaPage() {
     loadConversations()
   }, [loadConversations])
 
-  const handleEscalationAssigned = useCallback((data: { conversation_id: string; advisor_id: string }) => {
-    if (data) {
-      // Future FE-10 optimization: update card directly
-    }
+  const handleEscalationAssigned = useCallback(() => {
+    loadConversations()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, channelFilter, role])
+
+  const handleConversationClosed = useCallback((_data: WSConversationClosed) => {
+    loadConversations()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, channelFilter, role])
+
+  const handleConversationReturned = useCallback(() => {
+    loadConversations()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, channelFilter, role])
+
+  const handleQueuePending = useCallback((data: WSQueuePending) => {
+    toast.info(data.message, { duration: 6000 })
     loadConversations()
   }, [loadConversations])
 
@@ -288,6 +344,8 @@ export default function BandejaPage() {
     onEscalationNew: handleEscalationNew,
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,
+    onConversationReturned: handleConversationReturned,
+    onQueuePending: handleQueuePending,
   })
 
   const advisorMaxConv = advisor?.max_conversations ?? 3

@@ -283,7 +283,17 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => navigate(`${ROUTES.CHAT.replace(':id', alert.conversation_id)}`)}
+                      onClick={() => navigate(
+                        ROUTES.CHAT.replace(':id', alert.conversation_id),
+                        {
+                          state: {
+                            fromAlert:      true,
+                            alertId:        alert.id,
+                            advisorName:    alert.advisor.full_name,
+                            messageContent: alert.message_content,
+                          },
+                        }
+                      )}
                       className="flex items-center gap-1.5 text-xs font-semibold text-[#01A4E3] border border-[#01A4E3]/40 hover:border-[#01A4E3] hover:bg-[#01A4E3]/10 px-2.5 py-1 rounded transition active:scale-95"
                     >
                       Ver conversación

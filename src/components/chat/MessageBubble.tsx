@@ -150,7 +150,7 @@ const BubbleContent = memo(function BubbleContent({ msg, isDocument }: { msg: Me
     case 'audio': return <AudioBubble msg={msg} />
     case 'video': return <VideoBubble msg={msg} />
     default: return (
-      <p className="text-xs leading-relaxed">{msg.content}</p>
+      <p className="text-sm leading-relaxed">{msg.content}</p>
     )
   }
 })
@@ -163,7 +163,7 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
 
   if (message.direction === 'inbound') {
     return (
-      <div className="flex flex-col items-start max-w-[80%] space-y-1 shrink-0">
+      <div className="flex flex-col items-start max-w-[75%] space-y-0.5 shrink-0">
         <div className={`bg-[#2E2E2B] text-[#F0F0F5] rounded-lg rounded-tl-none ${isDocument ? '' : 'p-3'} leading-relaxed`}>
           <BubbleContent msg={message} isDocument={isDocument} />
         </div>
@@ -174,13 +174,13 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
 
   if (message.direction === 'outbound_bot') {
     return (
-      <div className="flex flex-col items-end max-w-[80%] ml-auto space-y-1 shrink-0">
+      <div className="flex flex-col items-end max-w-[75%] ml-auto space-y-0.5 shrink-0">
         <div className={`bg-[#1F2937] text-[#F0F0F5] rounded-lg rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed border border-[#3A3A37]`}>
-          <div className="flex items-center space-x-1 text-[#00D4AA] font-bold text-[9px] uppercase mb-1 px-3 pt-3">
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center space-x-1 text-[#00D4AA] font-medium text-[10px] uppercase tracking-wider opacity-80 mb-1 px-3 pt-3">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
-            <span>Bot Asistente</span>
+            <span>Bot</span>
           </div>
           <div className={isDocument ? '' : 'px-3 pb-3'}>
             <BubbleContent msg={message} isDocument={isDocument} />
@@ -193,7 +193,7 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
 
   // outbound_advisor
   return (
-    <div className="flex flex-col items-end max-w-[80%] ml-auto space-y-1 shrink-0">
+    <div className="flex flex-col items-end max-w-[75%] ml-auto space-y-0.5 shrink-0">
       <div className={`bg-[#01A4E3] text-white rounded-lg rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed`}>
         <BubbleContent msg={message} isDocument={isDocument} />
       </div>

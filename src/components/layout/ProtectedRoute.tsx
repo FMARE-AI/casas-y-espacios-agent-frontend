@@ -33,7 +33,7 @@ export default function ProtectedRoute({ requiredRole }: Props) {
 
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <MobileHeader onOpenSidebar={() => setMobileOpen(true)} />
-        <WSDisconnectedBanner onReconnect={reconnect} />
+        <WSStatusBanner onReconnect={reconnect} />
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
           <Outlet />
         </main>
@@ -95,32 +95,38 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   )
 }
 
-function WSDisconnectedBanner({ onReconnect }: { onReconnect: () => void }) {
-  const { status } = useWSStore()
+function WSStatusBanner({ onReconnect }: { onReconnect: () => void }) {
+  const status = useWSStore((s) => s.status)
 
-  if (status !== 'disconnected') return null
-
-  return (
-    <div
-      id="ws-disconnected-banner"
-      className="bg-gradient-to-r from-[#FF5B5B] to-[#D64545] text-white px-6 py-3.5 text-xs font-semibold flex flex-col sm:flex-row justify-between items-center gap-3 shadow-lg border-b border-[#FF5B5B]/30 z-[99]"
-    >
-      <div className="flex items-center space-x-3">
-        <div className="bg-white/10 p-1.5 rounded-full shrink-0">
-          <svg className="w-4 h-4 text-white animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        </div>
-        <span>
-          <strong>Se perdió la conexión en tiempo real.</strong> El canal WebSocket está inactivo y el monitoreo se encuentra en pausa. ¿Deseas reestablecer el túnel?
-        </span>
-      </div>
-      <button
-        onClick={onReconnect}
-        className="bg-white hover:bg-slate-100 text-black font-bold px-4 py-2 rounded shadow-md hover:shadow-lg transition active:scale-95 text-[10px] uppercase tracking-wide shrink-0"
+  if (status === 'disconnected') {
+    return (
+      <div
+        id="ws-disconnected-banner"
+        className="fixed top-0 left-0 right-0 bg-[#FF5B5B]/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
       >
-        Reconectar Canal
-      </button>
-    </div>
-  )
+        <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+        Sin conexión — los mensajes pueden no llegar en tiempo real.
+        <button
+          onClick={onReconnect}
+          className="underline ml-1 hover:no-underline"
+        >
+          Reconectar
+        </button>
+      </div>
+    )
+  }
+
+  if (status === 'reconnecting') {
+    return (
+      <div
+        id="ws-reconnecting-banner"
+        className="fixed top-0 left-0 right-0 bg-[#FFB84D]/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
+      >
+        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        Reconectando...
+      </div>
+    )
+  }
+
+  return null
 }
