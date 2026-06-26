@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
+import type { ToastType } from '../store/toastStore'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -53,6 +54,11 @@ async function getValidToken(): Promise<string | null> {
   return refreshPromise
 }
 
+// Decouple toast notifications from the React store — ToastStack listens for this event
+function dispatchToast(message: string, type: ToastType): void {
+  window.dispatchEvent(new CustomEvent('api-toast', { detail: { message, type } }))
+}
+
 apiClient.interceptors.request.use(async (config) => {
   // Skip auth injection for auth endpoints to avoid loops
   if (config.url?.includes('/auth/token')) return config
@@ -64,8 +70,8 @@ apiClient.interceptors.request.use(async (config) => {
 
   // For FormData (multipart/form-data), remove Content-Type so the browser
   // sets it automatically with the correct multipart boundary.
-  // Without this, axios 1.x detects Content-Type: application/json and
-  // serializes FormData to JSON, causing 422 on the backend.
+  // Without this, axios 1.x detects application/json and serializes FormData to JSON,
+  // causing 422 on the backend.
   if (config.data instanceof FormData) {
     config.headers.delete('Content-Type')
   }
@@ -73,17 +79,111 @@ apiClient.interceptors.request.use(async (config) => {
   return config
 })
 
+// Error codes handled inline by components — not intercepted globally
+const LOCAL_ERROR_CODES = new Set([
+  'EMPTY_MESSAGE',
+  'MESSAGE_TOO_LONG',
+  'INVALID_TIME_RANGE',
+  'INVALID_DAYS',
+  'INVALID_CURRENT_PASSWORD',
+  'FILE_TOO_LARGE',
+  'FILE_TYPE_NOT_ALLOWED',
+  'EMAIL_ALREADY_EXISTS',
+])
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Refresh endpoint failures are already handled in getValidToken
+    // Network error (offline, timeout, CORS) — no response object
+    if (!error.response) {
+      dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
+      return Promise.reject(error)
+    }
+
+    const status: number = error.response.status
+    const code: string | undefined = error.response.data?.detail?.code
+    const message: string | undefined = error.response.data?.detail?.message
+
+    // 401 — session expired
+    if (status === 401) {
       const isRefreshEndpoint = error.config?.url?.includes('/auth/token/refresh')
       if (!isRefreshEndpoint) {
         useAuthStore.getState().clearSession()
         window.dispatchEvent(new CustomEvent('session-expired'))
       }
+      return Promise.reject(error)
     }
+
+    // Pass local errors through untouched so components handle them inline
+    if (code && LOCAL_ERROR_CODES.has(code)) {
+      return Promise.reject(error)
+    }
+
+    switch (status) {
+      case 403:
+        if (code === 'ADVISOR_INACTIVE') {
+          // Show blocking modal — token stays until user confirms (see SessionExpiredModal)
+          useAuthStore.getState().setSessionExpired(true)
+          useAuthStore.getState().setBlockedModal(
+            'Tu cuenta ha sido desactivada',
+            'Contacta a un administrador para restablecer el acceso.'
+          )
+        } else if (code === 'FORBIDDEN') {
+          dispatchToast('No tienes permiso para realizar esta acción.', 'error')
+        } else if (code === 'CONVERSATION_OUTSIDE_AREA') {
+          dispatchToast('Esta conversación no pertenece a tu área.', 'warning')
+        } else if (code === 'BOT_IS_ACTIVE') {
+          dispatchToast('El bot tiene el control de esta conversación.', 'warning')
+        } else if (code === 'NOT_ASSIGNED') {
+          dispatchToast('No estás asignado a esta conversación.', 'warning')
+        } else if (code === 'BOT_ALREADY_ACTIVE') {
+          dispatchToast('El bot ya controla esta conversación.', 'info')
+        } else if (code === 'CANNOT_EDIT_YOURSELF') {
+          dispatchToast('No puedes editar tu propio perfil desde esta sección.', 'warning')
+        } else {
+          dispatchToast(message || 'Acceso denegado.', 'error')
+        }
+        break
+
+      case 409:
+        if (code === 'ALREADY_ASSIGNED') {
+          dispatchToast('Otro asesor tomó esta conversación primero.', 'warning')
+        } else if (code === 'MAX_CONVERSATIONS_REACHED') {
+          dispatchToast(message || 'Límite de conversaciones alcanzado.', 'warning')
+        } else if (code === 'ALREADY_CLOSED') {
+          dispatchToast('Esta conversación ya fue cerrada.', 'info')
+        } else if (code === 'ALREADY_REVIEWED') {
+          dispatchToast('Esta alerta ya fue revisada.', 'info')
+        } else if (code === 'CONVERSATION_NOT_ESCALATED') {
+          dispatchToast('La conversación no está en estado escalado.', 'warning')
+        } else {
+          dispatchToast(message || 'Conflicto al procesar la solicitud.', 'warning')
+        }
+        break
+
+      case 500:
+        dispatchToast('Error interno del servidor. Intenta nuevamente.', 'error')
+        break
+
+      case 502:
+        if (code === 'META_API_ERROR') {
+          dispatchToast('No se pudo enviar el mensaje a WhatsApp. Intenta nuevamente.', 'error')
+        } else if (code === 'STORAGE_ERROR') {
+          dispatchToast('Error al guardar el archivo. Intenta nuevamente.', 'error')
+        } else {
+          dispatchToast('Error de comunicación con un servicio externo.', 'error')
+        }
+        break
+
+      case 503:
+        dispatchToast('Servicio de almacenamiento no disponible.', 'error')
+        break
+
+      default:
+        dispatchToast(`Error inesperado (${status}). Intenta nuevamente.`, 'error')
+        break
+    }
+
     return Promise.reject(error)
   }
 )

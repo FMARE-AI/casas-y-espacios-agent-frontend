@@ -60,10 +60,11 @@ Todos los servicios se exportan desde `src/services/index.ts` como punto de entr
 
 ### Stores (`src/store/`)
 
-Estado global con Zustand. Solo dos stores:
+Estado global con Zustand. Tres stores:
 
-- **`authStore`** — Sesión de Supabase, datos del asesor autenticado y flags de UI (`isLoading`, `isFirstLogin`, `sessionExpired`).
-- **`wsStore`** — Estado de la conexión WebSocket y contador de alertas no leídas.
+- **`authStore`** — Sesión del panel, datos del asesor autenticado, flags de UI (`isLoading`, `isFirstLogin`, `sessionExpired`) y modal bloqueante (`blockedModal`).
+- **`wsStore`** — Estado de la conexión WebSocket, alertas no leídas, escalaciones pendientes y `suppressedEscalationId` (supresión persistente del EscalationToast).
+- **`toastStore`** — Cola de notificaciones toast (success/error/warning/info). API: `showToast(message, type?)`, `removeToast(id)`. Máx. 3 toasts simultáneos, auto-dismiss a los 4 s. Renderizado por `ToastStack` (montado en `ProtectedRoute`).
 
 **Regla importante:** Los datos del servidor (listas de conversaciones, mensajes, etc.) no van al store. Van al estado local del componente o a una solución de server-state como React Query. El store es solo para estado global de infraestructura.
 
@@ -85,7 +86,7 @@ components/
 Singletons y utilidades de infraestructura:
 
 - **`supabase.ts`** — Instancia única de `createClient`. Es el único lugar donde se crea el cliente.
-- **`axios.ts`** — Instancia de Axios con interceptores. El interceptor de request inyecta el JWT de Supabase automáticamente. El interceptor de response dispara el evento `session-expired` ante un 401.
+- **`axios.ts`** — Instancia de Axios con interceptores. El interceptor de request inyecta el JWT automáticamente y renueva el token 5 minutos antes de expirar (serializando refreshes paralelos). El interceptor de respuesta centraliza el manejo de errores: errores de red y 403/409/500/502/503 despachan toasts via CustomEvent `api-toast`; 401 dispara `session-expired`; 404 y códigos locales se re-lanzan sin toast. Ver [`docs/specs/FE-14-global-error-handling.md`](specs/FE-14-global-error-handling.md) para el mapa completo.
 - **`utils.ts`** — Función `cn()` para merge de clases Tailwind.
 
 ---
@@ -120,24 +121,29 @@ Request HTTP
     ▼
 axios interceptor (request)
     │
-    └─ supabase.auth.getSession()
-           └─ Agrega Authorization: Bearer <token>
-                    │
-                    ▼
-              Backend FastAPI
-                    │
-                    ▼
+    ├─ getValidToken() — renueva el JWT si expira en < 5 min
+    │       └─ serializa refreshes paralelos (un solo POST /auth/token/refresh)
+    └─ Agrega Authorization: Bearer <token>
+               │
+               ▼
+         Backend FastAPI
+               │
+               ▼
 axios interceptor (response)
-    ├─ 200 → pasa la respuesta
-    └─ 401 → dispatchEvent('session-expired')
-                    │
-                    ▼
-            useAuth listener
-                    │
-                    └─ setSessionExpired(true)
-                               │
-                               ▼
-                    SessionExpiredModal visible
+    ├─ 2xx → pasa la respuesta
+    ├─ sin respuesta (red/timeout/CORS) → dispatchEvent('api-toast', error)
+    ├─ 401 → clearSession() + dispatchEvent('session-expired')
+    │              └─ SessionExpiredModal
+    ├─ 403 ADVISOR_INACTIVE → setSessionExpired(true) + setBlockedModal(...)
+    │              └─ SessionExpiredModal con mensaje personalizado (token intacto)
+    ├─ 403 (otros) → dispatchEvent('api-toast', error | 'warning')
+    ├─ 404 → re-throw sin toast (contexto-dependiente — componente decide)
+    ├─ 409 → dispatchEvent('api-toast', mensaje según código, 'warning' | 'info')
+    ├─ 500 → dispatchEvent('api-toast', 'Error interno...', 'error')
+    ├─ 502 → dispatchEvent('api-toast', mensaje según código, 'error')
+    ├─ 503 → dispatchEvent('api-toast', 'Servicio no disponible.', 'error')
+    ├─ otros → dispatchEvent('api-toast', 'Error inesperado ({status})...', 'error')
+    └─ códigos locales → re-throw sin toast (componente maneja inline)
 ```
 
 ---

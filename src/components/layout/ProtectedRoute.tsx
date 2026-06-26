@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
+import { ROUTES } from '../../constants/routes'
 import Sidebar from './Sidebar'
 import SessionExpiredModal from '../shared/SessionExpiredModal'
-import SuccessToast from '../shared/SuccessToast'
+import ToastStack from '../shared/ToastStack'
 import EscalationToast from '../shared/EscalationToast'
 import { useWebSocket } from '../../hooks/useWebSocket'
 import type { AdvisorRole, WSStatus } from '../../types'
@@ -18,10 +19,10 @@ export default function ProtectedRoute({ requiredRole }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { reconnect } = useWebSocket()
 
-  if (!token) return <Navigate to="/login" replace />
-  if (isFirstLogin) return <Navigate to="/first-login" replace />
+  if (!token) return <Navigate to={ROUTES.LOGIN} replace />
+  if (isFirstLogin) return <Navigate to={ROUTES.FIRST_LOGIN} replace />
   if (requiredRole && role !== null && role !== requiredRole) {
-    return <Navigate to="/" replace />
+    return <Navigate to={ROUTES.BANDEJA} replace />
   }
 
   return (
@@ -41,7 +42,7 @@ export default function ProtectedRoute({ requiredRole }: Props) {
 
       {sessionExpired && <SessionExpiredModal />}
       <EscalationToast />
-      <SuccessToast />
+      <ToastStack />
     </div>
   )
 }
