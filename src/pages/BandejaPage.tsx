@@ -284,10 +284,10 @@ export default function BandejaPage() {
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
       if (code === 'MAX_CONVERSATIONS_REACHED') {
-        alert('Límite de conversaciones alcanzado')
-      }
-      if (code === 'ALREADY_ASSIGNED') {
-        alert('Esta conversación ya fue asignada')
+        toast.error('Has alcanzado el límite de conversaciones simultáneas.')
+        setTakeTarget(null)
+      } else if (code === 'ALREADY_ASSIGNED') {
+        toast.error('Otro asesor ya tomó esta conversación primero.')
         setTakeTarget(null)
         await loadConversations()
       }

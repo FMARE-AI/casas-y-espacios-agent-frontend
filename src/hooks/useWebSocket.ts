@@ -35,6 +35,7 @@ let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
+let currentSubscribedConversationId: string | null = null
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 30000]
 
@@ -131,14 +132,29 @@ function connect(token: string): void {
         }
         break
 
-      case 'message.new':
+      case 'message.new': {
+        // Defensive: backend may send conversation_id at data root instead of inside message
+        const raw = data as WSMessageNew & { conversation_id?: string }
+        const conversationId =
+          raw.message.conversation_id ?? raw.conversation_id ?? ''
+        const normalizedMsg: WSMessageNew = {
+          message: { ...raw.message, conversation_id: conversationId },
+        }
+
+        // Sound only for inbound messages (client → advisor)
+        // outbound_advisor and outbound_bot are silent
+        if (normalizedMsg.message.direction === 'inbound') {
+          playNotificationSound()
+        }
         if (_handlers.onMessageNew) {
-          _handlers.onMessageNew(data as WSMessageNew)
+          _handlers.onMessageNew(normalizedMsg)
         }
         break
+      }
 
       case 'escalation.new': {
         const escData = data as WSEscalationNew
+        playNotificationSound()
         if (_handlers.onEscalationNew) {
           _handlers.onEscalationNew(escData)
         }
@@ -341,10 +357,12 @@ export function useWebSocket(handlers?: WSHandlers) {
   }, [])
 
   const subscribeConversation = useCallback((conversationId: string) => {
+    currentSubscribedConversationId = conversationId
     sendMessage({ type: 'subscribe_conversation', conversation_id: conversationId })
   }, [])
 
   const unsubscribeConversation = useCallback(() => {
+    currentSubscribedConversationId = null
     sendMessage({ type: 'unsubscribe_conversation' })
   }, [])
 

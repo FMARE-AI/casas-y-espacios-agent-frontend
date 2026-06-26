@@ -256,8 +256,9 @@ export default function ChatInput({
       setSending(true)
       setSendError(null)
       try {
+        const caption = text.trim() || undefined
         const { message } = await conversationsService
-          .replyMedia(conversationId, selectedFile)
+          .replyMedia(conversationId, selectedFile, caption)
         onMessageSent(message)
         setSelectedFile(null)
         setText('')
@@ -441,7 +442,7 @@ export default function ChatInput({
             {/* Textarea */}
             <textarea
               value={text}
-              disabled={selectedFile !== null || sending || variant !== 'assigned'}
+              disabled={sending || variant !== 'assigned'}
               onChange={(e) => {
                 const val = e.target.value
                 if (val.length <= 2000) {
@@ -463,7 +464,7 @@ export default function ChatInput({
               onKeyDown={handleKeyDown}
               placeholder={
                 selectedFile
-                  ? 'Archivo seleccionado para enviar'
+                  ? 'Añade una descripción opcional...'
                   : 'Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)'
               }
               className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-[#8B8FA8] resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"

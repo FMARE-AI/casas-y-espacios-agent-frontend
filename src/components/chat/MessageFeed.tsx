@@ -153,7 +153,15 @@ export default memo(function MessageFeed({
             <div key={format(group.date, 'yyyy-MM-dd')} className="space-y-4">
               <DateSeparator date={group.date} />
               {group.messages.map((msg) => (
-                <MessageBubble key={msg.id} message={msg} advisorName={advisorName} />
+                <MessageBubble
+                  key={msg.id}
+                  message={msg}
+                  advisorName={
+                    msg.direction === 'outbound_advisor'
+                      ? (msg.advisor_name ?? advisorName)
+                      : undefined
+                  }
+                />
               ))}
             </div>
           ))}

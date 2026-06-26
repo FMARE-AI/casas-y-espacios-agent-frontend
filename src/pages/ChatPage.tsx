@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { toast } from 'sonner'
 import { conversationsService } from '../services/conversations'
 import { useAuthStore } from '../store/authStore'
@@ -254,7 +254,11 @@ const STATUS_DOT: Record<ChatVariant, string> = {
 export default function ChatPage() {
   const { id: conversationId } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { advisor, role } = useAuthStore()
+
+  const fromAlert: boolean = location.state?.fromAlert ?? false
+  const alertAdvisorName: string | undefined = location.state?.advisorName
 
   const [conversation, setConversation] = useState<Conversation | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
@@ -276,16 +280,21 @@ export default function ChatPage() {
     setIsLoading(true)
     try {
       const { conversation: conv, messages: msgs, total_messages: total } =
-        await conversationsService.getById(conversationId)
+        await conversationsService.getById(conversationId, fromAlert ? 100 : 50)
       setConversation(conv)
-      setMessages(msgs)
+      setMessages((prev) => {
+        if (prev.length === 0) return msgs
+        const existingIds = new Set(prev.map((m) => m.id))
+        const newMsgs = msgs.filter((m) => !existingIds.has(m.id))
+        return newMsgs.length > 0 ? [...prev, ...newMsgs] : prev
+      })
       setTotalMessages(total)
     } catch {
       toast.error('No se pudo cargar la conversación')
     } finally {
       setIsLoading(false)
     }
-  }, [conversationId])
+  }, [conversationId, fromAlert])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -294,11 +303,15 @@ export default function ChatPage() {
     return () => clearTimeout(timer)
   }, [loadConversation])
 
-  // Scroll to bottom after initial load
+  // Scroll to bottom after initial load — deferred to after paint so scrollHeight is correct
   useEffect(() => {
-    if (!isLoading && feedRef.current) {
-      feedRef.current.scrollTop = feedRef.current.scrollHeight
-    }
+    if (isLoading) return
+    const raf = requestAnimationFrame(() => {
+      if (feedRef.current) {
+        feedRef.current.scrollTop = feedRef.current.scrollHeight
+      }
+    })
+    return () => cancelAnimationFrame(raf)
   }, [isLoading])
 
   // Scroll to bottom when typing indicator appears
@@ -334,7 +347,11 @@ export default function ChatPage() {
   // WS handlers — called by useWebSocket hook
   const onNewMessage = useCallback((event: { message: Message & { conversation_id: string } }) => {
     if (event.message.conversation_id === conversationId) {
-      setMessages((prev) => [...prev, event.message])
+      setMessages((prev) => {
+        // Guard against duplicates: the HTTP response already appended outbound messages
+        if (prev.some((m) => m.id === event.message.id)) return prev
+        return [...prev, event.message]
+      })
     }
   }, [conversationId])
 
@@ -356,13 +373,16 @@ export default function ChatPage() {
     }
   }, [conversationId, loadConversation])
 
-  // Hook up real-time websocket updates
-  const { subscribeConversation, unsubscribeConversation } = useWebSocket({
+  // Stable handlers object — prevents useWebSocket's effect from re-running on every render
+  const wsHandlers = useMemo(() => ({
     onMessageNew: onNewMessage,
     onConversationReturned: onConversationReturned,
     onConversationClosed: onConversationClosed,
     onEscalationAssigned: onEscalationAssigned,
-  })
+  }), [onNewMessage, onConversationReturned, onConversationClosed, onEscalationAssigned])
+
+  // Hook up real-time websocket updates
+  const { subscribeConversation, unsubscribeConversation } = useWebSocket(wsHandlers)
 
   // Subscribe to the conversation when it's known; unsubscribe on unmount or id change
   useEffect(() => {
@@ -372,6 +392,19 @@ export default function ChatPage() {
       unsubscribeConversation()
     }
   }, [conversationId, subscribeConversation, unsubscribeConversation])
+
+  // Auto-scroll when a new message is appended (not when old messages are prepended)
+  const lastMessageIdRef = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (messages.length === 0) return
+    const lastMsg = messages[messages.length - 1]
+    if (lastMsg.id !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastMsg.id
+      if (feedRef.current) {
+        feedRef.current.scrollTop = feedRef.current.scrollHeight
+      }
+    }
+  }, [messages])
 
   function extractErrorCode(err: unknown): string | undefined {
     const e = err as { response?: { data?: { detail?: { code?: string } } } }
@@ -402,6 +435,7 @@ export default function ChatPage() {
     } catch (err: unknown) {
       const code = extractErrorCode(err)
       if (code === 'ALREADY_ASSIGNED') {
+        toast.error('Otro asesor ya tomó esta conversación.')
         await loadConversation()
       } else if (code === 'MAX_CONVERSATIONS_REACHED') {
         toast.error(extractErrorMessage(err) ?? 'Has alcanzado el límite de conversaciones simultáneas')
@@ -542,7 +576,7 @@ export default function ChatPage() {
           isLoadingMore={isLoadingMore}
           showEscalationEvent={conversation?.status === 'escalada'}
           showReturnedEvent={conversation?.bot_activo === true && variant === 'bot'}
-          advisorName={advisor?.full_name}
+          advisorName={fromAlert ? alertAdvisorName : advisor?.full_name}
           onScrollTop={loadMoreMessages}
           feedRef={feedRef}
           isTyping={isAdvisorTyping}
@@ -555,7 +589,9 @@ export default function ChatPage() {
             clientName={clientName}
             channel={channel}
             waitMinutes={waitMinutes}
-            onMessageSent={(msg) => setMessages((prev) => [...prev, msg])}
+            onMessageSent={(msg) => setMessages((prev) =>
+              prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+            )}
             onError={() => {}}
             onTypingChange={setIsAdvisorTyping}
           />

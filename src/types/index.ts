@@ -50,6 +50,7 @@ export interface Client {
 
 export interface Message {
   id: string
+  conversation_id: string
   wam_id: string | null
   direction: MessageDirection
   msg_type: MessageType
@@ -57,9 +58,11 @@ export interface Message {
   media_url: string | null
   media_mime_type: string | null
   media_size_bytes: number | null
-  transcription?: string | null
-  timestamp: string
+  transcription: string | null
   delivered_via: string
+  timestamp: string
+  created_at: string
+  advisor_name: string | null
 }
 
 export interface Escalation {
@@ -164,7 +167,7 @@ export interface WSEscalationNew {
 }
 
 export interface WSMessageNew {
-  message: Message & { conversation_id: string }
+  message: Message
 }
 
 export interface WSAdvisorConnected {

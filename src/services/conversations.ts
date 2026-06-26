@@ -15,9 +15,9 @@ export const conversationsService = {
     return data.data
   },
 
-  async getById(id: string): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {
+  async getById(id: string, limit = 50): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {
     const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}`, {
-      params: { limit: 50, offset: 0 },
+      params: { limit, offset: 0 },
     })
     const conversation = data.data.conversation
     return {
@@ -43,11 +43,7 @@ export const conversationsService = {
     if (caption) {
       formData.append('caption', caption)
     }
-    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply/media`, formData, {
-      headers: {
-        'Content-Type': undefined,
-      },
-    })
+    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply/media`, formData)
     return data.data
   },
 
@@ -69,11 +65,7 @@ export const conversationsService = {
     }
 
     formData.append('file', audioFile, filename)
-    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply/audio`, formData, {
-      headers: {
-        'Content-Type': undefined,
-      },
-    })
+    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/reply/audio`, formData)
     return data.data
   },
 

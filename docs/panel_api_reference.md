@@ -253,7 +253,8 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
           "transcription": null,
           "delivered_via": "webhook_meta",
           "timestamp": "2026-06-22T14:05:00+00:00",
-          "created_at": "2026-06-22T14:05:01+00:00"
+          "created_at": "2026-06-22T14:05:01+00:00",
+          "advisor_name": null
         }
       ],
       "total_messages": 8
@@ -311,7 +312,8 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
         "transcription": null,
         "delivered_via": "webhook_meta",
         "timestamp": "2026-06-22T14:05:00+00:00",
-        "created_at": "2026-06-22T14:05:01+00:00"
+        "created_at": "2026-06-22T14:05:01+00:00",
+        "advisor_name": null
       },
       {
         "id": "550e8400-e29b-41d4-a716-446655440051",
@@ -326,7 +328,24 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
         "transcription": "Hola, quiero saber cuánto debo de arriendo este mes.",
         "delivered_via": "webhook_meta",
         "timestamp": "2026-06-22T14:06:00+00:00",
-        "created_at": "2026-06-22T14:06:01+00:00"
+        "created_at": "2026-06-22T14:06:01+00:00",
+        "advisor_name": null
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440052",
+        "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+        "wam_id": "wamid.HBgLNTczMDAxMjM0NTY3FQIAEhgWM0E4QjA2RjhDRjhCMzVCODk1NDUE",
+        "direction": "outbound_advisor",
+        "msg_type": "text",
+        "content": "Hola, con gusto le ayudo. Le comparto el estado de cuenta.",
+        "media_url": null,
+        "media_mime_type": null,
+        "media_size_bytes": null,
+        "transcription": null,
+        "delivered_via": "websocket_panel",
+        "timestamp": "2026-06-22T14:07:00+00:00",
+        "created_at": "2026-06-22T14:07:01+00:00",
+        "advisor_name": "Ana Gómez"
       }
     ],
     "total": 8,
@@ -344,6 +363,7 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 | `content`       | `string \| null` | Text content. Non-null only for `msg_type = "text"`                                                                                                                      |
 | `media_url`     | `string \| null` | Signed Supabase Storage URL (valid 1 year). Non-null for `audio`, `image`, `video`, `document`. Always a full HTTPS URL — never a raw Meta media ID                      |
 | `transcription` | `string \| null` | Whisper transcription of the audio. Non-null only for `msg_type = "audio"` that the bot processed. `null` for audio sent by the advisor or processed before this feature |
+| `advisor_name`  | `string \| null` | Full name of the advisor who sent the message. Non-null only when `direction = "outbound_advisor"`. `null` for `inbound` and `outbound_bot` messages                     |
 
 **Audio rendering rule — important:**
 
@@ -1161,21 +1181,22 @@ msg_type = "document" → render download link using media_url
 }
 ```
 
-| Field                  | Type            | Description                                                 |
-| ---------------------- | --------------- | ----------------------------------------------------------- |
-| `id`                   | `string` (UUID) | Advisor ID                                                  |
-| `full_name`            | `string`        | Display name                                                |
-| `availability_status`  | `string`        | `"available"`, `"break"`, or `"offline"`                    |
-| `area`                 | `string`        | `"administrativa"`, `"comercial"`, or `"ambas"`             |
-| `is_panel_connected`   | `boolean`       | `true` if the advisor has at least one active WS connection |
-| `active_conversations` | `integer`       | Active conversation count — admin only                      |
-| `max_conversations`    | `integer`       | Configured cap — admin only                                 |
+| Field                  | Type            | Description                                                            |
+| ---------------------- | --------------- | ---------------------------------------------------------------------- |
+| `id`                   | `string` (UUID) | Advisor ID                                                             |
+| `full_name`            | `string`        | Display name                                                           |
+| `availability_status`  | `string`        | `"available"`, `"break"`, or `"offline"`                               |
+| `area`                 | `string`        | `"administrativa"`, `"comercial"`, or `"ambas"`                        |
+| `is_panel_connected`   | `boolean`       | `true` if at least one active WS connection exists in `ws_connections` |
+| `active_conversations` | `integer`       | Active conversation count — admin caller only                          |
+| `max_conversations`    | `integer`       | Configured cap — admin caller only                                     |
 
 **Errors:**
 
-| HTTP | ErrorCode       | When                   |
-| ---- | --------------- | ---------------------- |
-| 401  | `INVALID_TOKEN` | Missing or invalid JWT |
+| HTTP | ErrorCode             | When                   |
+| ---- | --------------------- | ---------------------- |
+| 401  | `INVALID_TOKEN`       | Missing or invalid JWT |
+| 500  | `SUPABASE_AUTH_ERROR` | Database query failed  |
 
 ---
 
@@ -1665,12 +1686,19 @@ Emitted to **all connected advisors** when an advisor changes their availability
 
 #### message.new
 
-Emitted to **all connected advisors** when an advisor sends a message via the panel, or when an inbound message arrives from a client via the webhook pipeline.
+Emitted when a new message is created in a conversation. Routing depends on origin:
+
+- **Outbound advisor** (advisor sends via panel) — broadcast to **all connected advisors**.
+- **Inbound, conversation assigned** — unicast to the **assigned advisor** + broadcast to **all admins** (admin who is also the assigned advisor receives it only once).
+- **Inbound, conversation unassigned / queued** — broadcast to all advisors in the **conversation's channel** (`area = channel` or `area = "ambas"`).
+
+**Payload (outbound_advisor — with `advisor_name`):**
 
 ```json
 {
   "event": "message.new",
   "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
     "message": {
       "id": "550e8400-e29b-41d4-a716-446655440055",
       "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
@@ -1683,7 +1711,34 @@ Emitted to **all connected advisors** when an advisor sends a message via the pa
       "media_size_bytes": null,
       "delivered_via": "websocket_panel",
       "timestamp": "2026-06-22T14:36:00+00:00",
-      "created_at": "2026-06-22T14:36:00+00:00"
+      "created_at": "2026-06-22T14:36:00+00:00",
+      "advisor_name": "Ana Gómez"
+    }
+  }
+}
+```
+
+**Payload (inbound — `advisor_name` always `null`):**
+
+```json
+{
+  "event": "message.new",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "message": {
+      "id": "550e8400-e29b-41d4-a716-446655440056",
+      "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+      "wam_id": "wamid.HBgLNTczMDAxMjM0NTY3FQIAEhgWM0E4QjA2RjhDRjhCMzVCODk1NDUC",
+      "direction": "inbound",
+      "msg_type": "text",
+      "content": "Buenos días, quiero saber mi saldo.",
+      "media_url": null,
+      "media_mime_type": null,
+      "media_size_bytes": null,
+      "delivered_via": "webhook_meta",
+      "timestamp": "2026-06-22T14:35:00+00:00",
+      "created_at": "2026-06-22T14:35:01+00:00",
+      "advisor_name": null
     }
   }
 }
