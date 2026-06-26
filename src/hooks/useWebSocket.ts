@@ -24,8 +24,7 @@ interface WSHandlers {
   onConversationClosed?: (data: WSConversationClosed) => void
   onQueuePending?: (data: WSQueuePending) => void
   onAdvisorStatusChanged?: (data: WSAdvisorStatusChanged) => void
-  onBehaviorAlert?: (data: WSBehaviorAlert) => void
-  onConversationClosed?: (data: { conversation_id: string }) => void
+  onBehaviorAlert?: (data: WSBehaviorAlertEvent) => void
 }
 
 const _handlers: WSHandlers = {}
@@ -303,7 +302,6 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (handlers.onQueuePending) _handlers.onQueuePending = handlers.onQueuePending
       if (handlers.onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = handlers.onAdvisorStatusChanged
       if (handlers.onBehaviorAlert) _handlers.onBehaviorAlert = handlers.onBehaviorAlert
-      if (handlers.onConversationClosed) _handlers.onConversationClosed = handlers.onConversationClosed
     }
 
     return () => {

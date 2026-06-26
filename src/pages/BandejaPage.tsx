@@ -314,28 +314,21 @@ export default function BandejaPage() {
 
   const handleEscalationAssigned = useCallback(() => {
     loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
-
-  const handleConversationClosed = useCallback((_data: WSConversationClosed) => {
-    loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
-
-  const handleConversationReturned = useCallback(() => {
-    loadConversations()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, channelFilter, role])
-
-  const handleQueuePending = useCallback((data: WSQueuePending) => {
-    toast.info(data.message, { duration: 6000 })
-    loadConversations()
   }, [loadConversations])
 
-  const handleConversationClosed = useCallback((data: { conversation_id: string }) => {
+  const handleConversationClosed = useCallback((data: WSConversationClosed) => {
     if (data) {
       // Future FE-10 optimization: handle closed state directly
     }
+    loadConversations()
+  }, [loadConversations])
+
+  const handleConversationReturned = useCallback(() => {
+    loadConversations()
+  }, [loadConversations])
+
+  const handleQueuePending = useCallback((data: WSQueuePending) => {
+    toast.info(data.message, { duration: 6000 })
     loadConversations()
   }, [loadConversations])
 
