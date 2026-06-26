@@ -64,14 +64,14 @@ export default function AudioRecorder({
     recorderRef.current
       .stop()
       .getMp3()
-      .then(([buffer, blob]: [any, Blob]) => {
+      .then(([_buffer, blob]: [any, Blob]) => {
         const url = URL.createObjectURL(blob)
         setAudioBlob(blob)
         setAudioUrl(url)
         setState('preview')
         stopTimer()
       })
-      .catch((err: any) => {
+      .catch((_err: any) => {
         setErrorMessage('Error al detener la grabación')
         setState('error')
         stopTimer()
