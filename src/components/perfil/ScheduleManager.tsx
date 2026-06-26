@@ -329,10 +329,12 @@ export default function ScheduleManager() {
     try {
       const { schedule } = await schedulesService.update(id, { is_active: isActive })
       setSchedules((prev) => prev.map((s) => (s.id === id ? schedule : s)))
+      toast.success(isActive ? 'Intervalo activado' : 'Intervalo desactivado')
     } catch {
       setSchedules((prev) =>
         prev.map((s) => (s.id === id ? { ...s, is_active: !isActive } : s))
       )
+      toast.error('No se pudo actualizar el intervalo')
     }
   }
 
@@ -354,7 +356,7 @@ export default function ScheduleManager() {
     <>
       <div
         id="schedules-card"
-        className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-5 transition-all duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10"
+        className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-5 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10"
       >
         {/* Header */}
         <div className="flex items-start justify-between mb-1">
