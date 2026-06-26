@@ -9,13 +9,13 @@ import type { AdvisorSchedule } from '../../types'
 // ── Constants ─────────────────────────────────────────────
 
 const DAYS = [
-  { value: 1, label: 'L' },
-  { value: 2, label: 'M' },
-  { value: 3, label: 'X' },
-  { value: 4, label: 'J' },
-  { value: 5, label: 'V' },
-  { value: 6, label: 'S' },
-  { value: 7, label: 'D' },
+  { value: 1, label: 'L', full: 'Lunes' },
+  { value: 2, label: 'M', full: 'Martes' },
+  { value: 3, label: 'X', full: 'Miércoles' },
+  { value: 4, label: 'J', full: 'Jueves' },
+  { value: 5, label: 'V', full: 'Viernes' },
+  { value: 6, label: 'S', full: 'Sábado' },
+  { value: 7, label: 'D', full: 'Domingo' },
 ]
 
 // ── Form schema ───────────────────────────────────────────
@@ -23,15 +23,9 @@ const DAYS = [
 const scheduleSchema = z
   .object({
     label: z.string().min(1, 'Nombre requerido').max(50),
-    startTime: z
-      .string()
-      .regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Formato inválido'),
-    endTime: z
-      .string()
-      .regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Formato inválido'),
-    daysOfWeek: z
-      .array(z.number().min(1).max(7))
-      .min(1, 'Selecciona al menos un día'),
+    startTime: z.string().regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Formato inválido'),
+    endTime: z.string().regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Formato inválido'),
+    daysOfWeek: z.array(z.number().min(1).max(7)).min(1, 'Selecciona al menos un día'),
   })
   .refine((data) => data.startTime < data.endTime, {
     message: 'La hora de fin debe ser mayor que la de inicio',
@@ -46,26 +40,48 @@ function ScheduleSkeleton() {
   return (
     <div className="space-y-3 animate-pulse">
       {[0, 1].map((i) => (
-        <div key={i} className="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-3 bg-[#3A3A37] rounded w-24" />
-                <div className="h-3 bg-[#3A3A37] rounded w-20" />
+        <div key={i} className="bg-[#2E2E2B]/60 border border-[#3A3A37] rounded-xl p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 space-y-2.5">
+              <div className="flex items-center gap-3">
+                <div className="h-4 bg-[#3A3A37] rounded w-28" />
+                <div className="h-4 bg-[#3A3A37] rounded w-24" />
               </div>
-              <div className="flex gap-1">
+              <div className="flex gap-1.5">
                 {DAYS.map((d) => (
-                  <div key={d.value} className="w-5 h-5 bg-[#3A3A37] rounded" />
+                  <div key={d.value} className="w-7 h-7 bg-[#3A3A37] rounded-lg" />
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="w-9 h-5 bg-[#3A3A37] rounded-full" />
-              <div className="w-4 h-4 bg-[#3A3A37] rounded" />
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="w-10 h-6 bg-[#3A3A37] rounded-full" />
+              <div className="w-5 h-5 bg-[#3A3A37] rounded-lg" />
             </div>
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Modal field ───────────────────────────────────────────
+
+function ModalField({
+  label,
+  error,
+  children,
+}: {
+  label: string
+  error?: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="space-y-1.5">
+      <label className="block text-xs text-[#8B8FA8] uppercase font-bold tracking-wider">
+        {label}
+      </label>
+      {children}
+      {error && <p className="text-[#FF5B5B] text-xs">{error}</p>}
     </div>
   )
 }
@@ -89,12 +105,7 @@ function ScheduleFormModal({
     formState: { errors },
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: {
-      label: '',
-      startTime: '12:00',
-      endTime: '13:00',
-      daysOfWeek: [],
-    },
+    defaultValues: { label: '', startTime: '12:00', endTime: '13:00', daysOfWeek: [] },
   })
 
   async function onSubmit(data: ScheduleFormData) {
@@ -112,7 +123,7 @@ function ScheduleFormModal({
       if (code === 'INVALID_TIME_RANGE') {
         setError('endTime', { message: 'La hora de fin debe ser mayor que la de inicio' })
       } else if (code === 'INVALID_DAYS') {
-        setError('daysOfWeek', { message: 'Días inválidos. Los valores deben estar entre 1 (lunes) y 7 (domingo)' })
+        setError('daysOfWeek', { message: 'Días inválidos' })
       } else {
         toast.error('No se pudo guardar el intervalo')
       }
@@ -124,92 +135,82 @@ function ScheduleFormModal({
   return (
     <div
       id="modal-add-schedule"
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-bold text-white">Agregar Intervalo de Inactividad</h3>
+      <div className="bg-[#1D1D1B] border border-[#3A3A37] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#3A3A37]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#FFB84D]/15 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-[#FFB84D]">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Nuevo intervalo</h3>
+              <p className="text-[10px] text-[#8B8FA8]">Configura un periodo de inactividad</p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#8B8FA8] hover:text-white transition"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#8B8FA8] hover:text-white hover:bg-[#2E2E2B] transition"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
           {/* Label */}
-          <div>
-            <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-              Nombre del intervalo
-            </label>
+          <ModalField label="Nombre del intervalo" error={errors.label?.message}>
             <input
               type="text"
-              placeholder="Ej: Almuerzo"
+              placeholder="Ej: Almuerzo, Reunión de equipo…"
               {...register('label')}
-              className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition placeholder-[#8B8FA8]/40"
+              className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-[#FFB84D] focus:ring-1 focus:ring-[#FFB84D]/20 transition placeholder-[#8B8FA8]/40"
             />
-            {errors.label && (
-              <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.label.message}</p>
-            )}
-          </div>
+          </ModalField>
 
           {/* Time range */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-                Inicio
-              </label>
+            <ModalField label="Inicio" error={errors.startTime?.message}>
               <input
                 type="time"
                 {...register('startTime')}
-                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
+                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-[#FFB84D] focus:ring-1 focus:ring-[#FFB84D]/20 transition"
               />
-              {errors.startTime && (
-                <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.startTime.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-                Fin
-              </label>
+            </ModalField>
+            <ModalField label="Fin" error={errors.endTime?.message}>
               <input
                 type="time"
                 {...register('endTime')}
-                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
+                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-xl px-3 py-3 text-white text-sm outline-none focus:border-[#FFB84D] focus:ring-1 focus:ring-[#FFB84D]/20 transition"
               />
-              {errors.endTime && (
-                <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.endTime.message}</p>
-              )}
-            </div>
+            </ModalField>
           </div>
 
-          {/* Days checkboxes */}
-          <div>
-            <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-2">
-              Días activos
-            </label>
+          {/* Days */}
+          <ModalField label="Días activos" error={errors.daysOfWeek?.message}>
             <Controller
               control={control}
               name="daysOfWeek"
               render={({ field }) => (
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-2">
                   {DAYS.map((day) => {
                     const selected = field.value.includes(day.value)
                     return (
                       <label
                         key={day.value}
+                        title={day.full}
                         className={[
-                          'w-8 h-8 flex items-center justify-center rounded cursor-pointer',
-                          'text-xs font-bold border transition select-none',
+                          'flex-1 h-10 flex items-center justify-center rounded-xl cursor-pointer',
+                          'text-sm font-bold border transition-all duration-150 select-none',
                           selected
-                            ? 'bg-[#01A4E3]/15 border-[#01A4E3] text-[#01A4E3]'
-                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
+                            ? 'bg-[#FFB84D]/15 border-[#FFB84D] text-[#FFB84D]'
+                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:text-white',
                         ].join(' ')}
                       >
                         <input
@@ -230,29 +231,26 @@ function ScheduleFormModal({
                 </div>
               )}
             />
-            {errors.daysOfWeek && (
-              <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.daysOfWeek.message}</p>
-            )}
-          </div>
+          </ModalField>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-[#3A3A37] text-[#8B8FA8] hover:text-white rounded-lg text-xs font-semibold transition"
+              className="flex-1 py-3 border border-[#3A3A37] text-[#8B8FA8] hover:text-white hover:border-[#8B8FA8] rounded-xl text-sm font-semibold transition"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-[#01A4E3] hover:bg-[#0190C8] text-white rounded-lg text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-3 bg-[#FFB84D] hover:bg-[#F0A83A] text-[#1D1D1B] rounded-xl text-sm font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting && (
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-[#1D1D1B] border-t-transparent rounded-full animate-spin" />
               )}
-              Guardar
+              Guardar intervalo
             </button>
           </div>
         </form>
@@ -274,17 +272,22 @@ function DeleteConfirmModal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
       onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
     >
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-5 max-w-xs w-full shadow-2xl">
-        <p className="text-sm text-[#F0F0F5] mb-1">¿Eliminar este intervalo?</p>
-        <p className="text-xs text-[#8B8FA8] mb-4">Esta acción no se puede deshacer.</p>
+      <div className="bg-[#1D1D1B] border border-[#3A3A37] rounded-2xl p-6 max-w-xs w-full shadow-2xl">
+        <div className="w-10 h-10 rounded-xl bg-[#FF5B5B]/10 border border-[#FF5B5B]/20 flex items-center justify-center mx-auto mb-4">
+          <svg className="w-5 h-5 text-[#FF5B5B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </div>
+        <p className="text-base font-bold text-[#F0F0F5] text-center mb-1">¿Eliminar intervalo?</p>
+        <p className="text-sm text-[#8B8FA8] text-center mb-5">Esta acción no se puede deshacer.</p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2 text-xs border border-[#3A3A37] text-[#8B8FA8] rounded hover:border-[#F0F0F5] hover:text-[#F0F0F5] transition"
+            className="flex-1 py-2.5 text-sm border border-[#3A3A37] text-[#8B8FA8] rounded-xl hover:border-[#8B8FA8] hover:text-white transition"
           >
             Cancelar
           </button>
@@ -292,12 +295,12 @@ function DeleteConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="flex-1 py-2 text-xs bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 text-[#FF5B5B] rounded hover:bg-[#FF5B5B]/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="flex-1 py-2.5 text-sm bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 text-[#FF5B5B] rounded-xl hover:bg-[#FF5B5B]/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5 font-semibold"
           >
             {isDeleting && (
-              <div className="w-3 h-3 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
             )}
-            {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            {isDeleting ? 'Eliminando…' : 'Eliminar'}
           </button>
         </div>
       </div>
@@ -356,29 +359,54 @@ export default function ScheduleManager() {
     <>
       <div
         id="schedules-card"
-        className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-5 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10"
+        className="border border-[#3A3A37]/60 rounded-xl p-6 transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-[2px] hover:border-[#FFB84D]/40 hover:shadow-lg hover:shadow-[#FFB84D]/5"
+        style={{ background: 'rgba(37,37,34,0.97)', contain: 'layout style' }}
       >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-1">
-          <h3 className="text-sm font-bold text-white">
-            Intervalos de Inactividad
-          </h3>
+        {/* Header — mismo patrón que Disponibilidad y Seguridad */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-[#FFB84D]/15 flex items-center justify-center shrink-0">
+              <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-[#FFB84D]">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-base font-bold text-white">Intervalos de Inactividad</p>
+              <p className="text-xs text-[#8B8FA8]">
+                Te marca como <span className="text-[#FFB84D] font-semibold">En descanso</span> automáticamente
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-[#FFB84D]/10 hover:bg-[#FFB84D]/20 border border-[#FFB84D]/30 hover:border-[#FFB84D]/50 text-[#FFB84D] rounded-lg text-xs font-bold transition-all duration-150"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar
+          </button>
         </div>
-        <p className="text-xs text-[#8B8FA8] mb-4">
-          El sistema te marcará automáticamente como{' '}
-          <strong className="text-[#FFB84D]">En descanso</strong>{' '}
-          durante estos intervalos
-        </p>
+
+        {/* Divider */}
+        <div className="h-px bg-[#3A3A37]/60 mb-4" />
 
         {/* List */}
         {isLoading ? (
           <ScheduleSkeleton />
         ) : schedules.length === 0 ? (
-          <div id="schedules-empty" className="text-center py-8">
-            <p className="text-xs text-[#8B8FA8]">
-              No tienes intervalos configurados. Agrega uno para que el sistema
-              gestione tu disponibilidad automáticamente.
-            </p>
+          <div id="schedules-empty" className="flex flex-col items-center justify-center py-10 gap-3">
+            <div className="w-12 h-12 rounded-xl bg-[#2E2E2B] border border-[#3A3A37] flex items-center justify-center">
+              <svg className="w-6 h-6 text-[#3A3A37]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="text-center">
+              <p className="text-sm font-semibold text-[#8B8FA8]">Sin intervalos configurados</p>
+              <p className="text-xs text-[#8B8FA8]/60 mt-0.5">Agrega uno para gestionar tu disponibilidad automáticamente</p>
+            </div>
           </div>
         ) : (
           <div className="space-y-3" id="schedule-list">
@@ -386,38 +414,48 @@ export default function ScheduleManager() {
               <div
                 key={schedule.id}
                 id="schedule-item"
-                className="flex items-center justify-between p-3 bg-[#2E2E2B] rounded-lg border border-[#3A3A37] gap-3 flex-wrap"
+                className={[
+                  'flex items-center justify-between p-4 rounded-xl border gap-4 transition-all duration-200',
+                  schedule.is_active
+                    ? 'bg-[#2E2E2B]/80 border-[#3A3A37] hover:border-[#FFB84D]/30'
+                    : 'bg-[#2E2E2B]/40 border-[#3A3A37]/50 opacity-60',
+                ].join(' ')}
               >
-                {/* Left info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-white">{schedule.label}</span>
-                    <span className="text-[10px] text-[#8B8FA8] font-mono bg-[#1D1D1B] px-2 py-0.5 rounded border border-[#3A3A37]">
-                      {schedule.start_time} – {schedule.end_time}
-                    </span>
-                  </div>
-
-                  {/* Day pills */}
-                  <div id="schedule-days-row" className="flex items-center gap-1">
-                    {DAYS.map((day) => (
-                      <span
-                        key={day.value}
-                        className={[
-                          'text-[9px] px-1.5 py-0.5 rounded font-bold',
-                          schedule.days_of_week.includes(day.value)
-                            ? 'bg-[#01A4E3]/15 text-[#01A4E3]'
-                            : 'bg-[#2E2E2B] text-[#3A3A37] border border-[#3A3A37]',
-                        ].join(' ')}
-                      >
-                        {day.label}
+                {/* Left — colored accent bar + info */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div
+                    className="w-1 self-stretch rounded-full shrink-0"
+                    style={{ backgroundColor: schedule.is_active ? '#FFB84D' : '#3A3A37' }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm font-bold text-white truncate">{schedule.label}</span>
+                      <span className="text-xs text-[#FFB84D] font-mono bg-[#FFB84D]/10 px-2.5 py-0.5 rounded-lg border border-[#FFB84D]/20 shrink-0">
+                        {schedule.start_time} – {schedule.end_time}
                       </span>
-                    ))}
+                    </div>
+                    {/* Day pills */}
+                    <div id="schedule-days-row" className="flex items-center gap-1">
+                      {DAYS.map((day) => (
+                        <span
+                          key={day.value}
+                          title={day.full}
+                          className={[
+                            'w-7 h-7 flex items-center justify-center rounded-lg text-[11px] font-bold border transition-colors',
+                            schedule.days_of_week.includes(day.value)
+                              ? 'bg-[#01A4E3]/15 text-[#01A4E3] border-[#01A4E3]/30'
+                              : 'bg-transparent text-[#3A3A37] border-[#3A3A37]/50',
+                          ].join(' ')}
+                        >
+                          {day.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 {/* Right actions */}
                 <div className="flex items-center gap-3 shrink-0">
-                  {/* Toggle */}
                   <button
                     id="schedule-toggle"
                     type="button"
@@ -425,23 +463,22 @@ export default function ScheduleManager() {
                     aria-checked={schedule.is_active}
                     onClick={() => handleToggle(schedule.id, !schedule.is_active)}
                     className={[
-                      'relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none',
-                      schedule.is_active ? 'bg-[#01A4E3]' : 'bg-[#3A3A37]',
+                      'relative w-10 h-[22px] rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-[#2E2E2B]',
+                      schedule.is_active ? 'bg-[#01A4E3] focus:ring-[#01A4E3]/40' : 'bg-[#3A3A37] focus:ring-[#8B8FA8]/40',
                     ].join(' ')}
                   >
                     <span
                       className={[
-                        'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-                        schedule.is_active ? 'left-0.5 translate-x-4' : 'left-0.5 translate-x-0',
+                        'absolute top-[3px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200',
+                        schedule.is_active ? 'left-[3px] translate-x-[18px]' : 'left-[3px] translate-x-0',
                       ].join(' ')}
                     />
                   </button>
 
-                  {/* Delete */}
                   <button
                     type="button"
                     onClick={() => setDeletingId(schedule.id)}
-                    className="text-[#8B8FA8] hover:text-[#FF5B5B] transition p-1"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg text-[#8B8FA8] hover:text-[#FF5B5B] hover:bg-[#FF5B5B]/10 transition-all duration-150"
                     title="Eliminar intervalo"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -453,20 +490,8 @@ export default function ScheduleManager() {
             ))}
           </div>
         )}
-
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="mt-4 flex items-center gap-2 px-4 py-2 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded-lg text-xs font-semibold transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Agregar intervalo
-        </button>
       </div>
 
-      {/* Modals */}
       {showModal && (
         <ScheduleFormModal
           onClose={() => setShowModal(false)}

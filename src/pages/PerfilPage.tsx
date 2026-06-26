@@ -200,11 +200,11 @@ function PasswordStrengthBar({ password }: { password: string }) {
   const { text, color, bars } = getStrength(password)
   return (
     <div className="space-y-1">
-      <div className="flex justify-between items-center text-[10px]">
+      <div className="flex justify-between items-center text-xs">
         <span className="text-[#8B8FA8]">Seguridad de la contraseña:</span>
         <span style={{ color }} className="font-bold">{text}</span>
       </div>
-      <div className="h-1.5 w-full bg-[#2E2E2B] rounded-full overflow-hidden flex gap-0.5">
+      <div className="h-2 w-full bg-[#2E2E2B] rounded-full overflow-hidden flex gap-0.5">
         {[1, 2, 3].map((i) => (
           <div
             key={i}
@@ -233,7 +233,7 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
     <div>
       <label
         htmlFor={id}
-        className="text-xs text-[#8B8FA8] uppercase font-bold tracking-wider block mb-1"
+        className="text-xs text-[#8B8FA8] uppercase font-semibold tracking-wide block mb-1.5"
       >
         {label}
       </label>
@@ -242,7 +242,7 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
           type={show ? "text" : "password"}
           id={id}
           {...register}
-          className="w-full bg-[#2E2E2B]/60 border border-[#3A3A37] focus:border-[#01A4E3] text-white text-sm rounded-lg px-3 py-2.5 pr-10 outline-none transition-all duration-200 focus:ring-1 focus:ring-[#01A4E3]/20"
+          className="w-full bg-[#2E2E2B]/60 border border-[#3A3A37] focus:border-[#01A4E3] text-white text-sm rounded-xl px-3.5 py-3 pr-10 outline-none transition-all duration-200 focus:ring-1 focus:ring-[#01A4E3]/20"
         />
         <button
           type="button"
@@ -512,18 +512,20 @@ export default function PerfilPage() {
           <p className="text-sm text-[#8B8FA8] mt-0.5">
             Gestiona tu información, disponibilidad y configuración
           </p>
+          <div className="h-px bg-gradient-to-r from-[#3A3A37] via-[#01A4E3]/20 to-transparent mt-4" />
         </div>
 
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <div className="space-y-5 w-full">
+          <div className="space-y-7 w-full">
 
             {/* ── Hero card ── */}
             <div
-              className="border border-[#3A3A37] rounded-xl p-5 relative flex flex-col sm:flex-row items-center gap-5 shadow-xl"
-              style={{ background: "rgba(37,37,34,0.65)", backdropFilter: "blur(12px)" }}
+              className="border border-[#3A3A37]/80 rounded-2xl px-6 py-5 relative flex flex-col sm:flex-row items-center gap-5 shadow-xl overflow-hidden"
+              style={{ background: "rgba(37,37,34,0.97)", contain: "layout style" }}
             >
+              <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 0% 50%, rgba(1,164,227,0.07) 0%, transparent 60%)' }} />
               {/* Top-right actions */}
               <div className="hidden sm:flex absolute top-4 right-4 items-center gap-2">
                 <button
@@ -585,7 +587,7 @@ export default function PerfilPage() {
               </div>
 
               {/* Info */}
-              <div className="text-center sm:text-left flex-1 space-y-2 min-w-0">
+              <div className="text-center sm:text-left flex-1 space-y-2.5 min-w-0">
                 {/* Editable name */}
                 <div className="flex items-center justify-center sm:justify-start gap-2">
                   <input
@@ -598,7 +600,7 @@ export default function PerfilPage() {
                     onBlur={handleNameBlur}
                     onKeyDown={handleNameKeyDown}
                     className={[
-                      "bg-transparent border-b text-2xl font-semibold text-white pb-0.5 max-w-[320px] outline-none transition-colors w-full",
+                      "bg-transparent border-b text-xl font-semibold text-white pb-0.5 max-w-[280px] outline-none transition-colors w-full tracking-tight",
                       editingName ? "border-[#01A4E3] cursor-text" : "border-transparent cursor-default",
                     ].join(" ")}
                   />
@@ -608,9 +610,9 @@ export default function PerfilPage() {
                 </div>
 
                 {/* Email */}
-                <p className="text-base text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1.5">
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <p className="text-sm text-[#8B8FA8] flex items-center justify-center sm:justify-start gap-1.5">
+                  <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                   <span id="perfil-email-txt">{advisor?.email}</span>
                 </p>
@@ -620,7 +622,7 @@ export default function PerfilPage() {
                   <span
                     id="perfil-role-badge"
                     className={[
-                      "text-sm px-3 py-1 rounded font-bold uppercase tracking-wide",
+                      "text-xs px-3 py-1 rounded-md font-bold uppercase tracking-wide",
                       advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
                     ].join(" ")}
                   >
@@ -628,32 +630,32 @@ export default function PerfilPage() {
                   </span>
                   <span
                     id="perfil-area-badge"
-                    className="text-sm px-3 py-1 rounded font-medium border border-[#3A3A37] text-[#8B8FA8] bg-[#2E2E2B]/60 cursor-help"
+                    className="text-xs px-3 py-1 rounded-md font-medium border border-[#3A3A37] text-[#8B8FA8] bg-[#2E2E2B]/60 cursor-help"
                     title="Solo el admin puede cambiar esto"
                   >
                     Área: {advisor?.area}
                   </span>
                   <div
                     id="availability-status-display"
-                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded border"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md border"
                     style={{
                       borderColor: `${STATUS_COLORS[currentStatus]}35`,
                       backgroundColor: `${STATUS_COLORS[currentStatus]}10`,
                     }}
                   >
                     <span
-                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: STATUS_COLORS[currentStatus] }}
                     />
                     <span
                       id="avail-label"
-                      className="text-sm font-semibold"
+                      className="text-xs font-semibold"
                       style={{ color: STATUS_COLORS[currentStatus] }}
                     >
                       {STATUS_LABELS[currentStatus]}
                     </span>
                     {advisor?.status_until && (
-                      <span className="text-xs text-[#8B8FA8]">
+                      <span className="text-sm text-[#8B8FA8]">
                         · {formatStatusUntil(advisor.status_until)}
                       </span>
                     )}
@@ -687,13 +689,13 @@ export default function PerfilPage() {
             </div>
 
             {/* ── Grid ── */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
 
               {/* Disponibilidad */}
               <div
                 id="availability-section"
-                className="border border-[#3A3A37]/60 rounded-xl p-5 flex flex-col gap-4 shadow-xl"
-                style={{ background: "rgba(37,37,34,0.65)", backdropFilter: "blur(12px)" }}
+                className="border border-[#3A3A37]/60 rounded-2xl px-6 py-7 flex flex-col gap-6 shadow-xl"
+                style={{ background: "rgba(37,37,34,0.97)", contain: "layout style" }}
               >
                 {/* Header con ícono */}
                 <div className="flex items-center gap-3">
@@ -709,7 +711,7 @@ export default function PerfilPage() {
                 </div>
 
                 {/* 3 opciones horizontales */}
-                <div className="grid grid-cols-3 gap-2" id="availability-status-pills">
+                <div className="grid grid-cols-3 gap-3" id="availability-status-pills">
                   {STATUS_OPTIONS.map((option) => {
                     const isSelected = selectedStatus === option.value;
                     return (
@@ -727,7 +729,7 @@ export default function PerfilPage() {
                           }
                         }}
                         className={[
-                          "flex items-center gap-3 px-3 py-4 rounded-xl border transition-all duration-200 text-left",
+                          "flex items-center gap-3 px-4 py-5 rounded-2xl border transition-all duration-200 text-left active:scale-[0.98]",
                           isSelected
                             ? "border-[--c]/40 bg-[--c]/10"
                             : "border-[#3A3A37] bg-transparent hover:border-[--c]/30 hover:bg-[--c]/5",
@@ -737,19 +739,19 @@ export default function PerfilPage() {
                         {/* Círculo indicador */}
                         {option.value === "available" ? (
                           <span
-                            className="w-4 h-4 rounded-full shrink-0 transition-all duration-200"
+                            className="w-[14px] h-[14px] rounded-full shrink-0 transition-all duration-200"
                             style={{ backgroundColor: option.color, boxShadow: isSelected ? `0 0 8px ${option.color}80` : "none" }}
                           />
                         ) : option.value === "break" ? (
                           <span
-                            className="w-4 h-4 rounded-full shrink-0 border-2 flex items-center justify-center transition-all duration-200"
+                            className="w-[14px] h-[14px] rounded-full shrink-0 border-2 flex items-center justify-center transition-all duration-200"
                             style={{ borderColor: option.color }}
                           >
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: option.color }} />
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: option.color }} />
                           </span>
                         ) : (
                           <span
-                            className="w-4 h-4 rounded-full shrink-0 border-2 transition-all duration-200"
+                            className="w-[14px] h-[14px] rounded-full shrink-0 border-2 transition-all duration-200"
                             style={{ borderColor: option.color }}
                           />
                         )}
@@ -770,8 +772,8 @@ export default function PerfilPage() {
 
                 {/* Panel Estado actual */}
                 {selectedStatus === "available" ? (
-                  <div className="flex items-center gap-3 p-3 rounded-xl border border-[#00D4AA]/20 bg-[#00D4AA]/5">
-                    <div className="w-8 h-8 rounded-lg bg-[#00D4AA]/15 flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-3 p-4 rounded-xl border border-[#00D4AA]/20 bg-[#00D4AA]/5">
+                    <div className="w-9 h-9 rounded-lg bg-[#00D4AA]/15 flex items-center justify-center shrink-0">
                       <svg className="w-4 h-4 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
                       </svg>
@@ -810,7 +812,7 @@ export default function PerfilPage() {
                       </div>
                     </div>
 
-                    <p className="text-[10px] text-[#8B8FA8] uppercase font-bold tracking-wider">
+                    <p className="text-xs text-[#8B8FA8] uppercase font-bold tracking-wider">
                       ¿Por cuánto tiempo?
                     </p>
                     <div className="grid grid-cols-4 gap-1.5">
@@ -820,7 +822,7 @@ export default function PerfilPage() {
                           type="button"
                           onClick={() => setSelectedMinutes(option.value)}
                           className={[
-                            "text-xs py-2 rounded-md border transition-all duration-150 font-semibold",
+                            "text-sm py-2.5 rounded-lg border transition-all duration-150 font-semibold",
                             selectedMinutes === option.value
                               ? "bg-[#2E2E2B] border-[#8B8FA8] text-white shadow-md"
                               : "border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8] hover:bg-[#2E2E2B]/10",
@@ -834,7 +836,7 @@ export default function PerfilPage() {
                       type="button"
                       onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
                       disabled={isSavingStatus}
-                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-sm font-semibold py-3 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
+                      className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white text-sm font-semibold py-3.5 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 active:scale-95"
                     >
                       {isSavingStatus && (
                         <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -848,13 +850,21 @@ export default function PerfilPage() {
               {/* Seguridad */}
               <form
                 onSubmit={handleSubmit(onPasswordSubmit)}
-                className="border border-[#3A3A37]/60 rounded-xl p-5 flex flex-col justify-between shadow-xl"
-                style={{ background: "rgba(37,37,34,0.65)", backdropFilter: "blur(12px)" }}
+                className="border border-[#3A3A37]/60 rounded-2xl px-6 py-7 flex flex-col justify-between shadow-xl"
+                style={{ background: "rgba(37,37,34,0.97)", contain: "layout style" }}
               >
-                <div className="space-y-4">
-                  <h4 className="text-base font-semibold text-white uppercase tracking-wider border-l-4 border-[#01A4E3] pl-3">
-                    Seguridad
-                  </h4>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-[#01A4E3]/15 flex items-center justify-center shrink-0">
+                      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" className="text-[#01A4E3]">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-base font-bold text-white">Seguridad</p>
+                      <p className="text-xs text-[#8B8FA8]">Gestiona tu contraseña</p>
+                    </div>
+                  </div>
 
                   {/* Contraseña actual — full width */}
                   <PasswordInput
@@ -865,7 +875,7 @@ export default function PerfilPage() {
                   />
 
                   {/* Nueva + Confirmar — 2 columnas */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-4">
                     <PasswordInput
                       id="new-password"
                       label="Nueva contraseña"
@@ -888,7 +898,7 @@ export default function PerfilPage() {
                 <button
                   type="submit"
                   disabled={isSavingPassword}
-                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-3 rounded-lg text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-5 active:scale-95"
+                  className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-8 active:scale-95"
                 >
                   {isSavingPassword && (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
