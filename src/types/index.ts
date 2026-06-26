@@ -74,6 +74,11 @@ export interface Escalation {
   wait_seconds?: number | null
 }
 
+export interface ConversationLastMessage {
+  msg_type: 'text' | 'audio' | 'image' | 'video' | 'document'
+  content: string | null
+}
+
 export interface Conversation {
   id: string
   status: ConversationStatus
@@ -87,6 +92,7 @@ export interface Conversation {
   client_satisfied: 'si' | 'no' | 'sin_confirmar' | null
   closed_by: 'asesor' | 'bot' | null
   closed_at: string | null
+  last_message: ConversationLastMessage | null
 }
 
 export interface BehaviorAlert {

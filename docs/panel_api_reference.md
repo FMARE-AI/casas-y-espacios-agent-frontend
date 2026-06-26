@@ -160,6 +160,10 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
             "area": "administrativa",
             "specialty": "financiera"
           }
+        },
+        "last_message": {
+          "msg_type": "text",
+          "content": "Necesito ayuda con mi contrato"
         }
       }
     ],
@@ -185,6 +189,7 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 - An `escalation` object is included only if there is an unresolved escalation (`resolved_at IS NULL`).
 - Advisors with `area = "ambas"` see conversations from both channels.
 - **`status=mine`** is a special filter that returns only the conversations with an active escalation assigned to the authenticated advisor (i.e., the "My conversations" tab). It can be combined freely with `channel`. Admins using `mine` see only conversations assigned to themselves — not all conversations.
+- **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
 
 ---
 
