@@ -60,8 +60,8 @@ function ConnectedAdvisors() {
       })}
 
       {offline.length > 0 && (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-[#8B8FA8] border border-[#3A3A37] bg-[#2E2E2B]/40">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#3A3A37] flex-shrink-0" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-[#FF5B5B] border border-[#FF5B5B]/25 bg-[#FF5B5B]/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#FF5B5B] flex-shrink-0" />
           {offline.length === 1
             ? `${offline[0].full_name.split(' ')[0]} · fuera`
             : `${offline.length} fuera`}
