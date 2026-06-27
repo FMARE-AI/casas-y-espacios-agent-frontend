@@ -118,7 +118,6 @@ function DocxPreview({ file }: DocxPreviewProps) {
       try {
         if (!containerRef.current) return
         containerRef.current.innerHTML = ''
-        // @ts-expect-error - docx-preview has no native @types package
         const { renderAsync } = await import('docx-preview')
         
         if (active && containerRef.current) {
@@ -244,7 +243,7 @@ function DocxPreview({ file }: DocxPreviewProps) {
 
 interface ExcelWorkbook {
   SheetNames: string[]
-  Sheets: Record<string, unknown>
+  Sheets: Record<string, any>
 }
 
 interface ExcelPreviewProps {
@@ -268,7 +267,6 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
         setError(null)
       }
       try {
-        // @ts-expect-error - xlsx has no native @types package in some versions
         const { read } = await import('xlsx')
         const arrayBuffer = await file.arrayBuffer()
         const workbook = read(arrayBuffer, { type: 'array' }) as ExcelWorkbook
@@ -302,7 +300,6 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
   async function renderSheet(workbook: ExcelWorkbook, sheetName: string) {
     try {
       setLoading(true)
-      // @ts-expect-error - xlsx utils module lacks typings on lazy import
       const { utils } = await import('xlsx')
       const worksheet = workbook.Sheets[sheetName]
       
