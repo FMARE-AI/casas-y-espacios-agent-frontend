@@ -148,10 +148,10 @@ export const ConversationCard = memo(function ConversationCard({
     conversation.escalation?.advisor?.id === currentAdvisorId
 
   return (
-    <div className={`bg-[#252522] border border-[#3A3A37] rounded-r-lg p-3 flex flex-col justify-between transition ${containerStyles[variant]}`}>
+    <div className={`relative bg-[#252522] border border-[#3A3A37] rounded-r-lg p-3 flex flex-col justify-between transition ${containerStyles[variant]}`}>
       <div className="space-y-2">
-        <div className="flex justify-between items-start">
-          <div className="flex flex-wrap gap-1">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex flex-wrap gap-1 min-w-0">
             <span className={`${statusChipStyles[variant]} text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider`}>
               {statusChipText[variant]}
             </span>
@@ -165,7 +165,14 @@ export const ConversationCard = memo(function ConversationCard({
               </span>
             )}
           </div>
-          {renderTopRight()}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            {conversation.unread_count > 0 && (
+              <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-[#FF5B5B]/20 border border-[#FF5B5B]/40 text-[#FF5B5B] rounded-full text-[9px] font-bold leading-none">
+                {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
+              </span>
+            )}
+            {renderTopRight()}
+          </div>
         </div>
         <div>
           <h3 className="text-xs font-bold text-white truncate" title={clientName}>{clientName}</h3>
@@ -243,6 +250,7 @@ export const ConversationCard = memo(function ConversationCard({
           </>
         )}
       </div>
+
     </div>
   )
 })

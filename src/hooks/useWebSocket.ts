@@ -35,6 +35,7 @@ let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
+let currentSubscribedConversationId: string | null = null
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 30000]
 
@@ -133,7 +134,7 @@ function connect(token: string): void {
 
       case 'message.new': {
         // Defensive: backend may send conversation_id at data root instead of inside message
-        const raw = data as WSMessageNew & { conversation_id?: string }
+        const raw = data as WSMessageNew & { conversation_id?: string; unread_count?: number }
         const conversationId =
           raw.message.conversation_id ?? raw.conversation_id ?? ''
         const normalizedMsg: WSMessageNew = {
@@ -145,6 +146,19 @@ function connect(token: string): void {
         if (normalizedMsg.message.direction === 'inbound') {
           playNotificationSound()
         }
+
+        // Update unread badge on bandeja only when advisor is NOT in that chat
+        if (
+          normalizedMsg.message.direction === 'inbound' &&
+          conversationId !== currentSubscribedConversationId
+        ) {
+          window.dispatchEvent(
+            new CustomEvent('conversation:unread', {
+              detail: { conversationId, unreadCount: raw.unread_count },
+            })
+          )
+        }
+
         if (_handlers.onMessageNew) {
           _handlers.onMessageNew(normalizedMsg)
         }
@@ -356,10 +370,12 @@ export function useWebSocket(handlers?: WSHandlers) {
   }, [])
 
   const subscribeConversation = useCallback((conversationId: string) => {
+    currentSubscribedConversationId = conversationId
     sendMessage({ type: 'subscribe_conversation', conversation_id: conversationId })
   }, [])
 
   const unsubscribeConversation = useCallback(() => {
+    currentSubscribedConversationId = null
     sendMessage({ type: 'unsubscribe_conversation' })
   }, [])
 
