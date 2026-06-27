@@ -67,6 +67,19 @@ function getFileType(mimeType: string): keyof typeof FILE_TYPES | null {
   return null
 }
 
+function getDocIconInfo(mimeType: string) {
+  if (mimeType === 'application/pdf') {
+    return { icon: '📕', color: '#FF5B5B', label: 'documento PDF' }
+  }
+  if (mimeType.includes('wordprocessingml') || mimeType.includes('msword')) {
+    return { icon: '📘', color: '#01A4E3', label: 'documento Word' }
+  }
+  if (mimeType.includes('spreadsheetml') || mimeType.includes('ms-excel')) {
+    return { icon: '📗', color: '#00D4AA', label: 'hoja de cálculo Excel' }
+  }
+  return { icon: '📄', color: '#8B8FA8', label: 'documento' }
+}
+
 function FileIcon({ category }: { category: keyof typeof FILE_TYPES }) {
   if (category === 'image') return (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -85,9 +98,322 @@ function FileIcon({ category }: { category: keyof typeof FILE_TYPES }) {
   )
 }
 
-function getErrorMessage(error: any, fallback: string, file?: File): string {
-  const code = error.response?.data?.detail?.code
-  const backendMsg = error.response?.data?.detail?.message
+interface DocxPreviewProps {
+  file: File
+}
+
+function DocxPreview({ file }: DocxPreviewProps) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadDocx() {
+      if (active) {
+        setLoading(true)
+        setError(null)
+      }
+      try {
+        if (!containerRef.current) return
+        containerRef.current.innerHTML = ''
+        const { renderAsync } = await import('docx-preview')
+        
+        if (active && containerRef.current) {
+          await renderAsync(file, containerRef.current, undefined, {
+            className: 'docx-rendered',
+            inWrapper: false,
+            ignoreWidth: false,
+            ignoreHeight: false,
+            experimental: true
+          })
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error(err)
+        if (active) {
+          setError('No se pudo renderizar la vista previa de Word.')
+          setLoading(false)
+        }
+      }
+    }
+
+    loadDocx()
+
+    return () => {
+      active = false
+    }
+  }, [file])
+
+  return (
+    <div className="w-full h-full min-h-[420px] max-h-[58vh] overflow-auto rounded-lg border border-[#3A3A37]/30 bg-[#F8F9FA] p-4 sm:p-6 relative docx-preview-scroll">
+      <style>{`
+        /* Scrollbars inside the preview */
+        .docx-preview-scroll::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .docx-preview-scroll::-webkit-scrollbar-track {
+          background: #F8F9FA;
+        }
+        .docx-preview-scroll::-webkit-scrollbar-thumb {
+          background: #CBD5E0;
+          border-radius: 4px;
+        }
+        .docx-preview-scroll::-webkit-scrollbar-thumb:hover {
+          background: #A0AEC0;
+        }
+
+        .docx-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+          width: 100%;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+        .docx-container section.docx {
+          background: white !important;
+          color: #2D3748 !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
+          border-radius: 8px !important;
+          padding: 24px !important;
+          max-width: 800px !important;
+          width: 100% !important;
+          box-sizing: border-box !important;
+          min-height: auto !important;
+          margin: 0 auto !important;
+        }
+        @media (min-width: 640px) {
+          .docx-container section.docx {
+            padding: 48px !important;
+          }
+        }
+        
+        /* Overrides inside docx to look polished and cohesive */
+        .docx-container section.docx span, 
+        .docx-container section.docx p, 
+        .docx-container section.docx h1, 
+        .docx-container section.docx h2, 
+        .docx-container section.docx h3, 
+        .docx-container section.docx h4,
+        .docx-container section.docx td,
+        .docx-container section.docx th {
+          font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+          color: #1A202C !important;
+        }
+        
+        .docx-container section.docx img {
+          max-width: 100% !important;
+          height: auto !important;
+          border-radius: 4px;
+        }
+
+        .docx-container section.docx table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          margin: 15px 0 !important;
+        }
+
+        .docx-container section.docx td,
+        .docx-container section.docx th {
+          border: 1px solid #E2E8F0 !important;
+          padding: 8px !important;
+        }
+      `}</style>
+
+      {loading && (
+        <div className="absolute inset-0 bg-[#2E2E2B]/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20">
+          <div className="w-8 h-8 border-4 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+          <span className="text-xs text-white/90">Procesando y mejorando vista de Word...</span>
+        </div>
+      )}
+      {error && (
+        <div className="absolute inset-0 bg-[#252522] flex flex-col items-center justify-center text-center p-4 z-20">
+          <span className="text-3xl">📘</span>
+          <p className="text-sm font-semibold text-white mt-3">{file.name}</p>
+          <p className="text-xs text-[#FF5B5B] mt-1">{error}</p>
+        </div>
+      )}
+      <div ref={containerRef} className="docx-container" />
+    </div>
+  )
+}
+
+interface ExcelWorkbook {
+  SheetNames: string[]
+  Sheets: Record<string, any>
+}
+
+interface ExcelPreviewProps {
+  file: File
+}
+
+function ExcelPreview({ file }: ExcelPreviewProps) {
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [sheets, setSheets] = useState<string[]>([])
+  const [activeSheet, setActiveSheet] = useState<string>('')
+  const [sheetHtml, setSheetHtml] = useState<string>('')
+  const workbookRef = useRef<ExcelWorkbook | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadExcel() {
+      if (active) {
+        setLoading(true)
+        setError(null)
+      }
+      try {
+        const { read } = await import('xlsx')
+        const arrayBuffer = await file.arrayBuffer()
+        const workbook = read(arrayBuffer, { type: 'array' }) as ExcelWorkbook
+        workbookRef.current = workbook
+
+        if (active) {
+          if (workbook.SheetNames.length === 0) {
+            throw new Error('El archivo Excel no contiene hojas.')
+          }
+          setSheets(workbook.SheetNames)
+          const firstSheet = workbook.SheetNames[0]
+          setActiveSheet(firstSheet)
+          renderSheet(workbook, firstSheet)
+        }
+      } catch (err) {
+        console.error(err)
+        if (active) {
+          setError('No se pudo renderizar la vista previa de Excel.')
+          setLoading(false)
+        }
+      }
+    }
+
+    loadExcel()
+
+    return () => {
+      active = false
+    }
+  }, [file])
+
+  async function renderSheet(workbook: ExcelWorkbook, sheetName: string) {
+    try {
+      setLoading(true)
+      const { utils } = await import('xlsx')
+      const worksheet = workbook.Sheets[sheetName]
+      
+      const html = utils.sheet_to_html(worksheet, {
+        editable: false,
+        header: '',
+        footer: ''
+      })
+
+      setSheetHtml(html)
+      setLoading(false)
+    } catch (err) {
+      console.error(err)
+      setError('Error al cambiar de hoja.')
+      setLoading(false)
+    }
+  }
+
+  function handleSheetChange(sheetName: string) {
+    if (workbookRef.current) {
+      setActiveSheet(sheetName)
+      renderSheet(workbookRef.current, sheetName)
+    }
+  }
+
+  return (
+    <div className="w-full h-full min-h-[420px] max-h-[58vh] flex flex-col rounded-lg border border-[#3A3A37]/30 bg-[#F8F9FA] relative text-black overflow-hidden">
+      <style>{`
+        /* Excel Table styling */
+        .excel-table-container table {
+          border-collapse: collapse !important;
+          width: 100% !important;
+          font-size: 11px !important;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+          color: #2D3748 !important;
+          background-color: white !important;
+        }
+        .excel-table-container tr:nth-child(even) {
+          background-color: #F7FAFC !important;
+        }
+        .excel-table-container tr:hover {
+          background-color: #EDF2F7 !important;
+        }
+        .excel-table-container td {
+          border: 1px solid #E2E8F0 !important;
+          padding: 6px 12px !important;
+          white-space: nowrap !important;
+          min-width: 60px !important;
+          text-align: left !important;
+        }
+        
+        /* Excel sheets tab styling */
+        .excel-tabs::-webkit-scrollbar {
+          height: 4px;
+        }
+        .excel-tabs::-webkit-scrollbar-track {
+          background: #EDF2F7;
+        }
+        .excel-tabs::-webkit-scrollbar-thumb {
+          background: #CBD5E0;
+          border-radius: 2px;
+        }
+      `}</style>
+
+      {/* Sheets Navigation Bar */}
+      {sheets.length > 1 && (
+        <div className="excel-tabs flex items-center gap-1.5 px-4 py-2 border-b border-[#E2E8F0] bg-white overflow-x-auto shrink-0 select-none">
+          {sheets.map((sheet) => (
+            <button
+              key={sheet}
+              type="button"
+              onClick={() => handleSheetChange(sheet)}
+              className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border transition shrink-0 ${
+                activeSheet === sheet
+                  ? 'bg-[#00D4AA] border-[#00D4AA] text-white'
+                  : 'bg-[#EDF2F7] border-[#E2E8F0] text-[#4A5568] hover:bg-[#E2E8F0]'
+              }`}
+            >
+              {sheet}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Content Area */}
+      <div className="flex-1 overflow-auto p-4 excel-table-container docx-preview-scroll">
+        {loading && (
+          <div className="absolute inset-0 bg-[#2E2E2B]/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20">
+            <div className="w-8 h-8 border-4 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-white/90">Cargando datos de Excel...</span>
+          </div>
+        )}
+        {error && (
+          <div className="absolute inset-0 bg-[#252522] flex flex-col items-center justify-center text-center p-4 z-20">
+            <span className="text-3xl">📗</span>
+            <p className="text-sm font-semibold text-white mt-3">{file.name}</p>
+            <p className="text-xs text-[#FF5B5B] mt-1">{error}</p>
+          </div>
+        )}
+        {!loading && !error && (
+          <div 
+            dangerouslySetInnerHTML={{ __html: sheetHtml }} 
+            className="w-full inline-block min-w-full"
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function getErrorMessage(error: unknown, fallback: string, file?: File): string {
+  const err = error as { response?: { data?: { detail?: { code?: string; message?: string } } } }
+  const code = err.response?.data?.detail?.code
+  const backendMsg = err.response?.data?.detail?.message
 
   switch (code) {
     case 'EMPTY_MESSAGE':
@@ -227,7 +553,7 @@ export default function ChatInput({
     const url = URL.createObjectURL(file)
     setPreviewUrl(url)
 
-    if (type === 'image' || type === 'video') {
+    if (type === 'image' || type === 'video' || type === 'document') {
       setPreviewModalOpen(true)
     }
 
@@ -540,13 +866,15 @@ export default function ChatInput({
       {previewModalOpen && selectedFile && previewUrl && (
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={removeSelectedFile}>
           <div 
-            className="bg-[#252522] border border-[#3A3A37] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up"
+            className={`bg-[#252522] border border-[#3A3A37] rounded-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up transition-all duration-300 ${
+              activeCategory === 'document' ? 'max-w-4xl' : 'max-w-xl'
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
             <div className="px-4 py-3 border-b border-[#3A3A37] flex items-center justify-between bg-[#2E2E2B]/60">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                Confirmar envío de {activeCategory === 'image' ? 'imagen' : 'video'}
+                Confirmar envío de {activeCategory === 'image' ? 'imagen' : activeCategory === 'video' ? 'video' : getDocIconInfo(selectedFile.type).label}
               </h3>
               <button
                 type="button"
@@ -560,14 +888,18 @@ export default function ChatInput({
             </div>
 
             {/* Media Display */}
-            <div className="flex-1 bg-black/45 flex items-center justify-center p-6 min-h-[250px] max-h-[50vh] overflow-hidden relative">
+            <div className={`flex-1 bg-black/45 flex items-center justify-center p-6 overflow-hidden relative transition-all duration-300 ${
+              activeCategory === 'document' 
+                ? 'min-h-[450px] h-[60vh] max-h-[65vh]' 
+                : 'min-h-[250px] max-h-[50vh]'
+            }`}>
               {activeCategory === 'image' ? (
                 <img
                   src={previewUrl}
                   alt="Preview"
                   className="max-w-full max-h-[45vh] rounded-lg object-contain shadow-md animate-fade-in"
                 />
-              ) : (
+              ) : activeCategory === 'video' ? (
                 <video
                   src={previewUrl}
                   controls
@@ -575,6 +907,45 @@ export default function ChatInput({
                   playsInline
                   className="max-w-full max-h-[45vh] rounded-lg object-contain shadow-md bg-black animate-fade-in"
                 />
+              ) : selectedFile.type === 'application/pdf' ? (
+                /* PDF Preview using iframe */
+                <iframe
+                  src={previewUrl}
+                  title="PDF Preview"
+                  className="w-full h-full min-h-[420px] max-h-[58vh] rounded-lg border border-[#3A3A37]/20 bg-white shadow-md animate-fade-in"
+                />
+              ) : selectedFile.type.includes('word') || selectedFile.type.includes('msword') ? (
+                /* Word Preview using DocxPreview component */
+                <DocxPreview file={selectedFile} />
+              ) : selectedFile.type.includes('spreadsheetml') || selectedFile.type.includes('excel') ? (
+                /* Excel Preview using ExcelPreview component */
+                <ExcelPreview file={selectedFile} />
+              ) : (
+                /* Document Preview Card (Excel or others) */
+                <div className="flex flex-col items-center justify-center p-8 bg-[#252522]/90 border border-[#3A3A37] rounded-xl text-center gap-4 max-w-sm w-full shadow-2xl animate-scale-up">
+                  <div
+                    className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shadow-inner relative"
+                    style={{
+                      backgroundColor: `${getDocIconInfo(selectedFile.type).color}20`
+                    }}
+                  >
+                    <div 
+                      className="absolute inset-0 rounded-xl filter blur-md opacity-30 animate-pulse"
+                      style={{
+                        backgroundColor: getDocIconInfo(selectedFile.type).color
+                      }}
+                    />
+                    <span className="relative z-10">{getDocIconInfo(selectedFile.type).icon}</span>
+                  </div>
+                  <div className="space-y-1.5 w-full">
+                    <p className="text-sm font-semibold text-[#F0F0F5] break-all px-2 line-clamp-2">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-[#8B8FA8]">
+                      {getDocIconInfo(selectedFile.type).label.charAt(0).toUpperCase() + getDocIconInfo(selectedFile.type).label.slice(1)} • {formatFileSize(selectedFile.size)}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
 
