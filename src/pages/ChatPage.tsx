@@ -349,9 +349,11 @@ export default function ChatPage() {
     return () => clearTimeout(timer);
   }, [loadConversation]);
 
-  // Reset unread count when the advisor opens this conversation
+  // Reset unread count when the ASSIGNED ADVISOR opens this conversation.
+  // Admin is excluded: admin viewing the chat must not clear the badge
+  // that belongs to the assigned advisor.
   useEffect(() => {
-    if (!conversationId) return
+    if (!conversationId || role === 'admin') return
     conversationsService.markAsSeen(conversationId)
       .then(() => {
         window.dispatchEvent(
@@ -361,7 +363,7 @@ export default function ChatPage() {
         )
       })
       .catch(() => {})
-  }, [conversationId])
+  }, [conversationId, role])
 
   // Scroll to bottom after initial load — deferred to after paint so scrollHeight is correct
   useEffect(() => {
