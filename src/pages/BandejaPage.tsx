@@ -24,41 +24,49 @@ function ConnectedAdvisors() {
     )
   }
 
+  const online  = advisors.filter((a) => a.is_panel_connected)
+  const offline = advisors.filter((a) => !a.is_panel_connected)
+
   return (
-    <div className="flex items-center gap-3 flex-wrap text-xs mt-1" id="connected-advisors-panel">
-      <span className="text-[#8B8FA8] text-[10px] uppercase tracking-wider">En línea:</span>
-      {advisors.map((advisor) => (
-        <span key={advisor.id} className="flex items-center gap-1">
-          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-            !advisor.is_panel_connected       ? 'bg-[#8B8FA8]'
-            : advisor.availability_status === 'available' ? 'bg-[#00D4AA]'
-            : advisor.availability_status === 'break'     ? 'bg-[#FFB84D] animate-pulse'
-            : 'bg-[#8B8FA8]'
-          }`} />
+    <div className="flex items-center gap-1.5 flex-wrap mt-1.5" id="connected-advisors-panel">
+      {online.map((advisor) => {
+        const isBreak  = advisor.availability_status === 'break'
+        const isAtLimit =
+          isAdmin &&
+          advisor.active_conversations !== undefined &&
+          (advisor.active_conversations ?? 0) >= (advisor.max_conversations ?? 3)
 
-          <span className={advisor.is_panel_connected ? 'text-[#F0F0F5]' : 'text-[#8B8FA8]'}>
+        return (
+          <span
+            key={advisor.id}
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+              isBreak
+                ? 'bg-[#FFB84D]/10 border-[#FFB84D]/25 text-[#FFB84D]'
+                : 'bg-[#00D4AA]/10 border-[#00D4AA]/25 text-[#F0F0F5]'
+            }`}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+              isBreak ? 'bg-[#FFB84D] animate-pulse' : 'bg-[#00D4AA]'
+            }`} />
             {advisor.full_name.split(' ')[0]}
+            {isBreak && <span className="text-[#FFB84D]/80 font-normal">· Descanso</span>}
+            {!isBreak && isAdmin && advisor.active_conversations !== undefined && (
+              <span className={`font-mono ${isAtLimit ? 'text-[#FF5B5B]' : 'text-[#8B8FA8]'}`}>
+                {advisor.active_conversations}/{advisor.max_conversations}
+              </span>
+            )}
           </span>
+        )
+      })}
 
-          {isAdmin && advisor.is_panel_connected && advisor.availability_status === 'available' && advisor.active_conversations !== undefined && (
-            <span className={`text-[10px] ${
-              (advisor.active_conversations ?? 0) >= (advisor.max_conversations ?? 3)
-                ? 'text-[#FF5B5B] font-semibold'
-                : 'text-[#8B8FA8]'
-            }`}>
-              {advisor.active_conversations}/{advisor.max_conversations}
-            </span>
-          )}
-
-          {advisor.is_panel_connected && advisor.availability_status === 'break' && (
-            <span className="text-[10px] text-[#FFB84D]">Descanso</span>
-          )}
-
-          {!advisor.is_panel_connected && (
-            <span className="text-[10px] text-[#8B8FA8]">Fuera</span>
-          )}
+      {offline.length > 0 && (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-[#8B8FA8] border border-[#3A3A37] bg-[#2E2E2B]/40">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#3A3A37] flex-shrink-0" />
+          {offline.length === 1
+            ? `${offline[0].full_name.split(' ')[0]} · fuera`
+            : `${offline.length} fuera`}
         </span>
-      ))}
+      )}
     </div>
   )
 }
