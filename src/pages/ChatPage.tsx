@@ -735,6 +735,7 @@ export default function ChatPage() {
             onCloseConversation={() => setShowCloseModal(true)}
             isTaking={isAssigning}
             isReturning={isReturning}
+            isAdmin={role === 'admin'}
             onClose={() => setRightPanelOpen(false)}
           />
         </div>
