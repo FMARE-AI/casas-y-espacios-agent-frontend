@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { toast } from "sonner";
 import { conversationsService } from "../services/conversations";
+import { useToastStore } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
 import type {
   Conversation,
+  
   Message,
   WSConversationClosed,
   WSEscalationAssigned,
@@ -335,7 +336,7 @@ export default function ChatPage() {
       setTotalMessages(total);
       apiOffsetRef.current = msgs.length;
     } catch {
-      toast.error("No se pudo cargar la conversación");
+      // interceptor already showed the error toast
     } finally {
       setIsLoading(false);
     }
@@ -479,23 +480,6 @@ export default function ChatPage() {
     return e.response?.data?.detail?.message;
   }
 
-  function getGlobalErrorMessage(
-    code: string | undefined,
-    fallback: string,
-  ): string {
-    switch (code) {
-      case "BOT_IS_ACTIVE":
-        return "El bot tiene el control de esta conversación.";
-      case "NOT_ASSIGNED":
-        return "No estás asignado a esta conversación.";
-      case "CONVERSATION_NOT_FOUND":
-        return "Conversación no encontrada.";
-      case "ALREADY_CLOSED":
-        return "Esta conversación ya fue cerrada.";
-      default:
-        return fallback;
-    }
-  }
 
   async function handleTake() {
     if (!conversationId) return;
@@ -506,19 +490,16 @@ export default function ChatPage() {
     } catch (err: unknown) {
       const code = extractErrorCode(err);
       if (code === "ALREADY_ASSIGNED") {
-        toast.error("Otro asesor ya tomó esta conversación.");
+        useToastStore.getState().showToast("Otro asesor ya tomó esta conversación.", 'error');
         await loadConversation();
       } else if (code === "MAX_CONVERSATIONS_REACHED") {
-        toast.error(
+        useToastStore.getState().showToast(
           extractErrorMessage(err) ??
-            "Has alcanzado el límite de conversaciones simultáneas",
+            "Has alcanzado el límite de conversaciones simultáneas.",
+          'error',
         );
       } else if (code === "CONVERSATION_NOT_ESCALATED") {
-        toast.error("La conversación no está en estado escalado.");
-      } else {
-        toast.error(
-          getGlobalErrorMessage(code, "No se pudo tomar la conversación"),
-        );
+        useToastStore.getState().showToast("La conversación no está en estado escalado.", 'error');
       }
     } finally {
       setIsAssigning(false);
@@ -536,15 +517,8 @@ export default function ChatPage() {
       const code = extractErrorCode(err);
       setShowReturnModal(false);
       if (code === "BOT_ALREADY_ACTIVE") {
-        toast.info("El bot ya controla esta conversación.");
+        useToastStore.getState().showToast("El bot ya controla esta conversación.", 'info');
         await loadConversation();
-      } else {
-        toast.error(
-          getGlobalErrorMessage(
-            code,
-            "No se pudo devolver la conversación al bot",
-          ),
-        );
       }
     } finally {
       setIsReturning(false);
@@ -561,11 +535,7 @@ export default function ChatPage() {
     } catch (err: unknown) {
       const code = extractErrorCode(err);
       if (code === "ALREADY_CLOSED") {
-        toast.error("Esta conversación ya fue cerrada.");
-      } else {
-        toast.error(
-          getGlobalErrorMessage(code, "No se pudo cerrar la conversación"),
-        );
+        useToastStore.getState().showToast("Esta conversación ya fue cerrada.", 'error');
       }
     } finally {
       setIsClosing(false);

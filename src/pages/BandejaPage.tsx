@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
+import { useToastStore } from '../store/toastStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
 import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
@@ -292,10 +292,10 @@ export default function BandejaPage() {
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
       if (code === 'MAX_CONVERSATIONS_REACHED') {
-        toast.error('Has alcanzado el límite de conversaciones simultáneas.')
+        useToastStore.getState().showToast('Has alcanzado el límite de conversaciones simultáneas.', 'error')
         setTakeTarget(null)
       } else if (code === 'ALREADY_ASSIGNED') {
-        toast.error('Otro asesor ya tomó esta conversación primero.')
+        useToastStore.getState().showToast('Otro asesor ya tomó esta conversación primero.', 'error')
         setTakeTarget(null)
         await loadConversations()
       }
@@ -328,7 +328,7 @@ export default function BandejaPage() {
   }, [loadConversations])
 
   const handleQueuePending = useCallback((data: WSQueuePending) => {
-    toast.info(data.message, { duration: 6000 })
+    useToastStore.getState().showToast(data.message, 'info')
     loadConversations()
   }, [loadConversations])
 

@@ -87,7 +87,14 @@ interface DayGroup {
 function groupByDay(messages: Message[]): DayGroup[] {
   const groups: DayGroup[] = []
   for (const msg of messages) {
-    const date = parseISO(msg.timestamp)
+    let date: Date
+    try {
+      date = parseISO(msg.timestamp)
+      if (isNaN(date.getTime())) throw new Error('Invalid date')
+    } catch {
+      console.warn('[MessageFeed] unparseable timestamp, using now as fallback', msg.id, msg.timestamp)
+      date = new Date()
+    }
     const dayKey = format(date, 'yyyy-MM-dd')
     const last = groups[groups.length - 1]
     if (last && format(last.date, 'yyyy-MM-dd') === dayKey) {

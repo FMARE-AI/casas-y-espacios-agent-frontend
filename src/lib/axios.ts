@@ -79,8 +79,11 @@ apiClient.interceptors.request.use(async (config) => {
   return config
 })
 
-// Error codes handled inline by components — not intercepted globally
+// Error codes handled inline by components — not intercepted globally.
+// Add a code here when the component shows a context-specific toast or inline UI
+// (form error, modal error) for that code. The interceptor will pass it through untouched.
 const LOCAL_ERROR_CODES = new Set([
+  // Form / inline validation
   'EMPTY_MESSAGE',
   'MESSAGE_TOO_LONG',
   'INVALID_TIME_RANGE',
@@ -89,6 +92,14 @@ const LOCAL_ERROR_CODES = new Set([
   'FILE_TOO_LARGE',
   'FILE_TYPE_NOT_ALLOWED',
   'EMAIL_ALREADY_EXISTS',
+  'INVALID_SPECIALTY_FOR_AREA',
+  // Context-specific: each page shows a message tailored to its action
+  'ALREADY_ASSIGNED',
+  'MAX_CONVERSATIONS_REACHED',
+  'BOT_ALREADY_ACTIVE',
+  'ALREADY_CLOSED',
+  'CONVERSATION_NOT_ESCALATED',
+  'ADVISOR_NOT_FOUND',
 ])
 
 apiClient.interceptors.response.use(
@@ -132,12 +143,6 @@ apiClient.interceptors.response.use(
           dispatchToast('No tienes permiso para realizar esta acción.', 'error')
         } else if (code === 'CONVERSATION_OUTSIDE_AREA') {
           dispatchToast('Esta conversación no pertenece a tu área.', 'warning')
-        } else if (code === 'BOT_IS_ACTIVE') {
-          dispatchToast('El bot tiene el control de esta conversación.', 'warning')
-        } else if (code === 'NOT_ASSIGNED') {
-          dispatchToast('No estás asignado a esta conversación.', 'warning')
-        } else if (code === 'BOT_ALREADY_ACTIVE') {
-          dispatchToast('El bot ya controla esta conversación.', 'info')
         } else if (code === 'CANNOT_EDIT_YOURSELF') {
           dispatchToast('No puedes editar tu propio perfil desde esta sección.', 'warning')
         } else {
@@ -146,16 +151,8 @@ apiClient.interceptors.response.use(
         break
 
       case 409:
-        if (code === 'ALREADY_ASSIGNED') {
-          dispatchToast('Otro asesor tomó esta conversación primero.', 'warning')
-        } else if (code === 'MAX_CONVERSATIONS_REACHED') {
-          dispatchToast(message || 'Límite de conversaciones alcanzado.', 'warning')
-        } else if (code === 'ALREADY_CLOSED') {
-          dispatchToast('Esta conversación ya fue cerrada.', 'info')
-        } else if (code === 'ALREADY_REVIEWED') {
+        if (code === 'ALREADY_REVIEWED') {
           dispatchToast('Esta alerta ya fue revisada.', 'info')
-        } else if (code === 'CONVERSATION_NOT_ESCALATED') {
-          dispatchToast('La conversación no está en estado escalado.', 'warning')
         } else {
           dispatchToast(message || 'Conflicto al procesar la solicitud.', 'warning')
         }

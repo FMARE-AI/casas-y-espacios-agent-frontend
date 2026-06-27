@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
+import { useToastStore } from "../store/toastStore";
 import {
   Activity,
   Briefcase,
@@ -403,12 +403,12 @@ export default function PerfilPage() {
     if (!file || !advisor) return;
     const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Solo se permiten imágenes JPG, PNG o WEBP");
+      useToastStore.getState().showToast("Solo se permiten imágenes JPG, PNG o WEBP", 'error');
       e.target.value = "";
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("La imagen no debe superar 2MB");
+      useToastStore.getState().showToast("La imagen no debe superar 2MB", 'error');
       e.target.value = "";
       return;
     }
@@ -437,9 +437,9 @@ export default function PerfilPage() {
       });
       setAdvisor(updated);
       setStoreAdvisor(updated);
-      toast.success("Foto de perfil actualizada");
+      useToastStore.getState().showToast("Foto de perfil actualizada", 'success');
     } catch {
-      toast.error("No se pudo subir la imagen");
+      useToastStore.getState().showToast("No se pudo subir la imagen", 'error');
       setAdvisor((prev) => prev ? { ...prev, avatar_url: originalAvatarUrl } : prev);
       setStoreAdvisor({ ...useAuthStore.getState().advisor, avatar_url: originalAvatarUrl } as Advisor);
     } finally {
@@ -458,9 +458,9 @@ export default function PerfilPage() {
       setSelectedStatus(refreshed.availability_status);
       setSelectedMinutes(refreshed.availability_status === "available" ? null : minutes);
       scheduleStatusRefresh(minutes ? minutes * 60 * 1000 + 1000 : null);
-      toast.success("Disponibilidad actualizada");
+      useToastStore.getState().showToast("Disponibilidad actualizada", 'success');
     } catch {
-      toast.error("No se pudo actualizar la disponibilidad");
+      useToastStore.getState().showToast("No se pudo actualizar la disponibilidad", 'error');
     } finally {
       setIsSavingStatus(false);
     }
@@ -501,10 +501,10 @@ export default function PerfilPage() {
       setAdvisor(updated);
       setNameValue(updated.full_name);
       setStoreAdvisor(updated);
-      toast.success("Nombre actualizado");
+      useToastStore.getState().showToast("Nombre actualizado", 'success');
     } catch {
       setNameValue(advisor?.full_name ?? "");
-      toast.error("No se pudo actualizar el nombre");
+      useToastStore.getState().showToast("No se pudo actualizar el nombre", 'error');
     } finally {
       setIsSavingName(false);
     }
@@ -519,7 +519,7 @@ export default function PerfilPage() {
         new_password: data.newPassword,
       });
       reset();
-      toast.success("Contraseña actualizada correctamente");
+      useToastStore.getState().showToast("Contraseña actualizada correctamente", 'success');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: { code?: string } | string } } };
       const detail = err.response?.data?.detail;
@@ -653,7 +653,7 @@ export default function PerfilPage() {
                       onClick={() => {
                         if (advisor?.email) {
                           navigator.clipboard.writeText(advisor.email);
-                          toast.success("Correo copiado al portapapeles");
+                          useToastStore.getState().showToast("Correo copiado al portapapeles", 'success');
                         }
                       }}
                       className="inline-flex items-center gap-2 bg-bg-tertiary/20 hover:bg-bg-tertiary/40 border border-border-default/60 rounded-xl px-2.5 py-1 text-xs text-text-secondary hover:text-white transition-colors cursor-pointer group active:scale-95"

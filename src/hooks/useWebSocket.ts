@@ -135,9 +135,25 @@ function connect(token: string): void {
         // Defensive: backend may send conversation_id at data root instead of inside message
         const raw = data as WSMessageNew & { conversation_id?: string }
         const conversationId =
-          raw.message.conversation_id ?? raw.conversation_id ?? ''
+          raw.message?.conversation_id ?? raw.conversation_id ?? ''
+
+        if (!raw.message?.id) {
+          console.warn('[WS] message.new received with missing message.id — dropping', raw)
+          break
+        }
+        if (!conversationId) {
+          console.warn('[WS] message.new received with no conversation_id — dropping', raw)
+          break
+        }
+
         const normalizedMsg: WSMessageNew = {
-          message: { ...raw.message, conversation_id: conversationId },
+          message: {
+            ...raw.message,
+            conversation_id: conversationId,
+            // Fields absent from the inbound WS payload — default to null
+            transcription: raw.message.transcription ?? null,
+            advisor_name: raw.message.advisor_name ?? null,
+          },
         }
 
         // Sound only for inbound messages (client → advisor)
@@ -147,6 +163,8 @@ function connect(token: string): void {
         }
         if (_handlers.onMessageNew) {
           _handlers.onMessageNew(normalizedMsg)
+        } else {
+          console.debug('[WS] message.new received but no onMessageNew handler registered', normalizedMsg.message.conversation_id)
         }
         break
       }
