@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
-import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics } from '../types'
+import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
@@ -312,6 +312,31 @@ export default function BandejaPage() {
     }
   }
 
+  // Reset badge when the advisor opens a chat (ChatPage dispatches this)
+  useEffect(() => {
+    const handleReset = (e: Event) => {
+      const { conversationId, unreadCount } =
+        (e as CustomEvent<{ conversationId: string; unreadCount: number | undefined }>).detail
+      if (unreadCount !== 0) return
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversationId ? { ...c, unread_count: 0 } : c))
+      )
+    }
+    window.addEventListener('conversation:unread', handleReset)
+    return () => window.removeEventListener('conversation:unread', handleReset)
+  }, [])
+
+  // Increment unread badge when an inbound WS message arrives.
+  // Sound is NOT played here — useWebSocket handles it centrally with role + assignment rules.
+  const handleMessageNew = useCallback((wsMsg: WSMessageNew) => {
+    const msg = wsMsg.message
+    const convId = msg.conversation_id ?? ''
+    if (!convId || msg.direction !== 'inbound') return
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, unread_count: c.unread_count + 1 } : c))
+    )
+  }, [])
+
   // Event handlers for Websockets
   const handleEscalationNew = useCallback((data: WSEscalationNew) => {
     if (data) {
@@ -342,6 +367,7 @@ export default function BandejaPage() {
 
   // Hook up real-time websocket updates
   useWebSocket({
+    onMessageNew: handleMessageNew,
     onEscalationNew: handleEscalationNew,
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,

@@ -349,6 +349,20 @@ export default function ChatPage() {
     return () => clearTimeout(timer);
   }, [loadConversation]);
 
+  // Reset unread count when the advisor opens this conversation
+  useEffect(() => {
+    if (!conversationId) return
+    conversationsService.markAsSeen(conversationId)
+      .then(() => {
+        window.dispatchEvent(
+          new CustomEvent('conversation:unread', {
+            detail: { conversationId, unreadCount: 0 },
+          })
+        )
+      })
+      .catch(() => {})
+  }, [conversationId])
+
   // Scroll to bottom after initial load — deferred to after paint so scrollHeight is correct
   useEffect(() => {
     if (isLoading) return;
