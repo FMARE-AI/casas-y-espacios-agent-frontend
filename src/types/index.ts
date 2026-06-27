@@ -83,6 +83,7 @@ export interface Conversation {
   id: string
   status: ConversationStatus
   bot_activo: boolean
+  has_escalation_history: boolean
   channel: string
   last_activity: string
   client: Client
