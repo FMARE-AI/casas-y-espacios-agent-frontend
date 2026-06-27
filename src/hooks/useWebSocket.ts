@@ -35,6 +35,8 @@ let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
+// Tracks which conversation the active advisor has open — used to gate message sounds
+let subscribedConversationId: string | null = null
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 30000]
 
@@ -156,9 +158,16 @@ function connect(token: string): void {
           },
         }
 
-        // Sound only for inbound messages (client → advisor)
-        // outbound_advisor and outbound_bot are silent
-        if (normalizedMsg.message.direction === 'inbound') {
+        // Sound rules:
+        // - Admin: never sounds (audit-only role)
+        // - Asesor: sounds only when the message is inbound AND the advisor
+        //   has that conversation open (subscribed). Prevents noise from other
+        //   advisors' conversations arriving over the same WS channel.
+        const { advisor } = useAuthStore.getState()
+        const isAdmin = advisor?.role === 'admin'
+        const isChatOpen = normalizedMsg.message.conversation_id === subscribedConversationId
+
+        if (!isAdmin && normalizedMsg.message.direction === 'inbound' && isChatOpen) {
           playNotificationSound()
         }
         if (_handlers.onMessageNew) {
@@ -171,7 +180,11 @@ function connect(token: string): void {
 
       case 'escalation.new': {
         const escData = data as WSEscalationNew
-        playNotificationSound()
+        // Admin never sounds. Asesor always sounds — new escalation is actionable work.
+        const isAdminOnEscalation = useAuthStore.getState().advisor?.role === 'admin'
+        if (!isAdminOnEscalation) {
+          playNotificationSound()
+        }
         if (_handlers.onEscalationNew) {
           _handlers.onEscalationNew(escData)
         }
@@ -374,10 +387,12 @@ export function useWebSocket(handlers?: WSHandlers) {
   }, [])
 
   const subscribeConversation = useCallback((conversationId: string) => {
+    subscribedConversationId = conversationId
     sendMessage({ type: 'subscribe_conversation', conversation_id: conversationId })
   }, [])
 
   const unsubscribeConversation = useCallback(() => {
+    subscribedConversationId = null
     sendMessage({ type: 'unsubscribe_conversation' })
   }, [])
 
