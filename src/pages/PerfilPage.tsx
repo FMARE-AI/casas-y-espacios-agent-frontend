@@ -17,7 +17,6 @@ import {
   Pause,
   Shield,
   ShieldAlert,
-  Sun,
   X,
 } from "lucide-react";
 import { advisorsService } from "../services/advisors";
@@ -26,9 +25,7 @@ import { supabase } from "../lib/supabase";
 import type { Advisor, AdvisorRole, AvailabilityStatus } from "../types";
 import ScheduleManager from "../components/perfil/ScheduleManager";
 
-const STORAGE_BUCKET = (import.meta.env.VITE_SUPABAS_BUCKET_NAME ||
-  import.meta.env.VITE_SUPABASE_BUCKET_NAME ||
-  "casas-y-espacios-media") as string;
+const STORAGE_BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET_NAME || "casas-y-espacios-media") as string;
 
 // ── Schema contraseña ─────────────────────────────────────
 
@@ -296,7 +293,8 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
 // ── Page ──────────────────────────────────────────────────
 
 export default function PerfilPage() {
-  const { advisor: storeAdvisor, setAdvisor: setStoreAdvisor } = useAuthStore();
+  const storeAdvisor = useAuthStore((s) => s.advisor);
+  const setStoreAdvisor = useAuthStore((s) => s.setAdvisor);
 
   const [advisor, setAdvisor] = useState<Advisor | null>(storeAdvisor);
   const [isLoading, setIsLoading] = useState(true);
@@ -419,8 +417,8 @@ export default function PerfilPage() {
     const reader = new FileReader();
     reader.onloadend = () => {
       const localUrl = reader.result as string;
-      setAdvisor({ ...advisor, avatar_url: localUrl });
-      setStoreAdvisor({ ...advisor, avatar_url: localUrl });
+      setAdvisor((prev) => prev ? { ...prev, avatar_url: localUrl } : prev);
+      setStoreAdvisor({ ...useAuthStore.getState().advisor, avatar_url: localUrl } as Advisor);
     };
     reader.readAsDataURL(file);
     try {
@@ -442,8 +440,8 @@ export default function PerfilPage() {
       toast.success("Foto de perfil actualizada");
     } catch {
       toast.error("No se pudo subir la imagen");
-      setAdvisor({ ...advisor, avatar_url: originalAvatarUrl });
-      setStoreAdvisor({ ...advisor, avatar_url: originalAvatarUrl });
+      setAdvisor((prev) => prev ? { ...prev, avatar_url: originalAvatarUrl } : prev);
+      setStoreAdvisor({ ...useAuthStore.getState().advisor, avatar_url: originalAvatarUrl } as Advisor);
     } finally {
       setUploadingAvatar(false);
       e.target.value = "";
@@ -537,7 +535,6 @@ export default function PerfilPage() {
   }
 
   const currentStatus = advisor?.availability_status ?? "available";
-  const isVacationMode = currentStatus === "offline" && !advisor?.status_until;
 
   return (
     <section
@@ -559,26 +556,6 @@ export default function PerfilPage() {
           <div className="space-y-4 w-full animate-fadeIn">
             {/* ── Hero card ── */}
             <div className="relative overflow-hidden rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm">
-              {/* Top-right actions (desktop) */}
-              <div className="hidden sm:flex absolute top-5 right-5 items-center">
-                <button
-                  type="button"
-                  onClick={() => handleApplyStatusDirectly("offline", null)}
-                  disabled={isSavingStatus || isVacationMode}
-                  className={[
-                    "text-[10px] px-3 py-1.5 rounded-lg font-bold border transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
-                    isVacationMode
-                      ? "bg-warning/10 text-warning border-warning/20"
-                      : "bg-bg-tertiary/40 text-text-secondary border-border-default hover:text-warning hover:border-warning/35",
-                  ].join(" ")}
-                >
-                  <div className="flex items-center gap-1">
-                    <Sun className="w-3 h-3" />
-                    <span>Modo Vacaciones</span>
-                  </div>
-                </button>
-              </div>
-
               <div className="flex flex-col sm:flex-row items-center gap-5">
                 {/* Avatar with simple overlay */}
                 <div className="relative shrink-0 group">
@@ -733,25 +710,6 @@ export default function PerfilPage() {
                     </div>
                   </div>
 
-                  {/* Mobile actions */}
-                  <div className="flex sm:hidden justify-center pt-1">
-                    <button
-                      type="button"
-                      onClick={() => handleApplyStatusDirectly("offline", null)}
-                      disabled={isSavingStatus || isVacationMode}
-                      className={[
-                        "text-[11px] px-2.5 py-1 rounded font-bold border transition-all cursor-pointer disabled:opacity-50",
-                        isVacationMode
-                          ? "bg-warning/10 text-warning border-warning/20"
-                          : "bg-bg-tertiary/50 text-text-secondary border-border-default",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-center gap-1">
-                        <Sun className="w-3 h-3" />
-                        <span>Modo Vacaciones</span>
-                      </div>
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>

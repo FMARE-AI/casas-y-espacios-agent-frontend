@@ -13,6 +13,7 @@ import MessageFeed from "../components/chat/MessageFeed";
 import ChatInput from "../components/chat/ChatInput";
 import ClientPanel, { type ChatVariant } from "../components/chat/ClientPanel";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { ROUTES } from "../constants/routes";
 
 // ── Return-bot confirmation modal ─────────────────────────
 
@@ -294,7 +295,8 @@ export default function ChatPage() {
   const { id: conversationId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { advisor, role } = useAuthStore();
+  const advisor = useAuthStore((s) => s.advisor);
+  const role = useAuthStore((s) => s.role);
 
   const fromAlert: boolean = location.state?.fromAlert ?? false;
   const alertAdvisorName: string | undefined = location.state?.advisorName;
@@ -408,7 +410,7 @@ export default function ChatPage() {
   const onConversationClosed = useCallback(
     (event: WSConversationClosed) => {
       if (event.conversation_id === conversationId) {
-        navigate("/");
+        navigate(ROUTES.BANDEJA);
       }
     },
     [conversationId, navigate],

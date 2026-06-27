@@ -12,9 +12,11 @@ if (import.meta.env.MODE !== 'production') {
     import('./store/wsStore'),
     import('./store/toastStore'),
   ]).then(([{ useAuthStore }, { useWSStore }, { useToastStore }]) => {
-    ;(window as Window & { __auth: typeof useAuthStore; __ws: typeof useWSStore; __toast: typeof useToastStore }).__auth = useAuthStore
-    ;(window as Window & { __auth: typeof useAuthStore; __ws: typeof useWSStore; __toast: typeof useToastStore }).__ws = useWSStore
-    ;(window as Window & { __auth: typeof useAuthStore; __ws: typeof useWSStore; __toast: typeof useToastStore }).__toast = useToastStore
+    type DebugWindow = Window & { __auth: typeof useAuthStore; __ws: typeof useWSStore; __toast: typeof useToastStore }
+    const w = window as unknown as DebugWindow
+    w.__auth = useAuthStore
+    w.__ws = useWSStore
+    w.__toast = useToastStore
   })
 }
 

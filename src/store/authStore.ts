@@ -21,6 +21,8 @@ interface AuthState {
   isLoading: boolean
   isFirstLogin: boolean
   sessionExpired: boolean
+  blockedTitle: string | null
+  blockedMessage: string | null
   error: string | null
 
   setSession: (data: SessionData) => void
@@ -30,6 +32,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void
   setFirstLogin: (value: boolean) => void
   setSessionExpired: (value: boolean) => void
+  setBlockedModal: (title: string, message: string) => void
   setError: (message: string | null) => void
   reset: () => void
 }
@@ -43,6 +46,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   isFirstLogin: false,
   sessionExpired: false,
+  blockedTitle: null,
+  blockedMessage: null,
   error: null,
 
   setSession: (data) => {
@@ -73,6 +78,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       role: null,
       isFirstLogin: false,
       sessionExpired: false,
+      blockedTitle: null,
+      blockedMessage: null,
       error: null,
     })
   },
@@ -105,6 +112,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
   setFirstLogin: (isFirstLogin) => set({ isFirstLogin }),
   setSessionExpired: (sessionExpired) => set({ sessionExpired }),
+  setBlockedModal: (blockedTitle, blockedMessage) => set({ blockedTitle, blockedMessage }),
   setError: (error) => set({ error }),
 
   reset: () => {
@@ -120,6 +128,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       role: null,
       isFirstLogin: false,
       sessionExpired: false,
+      blockedTitle: null,
+      blockedMessage: null,
       error: null,
     })
   },

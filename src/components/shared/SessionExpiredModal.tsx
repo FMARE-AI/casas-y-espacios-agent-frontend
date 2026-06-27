@@ -6,7 +6,11 @@ import { useAuthStore } from '../../store/authStore'
 export default function SessionExpiredModal() {
   const { signOut } = useAuth()
   const navigate = useNavigate()
-  const authStore = useAuthStore()
+  const blockedTitle = useAuthStore((s) => s.blockedTitle)
+  const blockedMessage = useAuthStore((s) => s.blockedMessage)
+
+  const title = blockedTitle ?? 'Tu sesión ha expirado'
+  const message = blockedMessage ?? 'Por seguridad, tu sesión se cerró automáticamente. Ingresa nuevamente para continuar.'
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -17,13 +21,8 @@ export default function SessionExpiredModal() {
   }, [])
 
   const handleGoToLogin = async () => {
-    // 1. Limpiar el estado de sesión expirada
-    authStore.setSessionExpired(false)
-
-    // 2. Limpiar la sesión de Supabase
+    useAuthStore.getState().setSessionExpired(false)
     await signOut()
-
-    // 3. Navegar al login
     navigate('/login', { replace: true })
   }
 
@@ -47,10 +46,8 @@ export default function SessionExpiredModal() {
               />
             </svg>
           </div>
-          <h3 className="text-sm font-bold text-white">Tu sesión ha expirado</h3>
-          <p className="text-xs text-[#8B8FA8] mt-2 leading-relaxed">
-            Por seguridad, tu sesión se cerró automáticamente. Ingresa nuevamente para continuar.
-          </p>
+          <h3 className="text-sm font-bold text-white">{title}</h3>
+          <p className="text-xs text-[#8B8FA8] mt-2 leading-relaxed">{message}</p>
         </div>
 
         <div className="pt-2 text-xs">
