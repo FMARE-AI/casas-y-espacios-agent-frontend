@@ -334,18 +334,19 @@ export default function BandejaPage() {
     return () => window.removeEventListener('conversation:unread', handleReset)
   }, [])
 
-  // Increment unread badge and update last_message preview when an inbound WS message arrives.
+  // Update last_message preview for every new message (inbound or outbound).
+  // Only increment unread_count for inbound — outbound messages are already seen by the sender.
   // Sound is NOT played here — useWebSocket handles it centrally with role + assignment rules.
   const handleMessageNew = useCallback((wsMsg: WSMessageNew) => {
     const msg = wsMsg.message
     const convId = msg.conversation_id ?? ''
-    if (!convId || msg.direction !== 'inbound') return
+    if (!convId) return
     setConversations((prev) =>
       prev.map((c) => {
         if (c.id !== convId) return c
         return {
           ...c,
-          unread_count: c.unread_count + 1,
+          unread_count: msg.direction === 'inbound' ? c.unread_count + 1 : c.unread_count,
           last_message: { msg_type: msg.msg_type, content: msg.content ?? null },
           last_activity: msg.created_at,
         }
