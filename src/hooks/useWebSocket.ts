@@ -2,6 +2,7 @@
 import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
+import { advisorsService } from '../services/advisors'
 import type {
   WSEscalationNew,
   WSEscalationAssigned,
@@ -109,9 +110,20 @@ function connect(token: string): void {
 
   ws.onopen = () => {
     isConnecting = false
+    const wasReconnecting = useWSStore.getState().reconnectAttempt > 0
     useWSStore.getState().setStatus('connected')
     useWSStore.getState().setReconnectAttempt(0)
     startPing()
+
+    if (wasReconnecting) {
+      // Sync advisor state after backend restart or network drop
+      advisorsService.getMe()
+        .then(({ advisor }) => useAuthStore.getState().setAdvisor(advisor))
+        .catch(() => {})
+      advisorsService.getOnline()
+        .then((advisors) => useWSStore.getState().setAdvisors(advisors))
+        .catch(() => {})
+    }
   }
 
   ws.onmessage = (event: MessageEvent) => {
@@ -137,12 +149,25 @@ function connect(token: string): void {
         useWSStore.getState().removeConnectedAdvisor((data as WSAdvisorDisconnected).advisor_id)
         break
 
-      case 'advisor.status_changed':
-        useWSStore.getState().updateAdvisorStatus(data as WSAdvisorStatusChanged)
+      case 'advisor.status_changed': {
+        const statusData = data as WSAdvisorStatusChanged
+        useWSStore.getState().updateAdvisorStatus(statusData)
+
+        // If the backend job changed the current user's status, mirror it in authStore
+        // so the sidebar/header indicator updates without requiring a page reload.
+        const currentAdvisor = useAuthStore.getState().advisor
+        if (currentAdvisor && currentAdvisor.id === statusData.advisor_id) {
+          useAuthStore.getState().setAdvisor({
+            ...currentAdvisor,
+            availability_status: statusData.availability_status,
+          })
+        }
+
         if (_handlers.onAdvisorStatusChanged) {
-          _handlers.onAdvisorStatusChanged(data as WSAdvisorStatusChanged)
+          _handlers.onAdvisorStatusChanged(statusData)
         }
         break
+      }
 
       case 'message.new': {
         // Defensive: backend may send conversation_id at data root instead of inside message
