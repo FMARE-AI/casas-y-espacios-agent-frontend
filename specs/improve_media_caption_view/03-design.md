@@ -66,7 +66,51 @@ function getFileName(url: string | null): string {
     const parts = url.split('/')
     const last = parts[parts.length - 1]
     const name = last.split('?')[0]
-    return decodeURIComponent(name) || 'Archivo'
+    const decodedName = decodeURIComponent(name) || 'Archivo'
+
+    // Separar nombre base y extensión
+    const extIndex = decodedName.lastIndexOf('.')
+    const baseName = extIndex !== -1 ? decodedName.slice(0, extIndex) : decodedName
+    const ext = extIndex !== -1 ? decodedName.slice(extIndex).toLowerCase() : ''
+
+    let cleanBase = baseName
+
+    // Quitar prefijo de timestamp (ej: 1719543592_ o 1719543592-)
+    cleanBase = cleanBase.replace(/^\d{10,15}[_-]/, '')
+
+    // Quitar sufijo de timestamp (ej: _1719543592 o -1719543592)
+    cleanBase = cleanBase.replace(/[_-]\d{10,15}$/, '')
+
+    // Identificar UUIDs, hashes hexadecimales largos, o secuencias puramente numéricas
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBase)
+    const isHash = /^[0-9a-f]{24,}$/i.test(cleanBase)
+    const isDigits = /^\d+$/.test(cleanBase)
+
+    if (!cleanBase || isUuid || isHash || isDigits) {
+      const standardNames: Record<string, string> = {
+        '.pdf': 'Documento',
+        '.docx': 'Documento Word',
+        '.doc': 'Documento Word',
+        '.xlsx': 'Hoja de Cálculo',
+        '.xls': 'Hoja de Cálculo',
+        '.csv': 'Archivo CSV',
+        '.pptx': 'Presentación',
+        '.ppt': 'Presentación',
+        '.png': 'Imagen',
+        '.jpg': 'Imagen',
+        '.jpeg': 'Imagen',
+        '.webp': 'Imagen',
+        '.mp4': 'Video',
+        '.3gp': 'Video',
+        '.ogg': 'Audio',
+        '.mp3': 'Audio',
+        '.wav': 'Audio',
+        '.m4a': 'Audio',
+      }
+      cleanBase = standardNames[ext] ?? 'Archivo'
+    }
+
+    return cleanBase + ext
   } catch {
     return 'Archivo'
   }

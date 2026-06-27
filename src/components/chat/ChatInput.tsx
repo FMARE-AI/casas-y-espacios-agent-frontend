@@ -129,6 +129,8 @@ export default function ChatInput({
 }: ChatInputProps) {
   const [text, setText] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewModalOpen, setPreviewModalOpen] = useState(false)
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -137,6 +139,15 @@ export default function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Liberar el preview URL al desmontar
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   const updateTypingStatus = (status: boolean) => {
     if (typingTimeoutRef.current && !status) {
@@ -207,6 +218,19 @@ export default function ChatInput({
       return
     }
     setSelectedFile(file)
+
+    // Revoke old URL if exists
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+
+    const url = URL.createObjectURL(file)
+    setPreviewUrl(url)
+
+    if (type === 'image' || type === 'video') {
+      setPreviewModalOpen(true)
+    }
+
     // Limpiar el input para permitir seleccionar
     // el mismo archivo dos veces
     e.target.value = ''
@@ -214,6 +238,11 @@ export default function ChatInput({
 
   function removeSelectedFile() {
     setSelectedFile(null)
+    setPreviewModalOpen(false)
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      setPreviewUrl(null)
+    }
   }
 
   function showError(message: string) {
@@ -260,7 +289,7 @@ export default function ChatInput({
         const { message } = await conversationsService
           .replyMedia(conversationId, selectedFile, caption)
         onMessageSent(message)
-        setSelectedFile(null)
+        removeSelectedFile()
         setText('')
 
         // Auto scroll to bottom
@@ -288,10 +317,10 @@ export default function ChatInput({
       {/* Context bar */}
       <div
         id="chat-context-restriction-bar"
-        className="bg-[#2E2E2B]/60 px-3 py-1.5 border border-[#3A3A37] rounded flex flex-wrap justify-between items-center text-[10px] sm:text-[11px] text-[#8B8FA8]"
+        className="bg-[#2E2E2B]/50 px-3.5 py-2 border border-[#3A3A37]/50 rounded-lg flex flex-wrap justify-between items-center text-[10px] sm:text-[11px] text-[#8B8FA8] shadow-sm"
       >
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#01A4E3]" />
+          <span className="w-1.5 h-1.5 rounded-full bg-[#01A4E3] animate-pulse" />
           <span>
             Respondiendo a: <strong className="text-white">{clientName}</strong>
             {' • '}Línea {channel}
@@ -331,28 +360,39 @@ export default function ChatInput({
       {selectedFile && (
         <div
           id="file-preview-bar"
-          className="flex items-center justify-between p-2 bg-[#252522] border border-[#3A3A37] rounded text-xs"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-[#2E2E2B]/90 backdrop-blur-sm border border-[#3A3A37] rounded-xl text-xs shadow-lg gap-3 animate-fade-in"
         >
-          <div className="flex items-center gap-2.5">
-            <div
-              id="file-preview-icon"
-              className={`w-8 h-8 rounded border overflow-hidden flex items-center justify-center ${FILE_ICON_COLORS[activeCategory]}`}
-            >
-              {activeCategory === 'image' ? (
-                <img
-                  src={URL.createObjectURL(selectedFile)}
-                  alt="preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
+          <div className="flex items-start sm:items-center gap-3 w-full sm:w-auto">
+            {/* Contenedor del Preview más grande para Imagen/Video */}
+            {(activeCategory === 'image' || activeCategory === 'video') ? (
+              <div className="w-24 h-24 sm:w-32 sm:h-20 rounded-lg overflow-hidden border border-white/10 bg-black flex-shrink-0 relative shadow">
+                {activeCategory === 'image' ? (
+                  <img
+                    src={previewUrl ?? ''}
+                    alt="preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <video
+                    src={previewUrl ?? ''}
+                    className="w-full h-full object-cover"
+                    muted
+                    playsInline
+                  />
+                )}
+              </div>
+            ) : (
+              // Documento
+              <div className={`w-12 h-12 rounded-lg border flex items-center justify-center flex-shrink-0 shadow-sm ${FILE_ICON_COLORS[activeCategory]}`}>
                 <FileIcon category={activeCategory} />
-              )}
-            </div>
-            <div>
-              <p className="text-white font-semibold truncate max-w-[180px]" id="file-preview-name">
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <p className="text-white font-bold truncate max-w-[200px] sm:max-w-[300px]" id="file-preview-name">
                 {selectedFile.name}
               </p>
-              <p className="text-[#8B8FA8] text-[10px]" id="file-preview-size">
+              <p className="text-[#8B8FA8] text-[10px] mt-0.5" id="file-preview-size">
                 {formatFileSize(selectedFile.size)} • {getFileLabel(selectedFile.type)}
               </p>
             </div>
@@ -360,7 +400,8 @@ export default function ChatInput({
           <button
             type="button"
             onClick={removeSelectedFile}
-            className="text-[#8B8FA8] hover:text-[#FF5B5B] transition p-1 rounded hover:bg-[#FF5B5B]/10"
+            className="text-[#8B8FA8] hover:text-[#FF5B5B] hover:bg-[#FF5B5B]/10 p-2 rounded-lg transition active:scale-95 flex-shrink-0 self-end sm:self-center border border-transparent hover:border-[#FF5B5B]/20"
+            title="Quitar archivo"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -372,7 +413,7 @@ export default function ChatInput({
       {/* Typing area */}
       <div
         id="chat-input-typing-area"
-        className="relative flex items-start bg-[#2E2E2B] border border-[#3A3A37] rounded focus-within:border-[#01A4E3] transition p-2 gap-2"
+        className="relative flex items-start bg-[#2E2E2B]/85 border border-[#3A3A37] rounded-xl focus-within:border-[#01A4E3] focus-within:ring-1 focus-within:ring-[#01A4E3]/25 shadow-inner transition duration-200 p-2 gap-2"
       >
         {/* Attach button + dropdown */}
         {recorderState === 'idle' && (
@@ -381,7 +422,7 @@ export default function ChatInput({
               type="button"
               onClick={toggleAttachMenu}
               disabled={variant !== 'assigned' || sending || selectedFile !== null}
-              className="p-2 text-[#8B8FA8] hover:text-white hover:bg-[#3A3A37] rounded transition disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+              className="p-2.5 text-[#8B8FA8] hover:text-white hover:bg-[#3A3A37] rounded-lg transition active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
               title="Adjuntar archivo"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -392,7 +433,7 @@ export default function ChatInput({
             {attachMenuOpen && (
               <div
                 id="attach-menu"
-                className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-lg shadow-xl z-50 w-36 overflow-hidden"
+                className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-xl shadow-2xl z-50 w-36 overflow-hidden animate-fade-in"
               >
                 <button
                   type="button"
@@ -467,7 +508,7 @@ export default function ChatInput({
                   ? 'Añade una descripción opcional...'
                   : 'Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)'
               }
-              className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-[#8B8FA8] resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-[#8B8FA8]/70 resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"
             />
 
             {/* Counter + send */}
@@ -477,7 +518,7 @@ export default function ChatInput({
                 type="button"
                 onClick={handleSend}
                 disabled={sending || variant !== 'assigned' || (!text.trim() && !selectedFile)}
-                className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white p-2 rounded transition flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white p-2.5 rounded-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
               >
                 {sending ? (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -494,6 +535,106 @@ export default function ChatInput({
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelected} />
+
+      {/* Media Preview Modal Overlay */}
+      {previewModalOpen && selectedFile && previewUrl && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={removeSelectedFile}>
+          <div 
+            className="bg-[#252522] border border-[#3A3A37] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-4 py-3 border-b border-[#3A3A37] flex items-center justify-between bg-[#2E2E2B]/60">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                Confirmar envío de {activeCategory === 'image' ? 'imagen' : 'video'}
+              </h3>
+              <button
+                type="button"
+                onClick={removeSelectedFile}
+                className="text-[#8B8FA8] hover:text-white transition p-1.5 rounded-lg hover:bg-[#FF5B5B]/10 active:scale-95 cursor-pointer"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Media Display */}
+            <div className="flex-1 bg-black/45 flex items-center justify-center p-6 min-h-[250px] max-h-[50vh] overflow-hidden relative">
+              {activeCategory === 'image' ? (
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className="max-w-full max-h-[45vh] rounded-lg object-contain shadow-md animate-fade-in"
+                />
+              ) : (
+                <video
+                  src={previewUrl}
+                  controls
+                  preload="auto"
+                  playsInline
+                  className="max-w-full max-h-[45vh] rounded-lg object-contain shadow-md bg-black animate-fade-in"
+                />
+              )}
+            </div>
+
+            {/* Info & Caption Input */}
+            <div className="p-4 border-t border-[#3A3A37] bg-[#2E2E2B]/40 space-y-3">
+              <div className="flex items-center justify-between text-[10px] text-[#8B8FA8]">
+                <span className="truncate max-w-[320px] font-semibold text-white/90">{selectedFile.name}</span>
+                <span>{formatFileSize(selectedFile.size)}</span>
+              </div>
+
+              <div className="flex items-center gap-2 bg-[#252522] border border-[#3A3A37] rounded-xl px-3 py-2 focus-within:border-[#01A4E3] focus-within:ring-1 focus-within:ring-[#01A4E3]/25 transition duration-200 shadow-inner">
+                <input
+                  type="text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Añade un comentario o descripción (opcional)..."
+                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder-[#8B8FA8]/70"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleSend()
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={removeSelectedFile}
+                  className="px-4 py-2 text-xs font-semibold text-[#8B8FA8] hover:text-white transition rounded-xl hover:bg-white/5 active:scale-95 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={sending}
+                  className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+                >
+                  {sending ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Enviando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Enviar</span>
+                      <svg className="w-3.5 h-3.5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

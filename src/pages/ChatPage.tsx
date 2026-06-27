@@ -16,6 +16,18 @@ import ClientPanel, { type ChatVariant } from "../components/chat/ClientPanel";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { ROUTES } from "../constants/routes";
 
+function getInitials(name: string): string {
+  try {
+    const clean = name.trim();
+    if (!clean) return "C";
+    const parts = clean.split(/\s+/);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  } catch {
+    return "C";
+  }
+}
+
 // ── Return-bot confirmation modal ─────────────────────────
 
 function ReturnBotModal({
@@ -583,12 +595,12 @@ export default function ChatPage() {
       {/* ── Central column ── */}
       <div className="flex-1 flex flex-col bg-[#1D1D1B] border-r border-[#3A3A37] min-w-0 min-h-0">
         {/* Header */}
-        <div className="bg-[#252522] p-3 border-b border-[#3A3A37] flex justify-between items-center shrink-0">
-          <div className="flex items-center space-x-2">
+        <div className="bg-[#252522] px-4 py-3 border-b border-[#3A3A37] flex justify-between items-center shrink-0">
+          <div className="flex items-center space-x-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] rounded text-xs font-semibold text-[#8B8FA8] hover:text-white transition"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] rounded-lg text-xs font-semibold text-[#8B8FA8] hover:text-white transition active:scale-95 shrink-0"
             >
               <svg
                 className="w-3.5 h-3.5"
@@ -605,16 +617,24 @@ export default function ChatPage() {
               </svg>
               <span className="hidden sm:inline">Volver</span>
             </button>
+
+            {/* Avatar del Cliente con Iniciales */}
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#01A4E3] to-[#00D4AA] flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-lg border border-[#3A3A37]/35 select-none">
+              {getInitials(clientName)}
+            </div>
+
             <div>
               <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
                 {clientName}
                 <span
                   id="chat-header-status-dot"
-                  className={`w-1.5 h-1.5 rounded-full inline-block ${STATUS_DOT[variant]}`}
+                  className={`w-2 h-2 rounded-full inline-block ${STATUS_DOT[variant]} ring-2 ring-[#252522]`}
+                  title={`Estado: ${variant}`}
                 />
               </h3>
-              <p className="text-[9px] text-[#8B8FA8]">
-                Canal: {channel || "—"}
+              <p className="text-[9px] text-[#8B8FA8] flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500/20 border border-green-500/40 inline-block" />
+                WhatsApp: {channel || "—"}
               </p>
             </div>
           </div>
