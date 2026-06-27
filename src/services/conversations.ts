@@ -83,4 +83,9 @@ export const conversationsService = {
     const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/close`, body ?? {})
     return data.data
   },
+
+  async markAsSeen(conversationId: string): Promise<{ unread_count: number }> {
+    const { data } = await apiClient.patch(`/api/v1/panel/conversations/${conversationId}/seen`)
+    return data.data
+  },
 }

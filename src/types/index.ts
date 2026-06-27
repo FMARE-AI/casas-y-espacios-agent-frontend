@@ -94,6 +94,7 @@ export interface Conversation {
   closed_by: 'asesor' | 'bot' | null
   closed_at: string | null
   last_message: ConversationLastMessage | null
+  unread_count: number
 }
 
 export interface BehaviorAlert {
@@ -177,6 +178,8 @@ export interface WSEscalationNew {
 
 export interface WSMessageNew {
   message: Message
+  conversation_id?: string
+  unread_count?: number
 }
 
 export interface WSAdvisorConnected {

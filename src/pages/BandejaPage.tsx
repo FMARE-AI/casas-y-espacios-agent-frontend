@@ -4,11 +4,11 @@ import { toast } from 'sonner'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
-import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics } from '../types'
+import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useWebSocket, playNotificationSound } from '../hooks/useWebSocket'
 
 // --- LOCAL COMPONENTS ---
 
@@ -304,6 +304,31 @@ export default function BandejaPage() {
     }
   }
 
+  // Reset badge when the advisor opens a chat (ChatPage dispatches this)
+  useEffect(() => {
+    const handleReset = (e: Event) => {
+      const { conversationId, unreadCount } =
+        (e as CustomEvent<{ conversationId: string; unreadCount: number | undefined }>).detail
+      if (unreadCount !== 0) return
+      setConversations((prev) =>
+        prev.map((c) => (c.id === conversationId ? { ...c, unread_count: 0 } : c))
+      )
+    }
+    window.addEventListener('conversation:unread', handleReset)
+    return () => window.removeEventListener('conversation:unread', handleReset)
+  }, [])
+
+  // Increment badge and play sound directly when an inbound WS message arrives
+  const handleMessageNew = useCallback((wsMsg: WSMessageNew) => {
+    const msg = wsMsg.message
+    const convId = msg.conversation_id ?? ''
+    if (!convId || msg.direction !== 'inbound') return
+    playNotificationSound()
+    setConversations((prev) =>
+      prev.map((c) => (c.id === convId ? { ...c, unread_count: c.unread_count + 1 } : c))
+    )
+  }, [])
+
   // Event handlers for Websockets
   const handleEscalationNew = useCallback((data: WSEscalationNew) => {
     if (data) {
@@ -334,6 +359,7 @@ export default function BandejaPage() {
 
   // Hook up real-time websocket updates
   useWebSocket({
+    onMessageNew: handleMessageNew,
     onEscalationNew: handleEscalationNew,
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,
