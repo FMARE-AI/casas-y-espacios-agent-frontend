@@ -310,6 +310,7 @@ export default function ChatPage() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [showReturnedPill, setShowReturnedPill] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   // Tracks messages loaded via API only — WS messages must not affect pagination offset
   const apiOffsetRef = useRef(0);
@@ -327,6 +328,7 @@ export default function ChatPage() {
         fromAlert ? 100 : 50,
       );
       setConversation(conv);
+      setShowReturnedPill(conv.bot_activo && conv.has_escalation_history);
       setMessages(msgs);
       setTotalMessages(total);
       apiOffsetRef.current = msgs.length;
@@ -396,6 +398,7 @@ export default function ChatPage() {
   const onConversationReturned = useCallback(
     (event: { conversation_id: string }) => {
       if (event.conversation_id === conversationId) {
+        setShowReturnedPill(true);
         loadConversation();
       }
     },
@@ -688,9 +691,7 @@ export default function ChatPage() {
           isLoading={isLoading}
           isLoadingMore={isLoadingMore}
           showEscalationEvent={conversation?.status === "escalada"}
-          showReturnedEvent={
-            conversation?.bot_activo === true && variant === "bot"
-          }
+          showReturnedEvent={showReturnedPill}
           advisorName={fromAlert ? alertAdvisorName : advisor?.full_name}
           onScrollTop={loadMoreMessages}
           feedRef={feedRef}
@@ -734,7 +735,9 @@ export default function ChatPage() {
                 id="chat-banner-bot"
                 className="p-2.5 bg-[#00D4AA]/10 text-center border border-[#00D4AA]/30 rounded text-xs text-[#00D4AA] font-semibold"
               >
-                🤖 El bot retomó esta conversación de forma autónoma.
+                {conversation?.has_escalation_history
+                  ? "🤖 El bot retomó esta conversación."
+                  : "🤖 El bot está gestionando esta conversación."}
               </div>
             )}
           </div>

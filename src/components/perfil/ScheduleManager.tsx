@@ -1,44 +1,47 @@
-import { useEffect, useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { toast } from 'sonner'
-import { schedulesService, getScheduleErrorCode } from '../../services/schedules'
-import type { AdvisorSchedule } from '../../types'
+import { useEffect, useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import {
+  AlertTriangle,
+  Calendar,
+  Check,
+  Clock,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
+import { schedulesService, getScheduleErrorCode } from "../../services/schedules";
+import type { AdvisorSchedule } from "../../types";
 
 // ── Constants ─────────────────────────────────────────────
 
 const DAYS = [
-  { value: 1, label: 'L' },
-  { value: 2, label: 'M' },
-  { value: 3, label: 'X' },
-  { value: 4, label: 'J' },
-  { value: 5, label: 'V' },
-  { value: 6, label: 'S' },
-  { value: 7, label: 'D' },
-]
+  { value: 1, label: "L", full: "Lunes" },
+  { value: 2, label: "M", full: "Martes" },
+  { value: 3, label: "X", full: "Miércoles" },
+  { value: 4, label: "J", full: "Jueves" },
+  { value: 5, label: "V", full: "Viernes" },
+  { value: 6, label: "S", full: "Sábado" },
+  { value: 7, label: "D", full: "Domingo" },
+];
 
 // ── Form schema ───────────────────────────────────────────
 
 const scheduleSchema = z
   .object({
-    label: z.string().min(1, 'Nombre requerido').max(50),
-    startTime: z
-      .string()
-      .regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Formato inválido'),
-    endTime: z
-      .string()
-      .regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, 'Formato inválido'),
-    daysOfWeek: z
-      .array(z.number().min(1).max(7))
-      .min(1, 'Selecciona al menos un día'),
+    label: z.string().min(1, "Nombre requerido").max(50),
+    startTime: z.string().regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, "Formato inválido"),
+    endTime: z.string().regex(/^([0-1]\d|2[0-3]):[0-5]\d$/, "Formato inválido"),
+    daysOfWeek: z.array(z.number().min(1).max(7)).min(1, "Selecciona al menos un día"),
   })
   .refine((data) => data.startTime < data.endTime, {
-    message: 'La hora de fin debe ser mayor que la de inicio',
-    path: ['endTime'],
-  })
+    message: "La hora de fin debe ser mayor que la de inicio",
+    path: ["endTime"],
+  });
 
-type ScheduleFormData = z.infer<typeof scheduleSchema>
+type ScheduleFormData = z.infer<typeof scheduleSchema>;
 
 // ── Skeleton ──────────────────────────────────────────────
 
@@ -46,28 +49,55 @@ function ScheduleSkeleton() {
   return (
     <div className="space-y-3 animate-pulse">
       {[0, 1].map((i) => (
-        <div key={i} className="bg-[#2E2E2B] border border-[#3A3A37] rounded-lg p-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex-1 space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="h-3 bg-[#3A3A37] rounded w-24" />
-                <div className="h-3 bg-[#3A3A37] rounded w-20" />
+        <div key={i} className="bg-bg-tertiary/20 border border-border-default/50 rounded-xl p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 space-y-2.5">
+              <div className="flex items-center gap-3">
+                <div className="h-4 bg-bg-tertiary/55 rounded w-28" />
+                <div className="h-4 bg-bg-tertiary/55 rounded w-20" />
               </div>
               <div className="flex gap-1">
                 {DAYS.map((d) => (
-                  <div key={d.value} className="w-5 h-5 bg-[#3A3A37] rounded" />
+                  <div key={d.value} className="w-6 h-6 bg-bg-tertiary/55 rounded-lg" />
                 ))}
               </div>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              <div className="w-9 h-5 bg-[#3A3A37] rounded-full" />
-              <div className="w-4 h-4 bg-[#3A3A37] rounded" />
+              <div className="w-10 h-5 bg-bg-tertiary/55 rounded-full" />
+              <div className="w-5 h-5 bg-bg-tertiary/55 rounded-lg" />
             </div>
           </div>
         </div>
       ))}
     </div>
-  )
+  );
+}
+
+// ── Modal field ───────────────────────────────────────────
+
+function ModalField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-[10px] text-text-secondary uppercase font-bold tracking-wider">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p className="text-error text-[10px] mt-0.5 flex items-center gap-1">
+          <span className="w-1 h-1 rounded-full bg-error" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
 }
 
 // ── Add schedule modal ────────────────────────────────────
@@ -76,10 +106,10 @@ function ScheduleFormModal({
   onClose,
   onCreated,
 }: {
-  onClose: () => void
-  onCreated: (schedule: AdvisorSchedule) => void
+  onClose: () => void;
+  onCreated: (schedule: AdvisorSchedule) => void;
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -89,176 +119,158 @@ function ScheduleFormModal({
     formState: { errors },
   } = useForm<ScheduleFormData>({
     resolver: zodResolver(scheduleSchema),
-    defaultValues: {
-      label: '',
-      startTime: '12:00',
-      endTime: '13:00',
-      daysOfWeek: [],
-    },
-  })
+    defaultValues: { label: "", startTime: "12:00", endTime: "13:00", daysOfWeek: [] },
+  });
 
   async function onSubmit(data: ScheduleFormData) {
-    setIsSubmitting(true)
+    setIsSubmitting(true);
     try {
       const { schedule } = await schedulesService.create({
         label: data.label,
         start_time: data.startTime,
         end_time: data.endTime,
         days_of_week: data.daysOfWeek,
-      })
-      onCreated(schedule)
+      });
+      onCreated(schedule);
     } catch (err) {
-      const code = getScheduleErrorCode(err)
-      if (code === 'INVALID_TIME_RANGE') {
-        setError('endTime', { message: 'La hora de fin debe ser mayor que la de inicio' })
-      } else if (code === 'INVALID_DAYS') {
-        setError('daysOfWeek', { message: 'Días inválidos. Los valores deben estar entre 1 (lunes) y 7 (domingo)' })
+      const code = getScheduleErrorCode(err);
+      if (code === "INVALID_TIME_RANGE") {
+        setError("endTime", { message: "La hora de fin debe ser mayor que la de inicio" });
+      } else if (code === "INVALID_DAYS") {
+        setError("daysOfWeek", { message: "Días inválidos" });
       } else {
-        toast.error('No se pudo guardar el intervalo')
+        toast.error("No se pudo guardar el intervalo");
       }
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   return (
     <div
       id="modal-add-schedule"
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-sm font-bold text-white">Agregar Intervalo de Inactividad</h3>
+      <div className="bg-bg-secondary border border-border-default/80 rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
+        {/* Modal header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border-default/60">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-warning/5 flex items-center justify-center shrink-0 border border-warning/15">
+              <Clock className="w-4 h-4 text-warning" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">Nuevo Intervalo</h3>
+              <p className="text-[10px] text-text-secondary">Pausa de asignación programada</p>
+            </div>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[#8B8FA8] hover:text-white transition"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-white hover:bg-bg-tertiary/40 border border-transparent transition cursor-pointer"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
           {/* Label */}
-          <div>
-            <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-              Nombre del intervalo
-            </label>
+          <ModalField label="Nombre del intervalo" error={errors.label?.message}>
             <input
               type="text"
-              placeholder="Ej: Almuerzo"
-              {...register('label')}
-              className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition placeholder-[#8B8FA8]/40"
+              placeholder="Ej: Almuerzo, Reunión de equipo…"
+              {...register("label")}
+              className="w-full bg-bg-tertiary/20 border border-border-default/80 focus:border-warning/70 focus:ring-2 focus:ring-warning/5 text-white text-xs rounded-xl px-3 py-2.5 outline-none transition-all placeholder-text-secondary/30"
             />
-            {errors.label && (
-              <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.label.message}</p>
-            )}
-          </div>
+          </ModalField>
 
           {/* Time range */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-                Inicio
-              </label>
+            <ModalField label="Inicio" error={errors.startTime?.message}>
               <input
                 type="time"
-                {...register('startTime')}
-                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
+                {...register("startTime")}
+                className="w-full bg-bg-tertiary/20 border border-border-default/80 focus:border-warning/70 focus:ring-2 focus:ring-warning/5 text-white text-xs rounded-xl px-3 py-2.5 outline-none transition-all"
               />
-              {errors.startTime && (
-                <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.startTime.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-1">
-                Fin
-              </label>
+            </ModalField>
+            <ModalField label="Fin" error={errors.endTime?.message}>
               <input
                 type="time"
-                {...register('endTime')}
-                className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition"
+                {...register("endTime")}
+                className="w-full bg-bg-tertiary/20 border border-border-default/80 focus:border-warning/70 focus:ring-2 focus:ring-warning/5 text-white text-xs rounded-xl px-3 py-2.5 outline-none transition-all"
               />
-              {errors.endTime && (
-                <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.endTime.message}</p>
-              )}
-            </div>
+            </ModalField>
           </div>
 
-          {/* Days checkboxes */}
-          <div>
-            <label className="block text-[10px] text-[#8B8FA8] uppercase font-bold mb-2">
-              Días activos
-            </label>
+          {/* Days */}
+          <ModalField label="Días activos" error={errors.daysOfWeek?.message}>
             <Controller
               control={control}
               name="daysOfWeek"
               render={({ field }) => (
-                <div className="flex gap-1.5 flex-wrap">
+                <div className="flex gap-1 justify-between">
                   {DAYS.map((day) => {
-                    const selected = field.value.includes(day.value)
+                    const selected = field.value.includes(day.value);
                     return (
                       <label
                         key={day.value}
+                        title={day.full}
                         className={[
-                          'w-8 h-8 flex items-center justify-center rounded cursor-pointer',
-                          'text-xs font-bold border transition select-none',
+                          "w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer",
+                          "text-xs font-bold border transition-colors select-none",
                           selected
-                            ? 'bg-[#01A4E3]/15 border-[#01A4E3] text-[#01A4E3]'
-                            : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
-                        ].join(' ')}
+                            ? "bg-warning/10 border-warning text-warning font-extrabold"
+                            : "border-border-default text-text-secondary hover:text-white bg-bg-tertiary/20 hover:bg-bg-tertiary/40",
+                        ].join(" ")}
                       >
                         <input
                           type="checkbox"
                           className="hidden"
                           checked={selected}
                           onChange={() => {
-                            const next = selected
-                              ? field.value.filter((v) => v !== day.value)
-                              : [...field.value, day.value]
-                            field.onChange(next)
+                            const next =
+                              selected ? field.value.filter((v) => v !== day.value)
+                              : [...field.value, day.value];
+                            field.onChange(next);
                           }}
                         />
                         {day.label}
                       </label>
-                    )
+                    );
                   })}
                 </div>
               )}
             />
-            {errors.daysOfWeek && (
-              <p className="text-[#FF5B5B] text-[10px] mt-1">{errors.daysOfWeek.message}</p>
-            )}
-          </div>
+          </ModalField>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-2.5 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-[#3A3A37] text-[#8B8FA8] hover:text-white rounded-lg text-xs font-semibold transition"
+              className="flex-1 py-2.5 border border-border-default text-text-secondary hover:text-white hover:border-text-secondary rounded-xl text-xs font-semibold transition cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 px-4 py-2 bg-[#01A4E3] hover:bg-[#0190C8] text-white rounded-lg text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 bg-warning hover:bg-[#F0A83A] text-bg-main rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98]"
             >
-              {isSubmitting && (
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              {isSubmitting ? (
+                <div className="w-3.5 h-3.5 border-2 border-bg-main border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
               )}
-              Guardar
+              <span>Guardar Intervalo</span>
             </button>
           </div>
         </form>
       </div>
     </div>
-  )
+  );
 }
 
 // ── Delete confirm modal ──────────────────────────────────
@@ -268,23 +280,30 @@ function DeleteConfirmModal({
   onCancel,
   isDeleting,
 }: {
-  onConfirm: () => void
-  onCancel: () => void
-  isDeleting: boolean
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onCancel() }}
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onCancel();
+      }}
     >
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-5 max-w-xs w-full shadow-2xl">
-        <p className="text-sm text-[#F0F0F5] mb-1">¿Eliminar este intervalo?</p>
-        <p className="text-xs text-[#8B8FA8] mb-4">Esta acción no se puede deshacer.</p>
+      <div className="bg-bg-secondary border border-border-default/80 rounded-2xl p-5 max-w-xs w-full shadow-xl">
+        <div className="w-10 h-10 rounded-xl bg-error/5 border border-error/15 flex items-center justify-center mx-auto mb-3">
+          <AlertTriangle className="w-5 h-5 text-error" />
+        </div>
+        <h3 className="text-sm font-bold text-white text-center mb-1">¿Eliminar intervalo?</h3>
+        <p className="text-xs text-text-secondary text-center mb-5 leading-normal">
+          Esta acción no se puede deshacer.
+        </p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2 text-xs border border-[#3A3A37] text-[#8B8FA8] rounded hover:border-[#F0F0F5] hover:text-[#F0F0F5] transition"
+            className="flex-1 py-2 text-xs border border-border-default text-text-secondary rounded-lg hover:border-text-secondary hover:text-white transition cursor-pointer"
           >
             Cancelar
           </button>
@@ -292,61 +311,65 @@ function DeleteConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="flex-1 py-2 text-xs bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 text-[#FF5B5B] rounded hover:bg-[#FF5B5B]/20 transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+            className="flex-1 py-2 text-xs bg-error/10 border border-error/25 text-error rounded-lg hover:bg-error/20 transition disabled:opacity-50 flex items-center justify-center gap-1 font-bold cursor-pointer"
           >
-            {isDeleting && (
-              <div className="w-3 h-3 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
+            {isDeleting ? (
+              <div className="w-3 h-3 border-2 border-error border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Trash2 className="w-3.5 h-3.5" />
             )}
-            {isDeleting ? 'Eliminando...' : 'Eliminar'}
+            <span>Eliminar</span>
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ── Main component ────────────────────────────────────────
 
 export default function ScheduleManager() {
-  const [schedules, setSchedules] = useState<AdvisorSchedule[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [showModal, setShowModal] = useState(false)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [schedules, setSchedules] = useState<AdvisorSchedule[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     schedulesService
       .list()
       .then((r) => setSchedules(r.schedules))
       .catch(() => setSchedules([]))
-      .finally(() => setIsLoading(false))
-  }, [])
+      .finally(() => setIsLoading(false));
+  }, []);
 
   async function handleToggle(id: string, isActive: boolean) {
     setSchedules((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, is_active: isActive } : s))
-    )
+      prev.map((s) => (s.id === id ? { ...s, is_active: isActive } : s)),
+    );
     try {
-      const { schedule } = await schedulesService.update(id, { is_active: isActive })
-      setSchedules((prev) => prev.map((s) => (s.id === id ? schedule : s)))
+      const { schedule } = await schedulesService.update(id, { is_active: isActive });
+      setSchedules((prev) => prev.map((s) => (s.id === id ? schedule : s)));
+      toast.success(isActive ? "Intervalo activado" : "Intervalo desactivado");
     } catch {
       setSchedules((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, is_active: !isActive } : s))
-      )
+        prev.map((s) => (s.id === id ? { ...s, is_active: !isActive } : s)),
+      );
+      toast.error("No se pudo actualizar el intervalo");
     }
   }
 
   async function handleDelete(id: string) {
-    setIsDeleting(true)
+    setIsDeleting(true);
     try {
-      await schedulesService.remove(id)
-      setSchedules((prev) => prev.filter((s) => s.id !== id))
-      setDeletingId(null)
+      await schedulesService.remove(id);
+      setSchedules((prev) => prev.filter((s) => s.id !== id));
+      setDeletingId(null);
     } catch {
-      toast.error('No se pudo eliminar el intervalo')
-      setDeletingId(null)
+      toast.error("No se pudo eliminar el intervalo");
+      setDeletingId(null);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
   }
 
@@ -354,68 +377,109 @@ export default function ScheduleManager() {
     <>
       <div
         id="schedules-card"
-        className="bg-[#252522]/65 backdrop-blur-[12px] border border-[#3A3A37]/50 rounded-xl p-5 transition-all duration-300 hover:-translate-y-[3px] hover:border-[#01A4E3] hover:shadow-lg hover:shadow-[#01A4E3]/10"
+        className="relative overflow-hidden rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm"
       >
         {/* Header */}
-        <div className="flex items-start justify-between mb-1">
-          <h3 className="text-sm font-bold text-white">
-            Intervalos de Inactividad
-          </h3>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-warning/5 flex items-center justify-center shrink-0 border border-warning/15">
+              <Calendar className="w-4 h-4 text-warning" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white tracking-tight">
+                Intervalos de Inactividad
+              </h3>
+              <p className="text-[10px] text-text-secondary">
+                Paso automático a{" "}
+                <span className="text-warning font-semibold">En descanso</span>.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowModal(true)}
+            className="flex items-center gap-1 px-3 py-1.5 bg-warning/5 hover:bg-warning/10 border border-warning/15 hover:border-warning/30 text-warning rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Agregar</span>
+          </button>
         </div>
-        <p className="text-xs text-[#8B8FA8] mb-4">
-          El sistema te marcará automáticamente como{' '}
-          <strong className="text-[#FFB84D]">En descanso</strong>{' '}
-          durante estos intervalos
-        </p>
+
+        {/* Divider */}
+        <div className="h-px bg-border-default/60 mb-4" />
 
         {/* List */}
         {isLoading ? (
           <ScheduleSkeleton />
         ) : schedules.length === 0 ? (
-          <div id="schedules-empty" className="text-center py-8">
-            <p className="text-xs text-[#8B8FA8]">
-              No tienes intervalos configurados. Agrega uno para que el sistema
-              gestione tu disponibilidad automáticamente.
-            </p>
+          <div
+            id="schedules-empty"
+            className="flex flex-col items-center justify-center py-8 gap-3 border border-dashed border-border-default/60 rounded-xl bg-bg-tertiary/10"
+          >
+            <div className="w-10 h-10 rounded-xl bg-bg-tertiary/40 border border-border-default/80 flex items-center justify-center text-text-secondary/50">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <div className="text-center max-w-sm px-4">
+              <p className="text-xs font-bold text-white">Sin intervalos configurados</p>
+              <p className="text-[10px] text-text-secondary mt-0.5 leading-relaxed">
+                Programa descansos automáticos para pausar la asignación de chats.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-3" id="schedule-list">
+          <div className="space-y-2.5" id="schedule-list">
             {schedules.map((schedule) => (
               <div
                 key={schedule.id}
                 id="schedule-item"
-                className="flex items-center justify-between p-3 bg-[#2E2E2B] rounded-lg border border-[#3A3A37] gap-3 flex-wrap"
+                className={[
+                  "relative flex items-center justify-between p-3.5 rounded-xl border gap-4 transition-all duration-200",
+                  schedule.is_active
+                    ? "bg-bg-tertiary/20 border-border-default hover:border-warning/20"
+                    : "bg-bg-tertiary/10 border-border-default/30 opacity-40",
+                ].join(" ")}
               >
-                {/* Left info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-bold text-white">{schedule.label}</span>
-                    <span className="text-[10px] text-[#8B8FA8] font-mono bg-[#1D1D1B] px-2 py-0.5 rounded border border-[#3A3A37]">
-                      {schedule.start_time} – {schedule.end_time}
-                    </span>
-                  </div>
-
-                  {/* Day pills */}
-                  <div id="schedule-days-row" className="flex items-center gap-1">
-                    {DAYS.map((day) => (
-                      <span
-                        key={day.value}
-                        className={[
-                          'text-[9px] px-1.5 py-0.5 rounded font-bold',
-                          schedule.days_of_week.includes(day.value)
-                            ? 'bg-[#01A4E3]/15 text-[#01A4E3]'
-                            : 'bg-[#2E2E2B] text-[#3A3A37] border border-[#3A3A37]',
-                        ].join(' ')}
-                      >
-                        {day.label}
+                {/* Left side info */}
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div
+                    className={[
+                      "w-1 h-8 rounded-full shrink-0 transition-colors duration-200",
+                      schedule.is_active ? "bg-warning" : "bg-border-default/60",
+                    ].join(" ")}
+                  />
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-bold text-white truncate">
+                        {schedule.label}
                       </span>
-                    ))}
+                      <span className="text-[10px] text-warning font-mono font-semibold bg-warning/5 border border-warning/10 px-2 py-0.5 rounded-full shrink-0">
+                        {schedule.start_time} – {schedule.end_time}
+                      </span>
+                    </div>
+
+                    {/* Day pills */}
+                    <div id="schedule-days-row" className="flex items-center gap-1">
+                      {DAYS.map((day) => (
+                        <span
+                          key={day.value}
+                          title={day.full}
+                          className={[
+                            "w-6 h-6 flex items-center justify-center rounded-lg text-[9px] font-extrabold border transition-colors",
+                            schedule.days_of_week.includes(day.value)
+                              ? "bg-brand-blue/10 text-brand-blue border-brand-blue/20"
+                              : "bg-transparent text-text-secondary/30 border-border-default/30",
+                          ].join(" ")}
+                        >
+                          {day.label}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Right actions */}
+                {/* Right side controls */}
                 <div className="flex items-center gap-3 shrink-0">
-                  {/* Toggle */}
                   <button
                     id="schedule-toggle"
                     type="button"
@@ -423,54 +487,39 @@ export default function ScheduleManager() {
                     aria-checked={schedule.is_active}
                     onClick={() => handleToggle(schedule.id, !schedule.is_active)}
                     className={[
-                      'relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none',
-                      schedule.is_active ? 'bg-[#01A4E3]' : 'bg-[#3A3A37]',
-                    ].join(' ')}
+                      "relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none cursor-pointer",
+                      schedule.is_active ? "bg-brand-blue" : "bg-border-default",
+                    ].join(" ")}
                   >
                     <span
                       className={[
-                        'absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-                        schedule.is_active ? 'left-0.5 translate-x-4' : 'left-0.5 translate-x-0',
-                      ].join(' ')}
+                        "absolute top-[2px] w-4 h-4 bg-white rounded-full shadow-sm transition-transform duration-200 ease-out",
+                        schedule.is_active ? "left-[2px] translate-x-[16px]" : "left-[2px] translate-x-0",
+                      ].join(" ")}
                     />
                   </button>
 
-                  {/* Delete */}
                   <button
                     type="button"
                     onClick={() => setDeletingId(schedule.id)}
-                    className="text-[#8B8FA8] hover:text-[#FF5B5B] transition p-1"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-error hover:bg-error/10 border border-transparent hover:border-error/15 transition-all cursor-pointer"
                     title="Eliminar intervalo"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        <button
-          type="button"
-          onClick={() => setShowModal(true)}
-          className="mt-4 flex items-center gap-2 px-4 py-2 border border-[#01A4E3] text-[#01A4E3] hover:bg-[#01A4E3]/10 rounded-lg text-xs font-semibold transition"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Agregar intervalo
-        </button>
       </div>
 
-      {/* Modals */}
       {showModal && (
         <ScheduleFormModal
           onClose={() => setShowModal(false)}
           onCreated={(schedule) => {
-            setSchedules((prev) => [...prev, schedule])
-            setShowModal(false)
+            setSchedules((prev) => [...prev, schedule]);
+            setShowModal(false);
           }}
         />
       )}
@@ -483,5 +532,5 @@ export default function ScheduleManager() {
         />
       )}
     </>
-  )
+  );
 }

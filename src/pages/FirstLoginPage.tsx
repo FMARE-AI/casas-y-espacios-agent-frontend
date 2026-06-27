@@ -11,6 +11,10 @@ const schema = z
     newPassword: z.string().min(8, 'Mínimo 8 caracteres'),
     confirmPassword: z.string(),
   })
+  .refine((data) => data.currentPassword !== data.newPassword, {
+    message: 'La nueva contraseña debe ser diferente a la actual',
+    path: ['newPassword'],
+  })
   .refine((data) => data.newPassword === data.confirmPassword, {
     message: 'Las contraseñas no coinciden',
     path: ['confirmPassword'],
