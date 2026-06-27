@@ -112,11 +112,12 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     cleanBase = cleanBase.replace(/[_-]\d{10,15}$/, '')
 
     // Identificar si es un wamid, un UUID, un hash hexadecimal o alfanumérico largo
-    const isWamid = /^wamid\./i.test(cleanBase) || cleanBase.includes('wamid')
+    const cleanLower = cleanBase.toLowerCase()
+    const isWamid = cleanLower.includes('wamid')
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBase)
-    const isHash = /^[0-9a-f]{24,}$/i.test(cleanBase) || /^[a-zA-Z0-9]{30,}$/.test(cleanBase)
+    const isHash = /^[0-9a-f]{24,}$/i.test(cleanBase) || /^[a-zA-Z0-9]{30,}$/.test(cleanBase) || /[a-zA-Z0-9]{20,}/.test(cleanBase)
     const isDigits = /^\d+$/.test(cleanBase)
-    const isGenericDocument = cleanBase.endsWith('_document') || cleanBase.endsWith('_image') || cleanBase.endsWith('_video') || cleanBase.endsWith('_audio')
+    const isGenericDocument = cleanLower.includes('_document') || cleanLower.includes('_image') || cleanLower.includes('_video') || cleanLower.includes('_audio')
 
     if (!cleanBase || isWamid || isUuid || isHash || isDigits || isGenericDocument) {
       const standardNames: Record<string, string> = {
@@ -142,13 +143,13 @@ function getFileName(url: string | null, mimeType: string | null = null): string
       // Deducir el nombre si no coincide con las extensiones directas
       let defaultName = standardNames[ext]
       if (!defaultName) {
-        if (cleanBase.endsWith('_document') || (mimeType && mimeType.includes('pdf'))) {
+        if (cleanLower.includes('_document') || (mimeType && mimeType.toLowerCase().includes('pdf'))) {
           defaultName = 'Documento'
-        } else if (cleanBase.endsWith('_image') || (mimeType && mimeType.startsWith('image/'))) {
+        } else if (cleanLower.includes('_image') || (mimeType && mimeType.toLowerCase().startsWith('image/'))) {
           defaultName = 'Imagen'
-        } else if (cleanBase.endsWith('_video') || (mimeType && mimeType.startsWith('video/'))) {
+        } else if (cleanLower.includes('_video') || (mimeType && mimeType.toLowerCase().startsWith('video/'))) {
           defaultName = 'Video'
-        } else if (cleanBase.endsWith('_audio') || (mimeType && mimeType.startsWith('audio/'))) {
+        } else if (cleanLower.includes('_audio') || (mimeType && mimeType.toLowerCase().startsWith('audio/'))) {
           defaultName = 'Audio'
         } else {
           defaultName = 'Archivo'
