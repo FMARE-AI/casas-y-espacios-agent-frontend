@@ -344,7 +344,20 @@ export default function ChatPage() {
       );
       setConversation(conv);
       setShowReturnedPill(conv.bot_activo && conv.has_escalation_history);
-      setMessages(msgs);
+      // Merge instead of replace: preserve locally-sent outbound messages not yet
+      // confirmed by the server. This prevents a race where a WS event triggers
+      // loadConversation() while a send is in-flight — a full setMessages(msgs)
+      // replacement would wipe the message that onMessageSent just added.
+      setMessages((prev) => {
+        const serverIds = new Set(msgs.map((m) => m.id))
+        const localPending = prev.filter(
+          (m) => !serverIds.has(m.id) && m.direction !== 'inbound'
+        )
+        if (localPending.length === 0) return msgs
+        return [...msgs, ...localPending].sort(
+          (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        )
+      })
       setTotalMessages(total);
       apiOffsetRef.current = msgs.length;
     } catch {
