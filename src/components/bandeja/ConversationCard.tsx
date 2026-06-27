@@ -166,7 +166,7 @@ export const ConversationCard = memo(function ConversationCard({
             )}
           </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            {conversation.unread_count > 0 && (
+            {!isAdmin && conversation.unread_count > 0 && (
               <span className="inline-flex items-center justify-center min-w-[16px] h-4 px-1 bg-[#FF5B5B]/20 border border-[#FF5B5B]/40 text-[#FF5B5B] rounded-full text-[9px] font-bold leading-none">
                 {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </span>

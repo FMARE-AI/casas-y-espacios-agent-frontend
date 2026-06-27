@@ -9,6 +9,7 @@ interface ClientPanelProps {
   onReturnBot: () => void
   isTaking: boolean
   isReturning: boolean
+  isAdmin?: boolean
   onClose?: () => void
   onCloseConversation?: () => void
 }
@@ -25,6 +26,7 @@ export default function ClientPanel({
   onReturnBot,
   isTaking,
   isReturning,
+  isAdmin = false,
   onClose,
   onCloseConversation,
 }: ClientPanelProps) {
@@ -133,7 +135,7 @@ export default function ClientPanel({
 
       {/* Action buttons */}
       <div className="space-y-2 mt-4 lg:mt-0">
-        {variant === 'unassigned' && (
+        {variant === 'unassigned' && !isAdmin && (
           <button
             type="button"
             onClick={onTake}

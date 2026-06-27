@@ -5,8 +5,8 @@ import { AdvisorsTable } from '../components/management/AdvisorsTable'
 import { AdvisorModal } from '../components/management/AdvisorModal'
 import BehaviorAlertsPanel from '../components/gestion/BehaviorAlertsPanel'
 import { Plus, Search, AlertTriangle, Shield } from 'lucide-react'
-import { toast } from 'sonner'
 import { useAuthStore } from '../store/authStore'
+import { useToastStore } from '../store/toastStore'
 
 type ModalState =
   | { type: 'none' }
@@ -72,12 +72,6 @@ export const GestionPage: React.FC = () => {
 
       setAdvisors(filtered)
     } catch (err: unknown) {
-      const isNetworkError =
-        err instanceof Error &&
-        (err.message.includes('Network Error') || err.message.includes('ERR_CONNECTION_REFUSED'))
-      if (!isNetworkError) {
-        toast.error('Error al cargar la lista de asesores.')
-      }
       setAdvisors([])
     } finally {
       setIsLoading(false)
@@ -113,7 +107,7 @@ export const GestionPage: React.FC = () => {
         specialty: data.specialty || null,
         max_conversations: data.maxConversations,
       })
-      toast.success('Asesor operativo creado con éxito.')
+      useToastStore.getState().showToast('Asesor operativo creado con éxito.', 'success')
       setModal({ type: 'none' })
       await loadAdvisors()
     } catch (error: unknown) {
@@ -140,7 +134,7 @@ export const GestionPage: React.FC = () => {
         specialty: data.specialty || null,
         max_conversations: data.maxConversations,
       })
-      toast.success('Perfil de asesor actualizado.')
+      useToastStore.getState().showToast('Perfil de asesor actualizado.', 'success')
       setModal({ type: 'none' })
       await loadAdvisors()
     } catch (error: unknown) {
@@ -148,7 +142,7 @@ export const GestionPage: React.FC = () => {
       if (code === 'INVALID_SPECIALTY_FOR_AREA') {
         setModalError('INVALID_SPECIALTY_FOR_AREA')
       } else if (code === 'ADVISOR_NOT_FOUND') {
-        toast.error('El asesor no fue encontrado. Puede haber sido eliminado.')
+        useToastStore.getState().showToast('El asesor no fue encontrado. Puede haber sido eliminado.', 'error')
         setModal({ type: 'none' })
       } else {
         const err = error as ApiErrorResponse
@@ -164,18 +158,16 @@ export const GestionPage: React.FC = () => {
     try {
       const result = await advisorsService.update(advisorId, { is_active: false })
       if (result.warning) {
-        toast.warning(result.warning)
+        useToastStore.getState().showToast(result.warning, 'warning')
       } else {
-        toast.success('El asesor ha sido desactivado.')
+        useToastStore.getState().showToast('El asesor ha sido desactivado.', 'success')
       }
       setModal({ type: 'none' })
       await loadAdvisors()
     } catch (error: unknown) {
       const code = extractErrorCode(error)
       if (code === 'ALREADY_ASSIGNED') {
-        toast.error('No se pudo desactivar: el asesor tiene conversaciones asignadas en curso.')
-      } else {
-        toast.error('Error al desactivar el asesor.')
+        useToastStore.getState().showToast('No se pudo desactivar: el asesor tiene conversaciones asignadas en curso.', 'error')
       }
     } finally {
       setIsSaving(false)
@@ -185,10 +177,10 @@ export const GestionPage: React.FC = () => {
   async function handleActivate(advisorId: string) {
     try {
       await advisorsService.update(advisorId, { is_active: true })
-      toast.success('El asesor ha sido activado.')
+      useToastStore.getState().showToast('El asesor ha sido activado.', 'success')
       await loadAdvisors()
     } catch {
-      toast.error('Error al activar el asesor.')
+      // interceptor already showed the error toast
     }
   }
 

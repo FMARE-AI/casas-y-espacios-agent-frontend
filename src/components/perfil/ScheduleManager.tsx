@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "sonner";
+import { useToastStore } from "../../store/toastStore";
 import {
   AlertTriangle,
   Calendar,
@@ -138,8 +138,6 @@ function ScheduleFormModal({
         setError("endTime", { message: "La hora de fin debe ser mayor que la de inicio" });
       } else if (code === "INVALID_DAYS") {
         setError("daysOfWeek", { message: "Días inválidos" });
-      } else {
-        toast.error("No se pudo guardar el intervalo");
       }
     } finally {
       setIsSubmitting(false);
@@ -350,12 +348,11 @@ export default function ScheduleManager() {
     try {
       const { schedule } = await schedulesService.update(id, { is_active: isActive });
       setSchedules((prev) => prev.map((s) => (s.id === id ? schedule : s)));
-      toast.success(isActive ? "Intervalo activado" : "Intervalo desactivado");
+      useToastStore.getState().showToast(isActive ? "Intervalo activado" : "Intervalo desactivado", 'success');
     } catch {
       setSchedules((prev) =>
         prev.map((s) => (s.id === id ? { ...s, is_active: !isActive } : s)),
       );
-      toast.error("No se pudo actualizar el intervalo");
     }
   }
 
@@ -366,7 +363,6 @@ export default function ScheduleManager() {
       setSchedules((prev) => prev.filter((s) => s.id !== id));
       setDeletingId(null);
     } catch {
-      toast.error("No se pudo eliminar el intervalo");
       setDeletingId(null);
     } finally {
       setIsDeleting(false);

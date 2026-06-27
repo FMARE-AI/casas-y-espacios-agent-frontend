@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
 import { useAuthStore } from './store/authStore'
 import { useWSStore } from './store/wsStore'
@@ -87,16 +86,6 @@ export default function App() {
         </Routes>
       )}
 
-      <Toaster
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: '#252522',
-            border: '1px solid #3A3A37',
-            color: '#F0F0F5',
-          },
-        }}
-      />
     </BrowserRouter>
   )
 }

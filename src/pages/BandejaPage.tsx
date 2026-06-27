@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
+import { useToastStore } from '../store/toastStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
 import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
-import { useWebSocket, playNotificationSound } from '../hooks/useWebSocket'
+import { useWebSocket, setMyAssignedConversations } from '../hooks/useWebSocket'
 
 // --- LOCAL COMPONENTS ---
 
@@ -244,6 +244,14 @@ export default function BandejaPage() {
       }
       setConversations(convs)
       setTotal(convs.length)
+
+      // Keep the WS sound-gate in sync: register conversations assigned to the current advisor
+      // so they hear notification sounds even when navigated away from the chat.
+      const currentAdvisorId = useAuthStore.getState().advisor?.id
+      const myIds = convs
+        .filter(c => c.escalation?.advisor?.id === currentAdvisorId)
+        .map(c => c.id)
+      setMyAssignedConversations(myIds)
     } catch (err) {
       console.error('Error loading conversations', err)
     } finally {
@@ -292,10 +300,10 @@ export default function BandejaPage() {
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
       if (code === 'MAX_CONVERSATIONS_REACHED') {
-        toast.error('Has alcanzado el límite de conversaciones simultáneas.')
+        useToastStore.getState().showToast('Has alcanzado el límite de conversaciones simultáneas.', 'error')
         setTakeTarget(null)
       } else if (code === 'ALREADY_ASSIGNED') {
-        toast.error('Otro asesor ya tomó esta conversación primero.')
+        useToastStore.getState().showToast('Otro asesor ya tomó esta conversación primero.', 'error')
         setTakeTarget(null)
         await loadConversations()
       }
@@ -318,12 +326,12 @@ export default function BandejaPage() {
     return () => window.removeEventListener('conversation:unread', handleReset)
   }, [])
 
-  // Increment badge and play sound directly when an inbound WS message arrives
+  // Increment unread badge when an inbound WS message arrives.
+  // Sound is NOT played here — useWebSocket handles it centrally with role + assignment rules.
   const handleMessageNew = useCallback((wsMsg: WSMessageNew) => {
     const msg = wsMsg.message
     const convId = msg.conversation_id ?? ''
     if (!convId || msg.direction !== 'inbound') return
-    playNotificationSound()
     setConversations((prev) =>
       prev.map((c) => (c.id === convId ? { ...c, unread_count: c.unread_count + 1 } : c))
     )
@@ -353,7 +361,7 @@ export default function BandejaPage() {
   }, [loadConversations])
 
   const handleQueuePending = useCallback((data: WSQueuePending) => {
-    toast.info(data.message, { duration: 6000 })
+    useToastStore.getState().showToast(data.message, 'info')
     loadConversations()
   }, [loadConversations])
 

@@ -35,7 +35,19 @@ let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
+// Tracks which conversation the active advisor has open — used to gate message sounds
+// and suppress unread badge increments for the chat currently visible.
 let currentSubscribedConversationId: string | null = null
+// Conversation IDs assigned to the current advisor — populated from BandejaPage on load
+// and kept in sync via WS events. Allows sound to fire even when the chat is not open.
+const myAssignedConversationIds = new Set<string>()
+
+// Called by BandejaPage after loading conversations so the set stays in sync with the server.
+// Replaces the entire set to avoid stale entries from filter/reload cycles.
+export function setMyAssignedConversations(ids: string[]): void {
+  myAssignedConversationIds.clear()
+  ids.forEach((id) => myAssignedConversationIds.add(id))
+}
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 30000]
 
@@ -136,14 +148,40 @@ function connect(token: string): void {
         // Defensive: backend may send conversation_id at data root instead of inside message
         const raw = data as WSMessageNew & { conversation_id?: string; unread_count?: number }
         const conversationId =
-          raw.message.conversation_id ?? raw.conversation_id ?? ''
-        const normalizedMsg: WSMessageNew = {
-          message: { ...raw.message, conversation_id: conversationId },
+          raw.message?.conversation_id ?? raw.conversation_id ?? ''
+
+        if (!raw.message?.id) {
+          console.warn('[WS] message.new received with missing message.id — dropping', raw)
+          break
+        }
+        if (!conversationId) {
+          console.warn('[WS] message.new received with no conversation_id — dropping', raw)
+          break
         }
 
-        // Sound only for inbound messages (client → advisor)
-        // outbound_advisor and outbound_bot are silent
-        if (normalizedMsg.message.direction === 'inbound') {
+        const normalizedMsg: WSMessageNew = {
+          message: {
+            ...raw.message,
+            conversation_id: conversationId,
+            // Fields absent from the inbound WS payload — default to null
+            transcription: raw.message.transcription ?? null,
+            advisor_name: raw.message.advisor_name ?? null,
+          },
+        }
+
+        // Sound rules:
+        // - Admin: never sounds (audit-only role in Phase 1)
+        // - Asesor: sounds if the message is inbound AND the conversation belongs to them.
+        //   "Belongs" means either the chat is open OR the conversation is in
+        //   myAssignedConversationIds (populated from BandejaPage + WS lifecycle events).
+        //   This lets assigned advisors hear sounds even when navigated away from the chat.
+        const { advisor } = useAuthStore.getState()
+        const isAdmin = advisor?.role === 'admin'
+        const convId = normalizedMsg.message.conversation_id
+        const isChatOpen = convId === currentSubscribedConversationId
+        const isMyConversation = isChatOpen || myAssignedConversationIds.has(convId)
+
+        if (!isAdmin && normalizedMsg.message.direction === 'inbound' && isMyConversation) {
           playNotificationSound()
         }
 
@@ -161,13 +199,19 @@ function connect(token: string): void {
 
         if (_handlers.onMessageNew) {
           _handlers.onMessageNew(normalizedMsg)
+        } else {
+          console.debug('[WS] message.new received but no onMessageNew handler registered', normalizedMsg.message.conversation_id)
         }
         break
       }
 
       case 'escalation.new': {
         const escData = data as WSEscalationNew
-        playNotificationSound()
+        // Admin never sounds. Asesor always sounds — new escalation is actionable work.
+        const isAdminOnEscalation = useAuthStore.getState().advisor?.role === 'admin'
+        if (!isAdminOnEscalation) {
+          playNotificationSound()
+        }
         if (_handlers.onEscalationNew) {
           _handlers.onEscalationNew(escData)
         }
@@ -183,6 +227,11 @@ function connect(token: string): void {
       case 'escalation.assigned': {
         const assignedData = data as WSEscalationAssigned
         useWSStore.getState().incrementAdvisorConversations(assignedData.advisor_id)
+        // Keep the sound-gate set in sync: when this advisor is assigned, add the conversation
+        const selfId = useAuthStore.getState().advisor?.id
+        if (selfId && assignedData.advisor_id === selfId) {
+          myAssignedConversationIds.add(assignedData.conversation_id)
+        }
         if (_handlers.onEscalationAssigned) {
           _handlers.onEscalationAssigned(assignedData)
         }
@@ -192,6 +241,7 @@ function connect(token: string): void {
       case 'conversation.returned': {
         const returnedData = data as WSConversationReturned
         useWSStore.getState().decrementAdvisorConversations(returnedData.advisor_id)
+        myAssignedConversationIds.delete(returnedData.conversation_id)
         if (_handlers.onConversationReturned) {
           _handlers.onConversationReturned(returnedData)
         }
@@ -203,6 +253,7 @@ function connect(token: string): void {
         if (closedData.advisor_id) {
           useWSStore.getState().decrementAdvisorConversations(closedData.advisor_id)
         }
+        myAssignedConversationIds.delete(closedData.conversation_id)
         if (_handlers.onConversationClosed) {
           _handlers.onConversationClosed(closedData)
         }
