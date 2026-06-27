@@ -465,6 +465,17 @@ export default function ChatInput({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-focus textarea when switching conversations, loading, or when recording ends
+  useEffect(() => {
+    if (variant === 'assigned' && recorderState === 'idle') {
+      const timer = setTimeout(() => {
+        textareaRef.current?.focus()
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [conversationId, variant, recorderState])
 
   // Liberar el preview URL al desmontar
   useEffect(() => {
@@ -569,6 +580,9 @@ export default function ChatInput({
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
     }
+    setTimeout(() => {
+      textareaRef.current?.focus()
+    }, 50)
   }
 
   function showError(message: string) {
@@ -596,6 +610,10 @@ export default function ChatInput({
         const feed = document.getElementById('chat-message-feed')
         if (feed) feed.scrollTop = feed.scrollHeight
       }, 50)
+
+      setTimeout(() => {
+        textareaRef.current?.focus()
+      }, 100)
     } catch (error) {
       setSendError(getErrorMessage(error, 'No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.'))
       onError()
@@ -623,6 +641,10 @@ export default function ChatInput({
           const feed = document.getElementById('chat-message-feed')
           if (feed) feed.scrollTop = feed.scrollHeight
         }, 50)
+
+        setTimeout(() => {
+          textareaRef.current?.focus()
+        }, 100)
       } catch (error) {
         setSendError(getErrorMessage(error, 'No se pudo enviar el archivo.', selectedFile))
       } finally {
@@ -808,6 +830,7 @@ export default function ChatInput({
           <>
             {/* Textarea */}
             <textarea
+              ref={textareaRef}
               value={text}
               disabled={sending || variant !== 'assigned'}
               onChange={(e) => {
