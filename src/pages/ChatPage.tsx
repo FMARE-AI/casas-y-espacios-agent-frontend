@@ -421,9 +421,22 @@ export default function ChatPage() {
           if (prev.some((m) => m.id === event.message.id)) return prev;
           return [...prev, event.message];
         });
+
+        // If the advisor is in the chat and the message is inbound, mark it as seen immediately
+        if (event.message.direction === 'inbound' && role !== 'admin') {
+          conversationsService.markAsSeen(conversationId)
+            .then(() => {
+              window.dispatchEvent(
+                new CustomEvent('conversation:unread', {
+                  detail: { conversationId, unreadCount: 0 },
+                })
+              );
+            })
+            .catch(() => {});
+        }
       }
     },
-    [conversationId],
+    [conversationId, role],
   );
 
   const onConversationReturned = useCallback(

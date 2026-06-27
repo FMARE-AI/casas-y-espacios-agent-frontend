@@ -108,6 +108,9 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     // Quitar prefijo de timestamp (ej: 1719543592_ o 1719543592-)
     cleanBase = cleanBase.replace(/^\d{10,15}[_-]/, '')
 
+    // Quitar prefijo de UUID (ej: f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd_ o f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd-)
+    cleanBase = cleanBase.replace(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[_-]/, '')
+
     // Quitar sufijo de timestamp (ej: _1719543592 o -1719543592)
     cleanBase = cleanBase.replace(/[_-]\d{10,15}$/, '')
 
