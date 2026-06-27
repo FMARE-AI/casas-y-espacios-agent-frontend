@@ -8,7 +8,7 @@ import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePendin
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
-import { useWebSocket } from '../hooks/useWebSocket'
+import { useWebSocket, setMyAssignedConversations } from '../hooks/useWebSocket'
 
 // --- LOCAL COMPONENTS ---
 
@@ -244,6 +244,14 @@ export default function BandejaPage() {
       }
       setConversations(convs)
       setTotal(convs.length)
+
+      // Keep the WS sound-gate in sync: register conversations assigned to the current advisor
+      // so they hear notification sounds even when navigated away from the chat.
+      const currentAdvisorId = useAuthStore.getState().advisor?.id
+      const myIds = convs
+        .filter(c => c.escalation?.advisor?.id === currentAdvisorId)
+        .map(c => c.id)
+      setMyAssignedConversations(myIds)
     } catch (err) {
       console.error('Error loading conversations', err)
     } finally {
