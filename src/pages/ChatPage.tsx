@@ -474,14 +474,19 @@ export default function ChatPage() {
   const { subscribeConversation, unsubscribeConversation } =
     useWebSocket(wsHandlers);
 
-  // Subscribe to the conversation when it's known; unsubscribe on unmount or id change
+  // Subscribe to the conversation when it's known; unsubscribe on unmount or id change.
+  // On unmount, call markAsSeen so messages that arrived while reading are cleared
+  // server-side — otherwise BandejaPage refetches a stale unread_count > 0.
   useEffect(() => {
     if (!conversationId) return;
     subscribeConversation(conversationId);
     return () => {
       unsubscribeConversation();
+      if (role !== 'admin') {
+        conversationsService.markAsSeen(conversationId).catch(() => {})
+      }
     };
-  }, [conversationId, subscribeConversation, unsubscribeConversation]);
+  }, [conversationId, role, subscribeConversation, unsubscribeConversation]);
 
   // Auto-scroll when a new message is appended (not when old messages are prepended)
   const lastMessageIdRef = useRef<string | undefined>(undefined);
