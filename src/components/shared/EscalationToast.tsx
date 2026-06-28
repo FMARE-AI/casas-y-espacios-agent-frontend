@@ -8,7 +8,15 @@ const AUTO_DISMISS_MS = 8000
 export default function EscalationToast() {
   const navigate = useNavigate()
   const { pendingEscalation, clearPendingEscalation } = useWSStore()
-  const isAdmin = useAuthStore((s) => s.role) === 'admin'
+  const advisor = useAuthStore((s) => s.advisor)
+  const isAdmin = advisor?.role === 'admin'
+
+  // "Atender ya" only when: non-admin, unassigned (advisorId null), and channel matches area
+  const showTakeButton =
+    !isAdmin &&
+    pendingEscalation !== null &&
+    pendingEscalation.advisorId === null &&
+    (advisor?.area === 'ambas' || advisor?.area === pendingEscalation.channel)
 
   // Auto-dismiss after 8 seconds
   useEffect(() => {
@@ -80,16 +88,14 @@ export default function EscalationToast() {
               onClick={clearPendingEscalation}
               className="px-2 py-1 hover:bg-[#2E2E2B] text-[#8B8FA8] rounded font-bold"
             >
-              {isAdmin ? 'Cerrar' : 'Ignorar'}
+              {showTakeButton ? 'Ignorar' : 'Cerrar'}
             </button>
-            {!isAdmin && (
-              <button
-                onClick={handleAttend}
-                className="bg-[#01A4E3] text-white px-2.5 py-1 rounded font-bold hover:bg-[#0190C8] transition active:scale-95"
-              >
-                Atender ya
-              </button>
-            )}
+            <button
+              onClick={handleAttend}
+              className="bg-[#01A4E3] text-white px-2.5 py-1 rounded font-bold hover:bg-[#0190C8] transition active:scale-95"
+            >
+              {showTakeButton ? 'Atender ya' : 'Ver conversación'}
+            </button>
           </div>
         </div>
       </div>

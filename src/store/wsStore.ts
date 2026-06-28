@@ -11,6 +11,8 @@ interface WSState {
     clientName: string
     reason: string
     conversationId: string
+    advisorId: string | null
+    channel: string
   } | null
   advisors: AdvisorOnline[]
 
@@ -20,7 +22,7 @@ interface WSState {
   decrementAlerts: () => void
   resetAlerts: () => void
   setUnreadAlerts: (count: number) => void
-  setPendingEscalation: (data: { clientName: string; reason: string; conversationId: string }) => void
+  setPendingEscalation: (data: { clientName: string; reason: string; conversationId: string; advisorId: string | null; channel: string }) => void
   clearPendingEscalation: () => void
   setAdvisors: (advisors: AdvisorOnline[]) => void
   addConnectedAdvisor: (data: WSAdvisorConnected) => void

@@ -245,6 +245,8 @@ function connect(token: string): void {
           clientName: escData.channel,
           reason: escData.reason ?? '',
           conversationId: escData.conversation_id,
+          advisorId: escData.advisor_id,
+          channel: escData.channel,
         })
         break
       }
