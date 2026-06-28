@@ -3,6 +3,7 @@ import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { advisorsService } from '../services/advisors'
+import { getValidToken } from '../lib/axios'
 import type {
   WSEscalationNew,
   WSEscalationAssigned,
@@ -321,11 +322,16 @@ function connect(token: string): void {
     useWSStore.getState().setReconnectAttempt(attempt + 1)
 
     const delay = getBackoffDelay(attempt)
-    const currentToken = useAuthStore.getState().token
-    if (currentToken) {
+    // L-03: use getValidToken() instead of reading the raw token from state.
+    // This refreshes the AT if it's expired before reconnecting, avoiding a
+    // 4001 close that would force the user back to the login screen unnecessarily.
+    const { refresh_token } = useAuthStore.getState()
+    if (refresh_token) {
       reconnectTimeout = setTimeout(() => {
         reconnectTimeout = null
-        connect(currentToken)
+        getValidToken().then((token) => {
+          if (token) connect(token)
+        }).catch(() => {})
       }, delay)
     }
   }
@@ -335,15 +341,33 @@ function connect(token: string): void {
   }
 }
 
+// I-01: Singleton AudioContext — browsers cap concurrent contexts (~6 in Chrome).
+// Creating a new one per notification can silently drop sounds under heavy load.
+let _audioCtx: AudioContext | null = null
+
+function getAudioContext(): AudioContext | null {
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (!AudioContextClass) return null
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+      _audioCtx = new AudioContextClass()
+    }
+    return _audioCtx
+  } catch {
+    return null
+  }
+}
+
 /**
  * Plays a pleasant double chime notification sound using the Web Audio API.
  * This guarantees a native browser notification chime without requiring external assets.
  */
 export function playNotificationSound() {
   try {
-    const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (!AudioContextClass) return
-    const ctx = new AudioContextClass()
+    const ctx = getAudioContext()
+    if (!ctx) return
 
     const scheduleChimes = () => {
       const playChime = (time: number, freq: number, duration: number) => {
@@ -383,32 +407,46 @@ export function useWebSocket(handlers?: WSHandlers) {
   const accessToken = useAuthStore((s) => s.token)
   const setStatus = useWSStore((s) => s.setStatus)
 
-  // Register and clean up handlers
+  // M-03: track each handler function individually instead of the whole object.
+  // Passing `handlers` (an object literal) as a single dep re-runs this effect on
+  // every render because a new object reference is created each time. Destructuring
+  // individual function refs means the effect only fires when a specific handler changes.
+  const {
+    onEscalationNew,
+    onEscalationAssigned,
+    onMessageNew,
+    onConversationReturned,
+    onConversationClosed,
+    onQueuePending,
+    onAdvisorStatusChanged,
+    onBehaviorAlert,
+  } = handlers ?? {}
+
   useEffect(() => {
-    if (handlers) {
-      if (handlers.onEscalationNew) _handlers.onEscalationNew = handlers.onEscalationNew
-      if (handlers.onEscalationAssigned) _handlers.onEscalationAssigned = handlers.onEscalationAssigned
-      if (handlers.onMessageNew) _handlers.onMessageNew = handlers.onMessageNew
-      if (handlers.onConversationReturned) _handlers.onConversationReturned = handlers.onConversationReturned
-      if (handlers.onConversationClosed) _handlers.onConversationClosed = handlers.onConversationClosed
-      if (handlers.onQueuePending) _handlers.onQueuePending = handlers.onQueuePending
-      if (handlers.onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = handlers.onAdvisorStatusChanged
-      if (handlers.onBehaviorAlert) _handlers.onBehaviorAlert = handlers.onBehaviorAlert
-    }
+    if (onEscalationNew)      _handlers.onEscalationNew      = onEscalationNew
+    if (onEscalationAssigned) _handlers.onEscalationAssigned = onEscalationAssigned
+    if (onMessageNew)         _handlers.onMessageNew         = onMessageNew
+    if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
+    if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
+    if (onQueuePending)       _handlers.onQueuePending       = onQueuePending
+    if (onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = onAdvisorStatusChanged
+    if (onBehaviorAlert)      _handlers.onBehaviorAlert      = onBehaviorAlert
 
     return () => {
-      if (handlers) {
-        if (handlers.onEscalationNew && _handlers.onEscalationNew === handlers.onEscalationNew) delete _handlers.onEscalationNew
-        if (handlers.onEscalationAssigned && _handlers.onEscalationAssigned === handlers.onEscalationAssigned) delete _handlers.onEscalationAssigned
-        if (handlers.onMessageNew && _handlers.onMessageNew === handlers.onMessageNew) delete _handlers.onMessageNew
-        if (handlers.onConversationReturned && _handlers.onConversationReturned === handlers.onConversationReturned) delete _handlers.onConversationReturned
-        if (handlers.onConversationClosed && _handlers.onConversationClosed === handlers.onConversationClosed) delete _handlers.onConversationClosed
-        if (handlers.onQueuePending && _handlers.onQueuePending === handlers.onQueuePending) delete _handlers.onQueuePending
-        if (handlers.onAdvisorStatusChanged && _handlers.onAdvisorStatusChanged === handlers.onAdvisorStatusChanged) delete _handlers.onAdvisorStatusChanged
-        if (handlers.onBehaviorAlert && _handlers.onBehaviorAlert === handlers.onBehaviorAlert) delete _handlers.onBehaviorAlert
-      }
+      if (onEscalationNew      && _handlers.onEscalationNew      === onEscalationNew)      delete _handlers.onEscalationNew
+      if (onEscalationAssigned && _handlers.onEscalationAssigned === onEscalationAssigned) delete _handlers.onEscalationAssigned
+      if (onMessageNew         && _handlers.onMessageNew         === onMessageNew)         delete _handlers.onMessageNew
+      if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
+      if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
+      if (onQueuePending       && _handlers.onQueuePending       === onQueuePending)       delete _handlers.onQueuePending
+      if (onAdvisorStatusChanged && _handlers.onAdvisorStatusChanged === onAdvisorStatusChanged) delete _handlers.onAdvisorStatusChanged
+      if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
-  }, [handlers])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
+    onConversationClosed, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
+  ])
 
   // Open / reopen connection when token changes
   useEffect(() => {

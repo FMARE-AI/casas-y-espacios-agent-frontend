@@ -2,14 +2,26 @@ import { create } from 'zustand'
 import type { Advisor, AdvisorRole } from '../types'
 import { supabase } from '../lib/supabase'
 
-const TOKEN_KEY = 'panel_token'
+// AT (access token) is NEVER persisted to any storage — memory only.
+// This limits XSS blast radius: a stolen AT expires within minutes and
+// cannot be extracted from disk. The RT (refresh token) is persisted to
+// either localStorage (remember me) or sessionStorage (tab-only).
 const REFRESH_TOKEN_KEY = 'panel_refresh_token'
 const EXPIRES_AT_KEY = 'panel_expires_at'
+const REMEMBER_KEY = 'panel_remember'
+
+// Legacy key — read-only, cleared on next setSession to clean up old data.
+const LEGACY_TOKEN_KEY = 'panel_token'
+
+function getTokenStorage(): Storage {
+  return localStorage.getItem(REMEMBER_KEY) === 'true' ? localStorage : sessionStorage
+}
 
 export interface SessionData {
   access_token: string
   refresh_token: string
   expires_in: number // seconds
+  rememberMe?: boolean
 }
 
 interface AuthState {
@@ -52,23 +64,35 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setSession: (data) => {
     const expires_at = Date.now() + data.expires_in * 1000
-    localStorage.setItem(TOKEN_KEY, data.access_token)
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token)
-    localStorage.setItem(EXPIRES_AT_KEY, String(expires_at))
 
-    // Synchronize token session with Supabase client to authorize Storage uploads
+    // Persist "remember me" preference so getTokenStorage() works after page reload.
+    if (data.rememberMe !== undefined) {
+      localStorage.setItem(REMEMBER_KEY, String(data.rememberMe))
+    }
+    const storage = getTokenStorage()
+    storage.setItem(REFRESH_TOKEN_KEY, data.refresh_token)
+    storage.setItem(EXPIRES_AT_KEY, String(expires_at))
+
+    // Remove legacy AT from localStorage if it exists from a previous version.
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+
+    // Synchronize with Supabase client to authorize Storage uploads.
+    // L-02: log only message, never the token object itself.
     supabase.auth.setSession({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
-    }).catch((err) => console.error('Supabase setSession failed:', err))
+    }).catch((err) => console.error('Supabase session sync failed:', err?.message ?? 'unknown'))
 
     set({ token: data.access_token, refresh_token: data.refresh_token, expires_at })
   },
 
   clearSession: () => {
-    localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(EXPIRES_AT_KEY)
+    localStorage.removeItem(REMEMBER_KEY)
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+    sessionStorage.removeItem(EXPIRES_AT_KEY)
     supabase.auth.signOut().catch(() => {})
     set({
       token: null,
@@ -85,11 +109,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setToken: (token) => {
-    if (token) {
-      localStorage.setItem(TOKEN_KEY, token)
-    } else {
-      localStorage.removeItem(TOKEN_KEY)
-    }
+    // AT is memory-only — no localStorage write.
     set({ token })
   },
 
@@ -116,9 +136,12 @@ export const useAuthStore = create<AuthState>((set) => ({
   setError: (error) => set({ error }),
 
   reset: () => {
-    localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(EXPIRES_AT_KEY)
+    localStorage.removeItem(REMEMBER_KEY)
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+    sessionStorage.removeItem(EXPIRES_AT_KEY)
     supabase.auth.signOut().catch(() => {})
     set({
       token: null,
@@ -135,25 +158,33 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }))
 
-export const getStoredToken = (): string | null =>
-  localStorage.getItem(TOKEN_KEY)
+// AT is no longer stored — always returns null. Kept for backwards compat.
+export const getStoredToken = (): string | null => null
 
 export interface StoredSession {
-  access_token: string
+  // AT is memory-only (C-02). On page reload it will be null and the axios
+  // interceptor will refresh it automatically using the RT before the first request.
+  access_token: null
   refresh_token: string
   expires_at: number // absolute timestamp in ms
 }
 
 export const getStoredSession = (): StoredSession | null => {
-  const access_token = localStorage.getItem(TOKEN_KEY)
-  const refresh_token = localStorage.getItem(REFRESH_TOKEN_KEY)
-  const expires_at_str = localStorage.getItem(EXPIRES_AT_KEY)
+  // I-02: read from both storages — RT lives in whichever one was used at login.
+  const refresh_token =
+    localStorage.getItem(REFRESH_TOKEN_KEY) ||
+    sessionStorage.getItem(REFRESH_TOKEN_KEY)
 
-  if (!access_token) return null
+  if (!refresh_token) return null
+
+  const expires_at_str =
+    localStorage.getItem(EXPIRES_AT_KEY) ||
+    sessionStorage.getItem(EXPIRES_AT_KEY)
 
   return {
-    access_token,
-    refresh_token: refresh_token || '',
-    expires_at: expires_at_str ? Number(expires_at_str) : Date.now() + 3600 * 1000,
+    access_token: null, // intentional — never persisted
+    refresh_token,
+    // expires_at: 0 forces an immediate refresh on the first intercepted request.
+    expires_at: expires_at_str ? Number(expires_at_str) : 0,
   }
 }

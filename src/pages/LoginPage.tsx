@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import logoSrc from '../assets/logo.webp'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -12,9 +12,43 @@ const schema = z.object({
 
 type LoginFormData = z.infer<typeof schema>
 
+// M-01: exponential backoff delays per consecutive failure (seconds).
+const BACKOFF_DELAYS = [0, 2, 5, 15, 30, 60]
+
+function getBackoffDelay(failedAttempts: number): number {
+  return BACKOFF_DELAYS[Math.min(failedAttempts, BACKOFF_DELAYS.length - 1)]
+}
+
 export function LoginPage() {
   const { signIn, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
+
+  // M-01: backoff state
+  const [, setFailedAttempts] = useState(0)
+  const [lockoutSeconds, setLockoutSeconds] = useState(0)
+  const lockoutRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (lockoutRef.current) clearInterval(lockoutRef.current)
+    }
+  }, [])
+
+  function startLockout(seconds: number) {
+    if (seconds <= 0) return
+    setLockoutSeconds(seconds)
+    lockoutRef.current = setInterval(() => {
+      setLockoutSeconds((s) => {
+        if (s <= 1) {
+          clearInterval(lockoutRef.current!)
+          lockoutRef.current = null
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+  }
 
   const {
     register,
@@ -23,7 +57,19 @@ export function LoginPage() {
   } = useForm<LoginFormData>({ resolver: zodResolver(schema) })
 
   const onSubmit = async (data: LoginFormData) => {
-    await signIn(data.email, data.password)
+    if (lockoutSeconds > 0) return
+    const success = await signIn(data.email, data.password, rememberMe)
+    if (!success) {
+      // M-01: increment failure counter and apply exponential backoff.
+      setFailedAttempts((prev) => {
+        const next = prev + 1
+        const delay = getBackoffDelay(next)
+        if (delay > 0) startLockout(delay)
+        return next
+      })
+    } else {
+      setFailedAttempts(0)
+    }
   }
 
   return (
@@ -173,6 +219,7 @@ export function LoginPage() {
             {/* Error banner */}
             {error && (
               <div
+                data-login-error
                 className="rounded-lg p-3.5 flex items-start gap-3 border"
                 style={{ background: 'rgba(255,91,91,0.08)', borderColor: 'rgba(255,91,91,0.4)' }}
               >
@@ -188,8 +235,14 @@ export function LoginPage() {
 
             {/* Remember + forgot */}
             <div className="flex items-center justify-between text-xs pt-0.5">
+              {/* L-01: checkbox is now functional — controls whether RT persists across browser restarts. */}
               <label className="flex items-center gap-2 text-[#8B8FA8] cursor-pointer select-none">
-                <input type="checkbox" className="accent-[#01A4E3] rounded" />
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="accent-[#01A4E3] rounded"
+                />
                 <span>Recordar sesión</span>
               </label>
               <a href="#" className="text-[#01A4E3] hover:text-[#33b8f0] transition-colors font-medium">
@@ -200,7 +253,7 @@ export function LoginPage() {
             {/* Submit */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || lockoutSeconds > 0}
               className="btn-primary w-full h-12 text-white rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: 'linear-gradient(135deg, #01A4E3 0%, #0088c2 100%)',
@@ -212,6 +265,9 @@ export function LoginPage() {
                   <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Verificando...</span>
                 </>
+              ) : lockoutSeconds > 0 ? (
+                // M-01: show remaining lockout seconds during backoff.
+                <span>Reintentar en {lockoutSeconds}s</span>
               ) : (
                 <>
                   <span>Ingresar al sistema</span>

@@ -22,11 +22,22 @@ const schema = z
 
 type FirstLoginFormData = z.infer<typeof schema>
 
+// M-02: evaluate complexity, not just length.
 function getStrength(pwd: string): { text: string; color: string; bars: number } {
   if (!pwd) return { text: 'No ingresada', color: '#FF5B5B', bars: 0 }
   if (pwd.length < 6) return { text: 'Débil', color: '#FF5B5B', bars: 1 }
-  if (pwd.length < 10) return { text: 'Media', color: '#FFB84D', bars: 2 }
-  return { text: 'Fuerte', color: '#00D4AA', bars: 3 }
+
+  let score = 0
+  if (pwd.length >= 8)                score++
+  if (/[A-Z]/.test(pwd))             score++
+  if (/[0-9]/.test(pwd))             score++
+  if (/[^A-Za-z0-9]/.test(pwd))      score++
+  // penalize repeated chars (e.g. "aaaaaaaaaa")
+  if (/(.)\1{2,}/.test(pwd))         score = Math.max(0, score - 2)
+
+  if (score <= 1) return { text: 'Débil',  color: '#FF5B5B', bars: 1 }
+  if (score <= 2) return { text: 'Media',  color: '#FFB84D', bars: 2 }
+  return             { text: 'Fuerte', color: '#00D4AA', bars: 3 }
 }
 
 function PasswordStrengthBar({ password }: { password: string }) {
@@ -69,10 +80,12 @@ export function FirstLoginPage() {
 
   const onSubmit = async (data: FirstLoginFormData) => {
     try {
+      // H-02: must_change_password must be resolved server-side when it validates
+      // that current_password is correct and new_password was provided.
+      // Never send this flag from the client — it's a security gate, not a preference.
       const { advisor } = await advisorsService.updateMe({
         current_password: data.currentPassword,
         new_password: data.newPassword,
-        must_change_password: false,
       })
       authStore.setAdvisor({ ...advisor, must_change_password: false })
       authStore.setFirstLogin(false)

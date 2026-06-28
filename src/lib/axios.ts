@@ -13,25 +13,25 @@ const apiClient = axios.create({
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
 
-async function getValidToken(): Promise<string | null> {
+// Exported so useWebSocket can get a valid token before reconnecting (L-03).
+export async function getValidToken(): Promise<string | null> {
   const { token, expires_at, refresh_token } = useAuthStore.getState()
 
-  if (!token) return null
-  if (!expires_at) return token
+  // C-02: No RT means there's no session at all — bail immediately.
+  if (!refresh_token) return null
 
-  const fiveMinutes = 5 * 60 * 1000
-  if (Date.now() <= expires_at - fiveMinutes) {
-    return token
+  // AT is in memory and still fresh — return it directly.
+  if (token && expires_at) {
+    const fiveMinutes = 5 * 60 * 1000
+    if (Date.now() <= expires_at - fiveMinutes) {
+      return token
+    }
   }
 
-  // Token expires soon — serialize parallel refreshes to a single request
+  // AT is absent (page reload) or expiring — refresh.
+  // Serialize parallel calls to a single refresh request.
   if (isRefreshing && refreshPromise) {
     return refreshPromise
-  }
-
-  if (!refresh_token) {
-    window.dispatchEvent(new CustomEvent('session-expired'))
-    return null
   }
 
   isRefreshing = true
@@ -113,7 +113,6 @@ apiClient.interceptors.response.use(
 
     const status: number = error.response.status
     const code: string | undefined = error.response.data?.detail?.code
-    const message: string | undefined = error.response.data?.detail?.message
 
     // 401 — session expired
     if (status === 401) {
@@ -146,7 +145,8 @@ apiClient.interceptors.response.use(
         } else if (code === 'CANNOT_EDIT_YOURSELF') {
           dispatchToast('No puedes editar tu propio perfil desde esta sección.', 'warning')
         } else {
-          dispatchToast(message || 'Acceso denegado.', 'error')
+          // M-04: never pass raw backend message — use generic string instead.
+          dispatchToast('Acceso denegado.', 'error')
         }
         break
 
@@ -154,7 +154,8 @@ apiClient.interceptors.response.use(
         if (code === 'ALREADY_REVIEWED') {
           dispatchToast('Esta alerta ya fue revisada.', 'info')
         } else {
-          dispatchToast(message || 'Conflicto al procesar la solicitud.', 'warning')
+          // M-04: use hardcoded string, not raw backend message.
+          dispatchToast('Conflicto al procesar la solicitud.', 'warning')
         }
         break
 

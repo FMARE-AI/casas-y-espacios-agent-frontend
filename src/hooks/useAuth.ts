@@ -12,10 +12,6 @@ function getBackendErrorCode(error: unknown): string | undefined {
   return (error as AxiosLike)?.response?.data?.detail?.code
 }
 
-function getBackendErrorMessage(error: unknown): string | undefined {
-  return (error as AxiosLike)?.response?.data?.detail?.message
-}
-
 function isAdvisorInactiveError(error: unknown): boolean {
   return getBackendErrorCode(error) === 'ADVISOR_INACTIVE'
 }
@@ -28,19 +24,25 @@ export function useAuth() {
     const stored = getStoredSession()
 
     if (stored) {
-      // Restore session state without re-saving to localStorage
+      // C-02: stored.access_token is always null (AT is never persisted).
+      // The axios interceptor will refresh it automatically before the first request.
       useAuthStore.setState({
-        token: stored.access_token,
+        token: null,
         refresh_token: stored.refresh_token,
         expires_at: stored.expires_at,
       })
 
-      // Sync restored token session with Supabase client to authorize Storage uploads
-      supabase.auth.setSession({
-        access_token: stored.access_token,
-        refresh_token: stored.refresh_token || '',
-      }).catch((err) => console.error('Supabase setSession failed:', err))
+      // Only sync Supabase if we have a valid AT (available after first interceptor refresh).
+      // Without an AT here, Supabase will be synced in setSession after the refresh call.
+      // L-02: log only err.message, never the error object that might include tokens.
+      if (stored.access_token) {
+        supabase.auth.setSession({
+          access_token: stored.access_token,
+          refresh_token: stored.refresh_token || '',
+        }).catch((err) => console.error('Supabase session sync failed:', err?.message ?? 'unknown'))
+      }
 
+      // getMe() will trigger the axios interceptor which refreshes the AT before the request.
       advisorsService.getMe()
         .then(({ advisor }) => {
           useAuthStore.getState().setAdvisor(advisor)
@@ -67,7 +69,7 @@ export function useAuth() {
     }
   }, [navigate])
 
-  async function signIn(email: string, password: string) {
+  async function signIn(email: string, password: string, rememberMe = true): Promise<boolean> {
     useAuthStore.getState().setLoading(true)
     useAuthStore.getState().setError(null)
 
@@ -78,6 +80,7 @@ export function useAuth() {
         access_token: data.access_token,
         refresh_token: data.refresh_token,
         expires_in: data.expires_in,
+        rememberMe,
       })
 
       const { advisor } = await advisorsService.getMe()
@@ -89,10 +92,11 @@ export function useAuth() {
       } else {
         navigate('/')
       }
+      return true
     } catch (err) {
       const backendCode = getBackendErrorCode(err)
-      const backendMsg = getBackendErrorMessage(err)
-      console.error('[useAuth] signIn failed', { backendCode, backendMsg, err })
+      // M-04: log the backend code for debugging but never expose raw backend messages to the UI.
+      console.error('[useAuth] signIn failed, code:', backendCode)
 
       useAuthStore.getState().clearSession()
 
@@ -101,9 +105,10 @@ export function useAuth() {
           'Tu cuenta está desactivada. Contacta a un administrador.'
         )
       } else {
-        const message = backendMsg ?? (err instanceof Error ? err.message : 'Error al iniciar sesión')
-        useAuthStore.getState().setError(message)
+        // M-04: generic message — avoids leaking internal backend error details.
+        useAuthStore.getState().setError('Correo o contraseña incorrectos.')
       }
+      return false
     } finally {
       useAuthStore.getState().setLoading(false)
     }
