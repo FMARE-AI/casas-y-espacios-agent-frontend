@@ -14,10 +14,14 @@ interface ChatInputProps {
   onTypingChange?: (isTyping: boolean) => void
 }
 
+// WhatsApp Cloud API only supports jpeg and png for images.
+// webp is excluded: Meta accepts the upload but silently drops delivery.
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png'])
+
 const FILE_TYPES = {
   image: {
     label: 'Imagen',
-    accept: 'image/jpeg,image/png,image/webp',
+    accept: 'image/jpeg,image/png',
     maxMB: 5,
     iconColor: '#01A4E3',
   },
@@ -544,6 +548,11 @@ export default function ChatInput({
     const type = getFileType(file.type)
     if (!type) {
       showError('Tipo de archivo no permitido')
+      return
+    }
+    // WhatsApp only delivers jpeg and png — reject webp before hitting the backend
+    if (type === 'image' && !ALLOWED_IMAGE_TYPES.has(file.type)) {
+      showError('Solo se permiten imágenes JPEG o PNG. WhatsApp no soporta WebP.')
       return
     }
     // Validar tamaño
