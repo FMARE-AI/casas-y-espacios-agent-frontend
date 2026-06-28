@@ -105,19 +105,27 @@ const LOCAL_ERROR_CODES = new Set([
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Network error (offline, timeout, CORS) — no response object
+    const isLoginEndpoint = error.config?.url?.includes('/auth/token') &&
+      !error.config?.url?.includes('/auth/token/refresh')
+
+    // Network error (offline, timeout, CORS) — no response object.
+    // Skip the global toast for the login endpoint: signIn() handles the UX inline
+    // (the error could be CORS or backend-down, not the user's internet connection).
     if (!error.response) {
-      dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
+      if (!isLoginEndpoint) {
+        dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
+      }
       return Promise.reject(error)
     }
 
     const status: number = error.response.status
     const code: string | undefined = error.response.data?.detail?.code
 
-    // 401 — session expired
+    // 401 — session expired.
+    // Exclude the login endpoint: a 401 there means wrong credentials, not an expired session.
     if (status === 401) {
       const isRefreshEndpoint = error.config?.url?.includes('/auth/token/refresh')
-      if (!isRefreshEndpoint) {
+      if (!isRefreshEndpoint && !isLoginEndpoint) {
         useAuthStore.getState().clearSession()
         window.dispatchEvent(new CustomEvent('session-expired'))
       }

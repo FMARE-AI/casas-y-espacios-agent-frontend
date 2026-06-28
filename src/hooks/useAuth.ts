@@ -102,7 +102,13 @@ export function useAuth() {
 
       useAuthStore.getState().clearSession()
 
-      if (isAdvisorInactiveError(err)) {
+      const hasResponse = !!(err as AxiosLike)?.response
+      if (!hasResponse) {
+        // Network error (CORS, backend unreachable, timeout) — no HTTP response available.
+        useAuthStore.getState().setError(
+          'No se pudo conectar al servidor. Verifica tu conexión o intenta más tarde.'
+        )
+      } else if (isAdvisorInactiveError(err)) {
         useAuthStore.getState().setError(
           'Tu cuenta está desactivada. Contacta a un administrador.'
         )
