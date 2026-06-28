@@ -80,14 +80,15 @@ export function FirstLoginPage() {
 
   const onSubmit = async (data: FirstLoginFormData) => {
     try {
-      // H-02: must_change_password must be resolved server-side when it validates
-      // that current_password is correct and new_password was provided.
-      // Never send this flag from the client — it's a security gate, not a preference.
+      // Send must_change_password: false together with the password change so the
+      // backend persists it in a single PATCH. The backend validates current_password
+      // before applying any update, so this flag only clears when the change succeeds.
       const { advisor } = await advisorsService.updateMe({
         current_password: data.currentPassword,
         new_password: data.newPassword,
+        must_change_password: false,
       })
-      authStore.setAdvisor({ ...advisor, must_change_password: false })
+      authStore.setAdvisor(advisor)
       authStore.setFirstLogin(false)
       navigate('/')
     } catch (err) {
