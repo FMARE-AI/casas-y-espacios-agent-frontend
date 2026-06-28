@@ -4,7 +4,6 @@ import { useAuthStore, getStoredSession } from '../store/authStore'
 import { advisorsService } from '../services/advisors'
 import { ROUTES } from '../constants/routes'
 import apiClient from '../lib/axios'
-import { supabase } from '../lib/supabase'
 
 type AxiosLike = { response?: { status?: number; data?: { detail?: { code?: string; message?: string } } } }
 
@@ -24,25 +23,28 @@ export function useAuth() {
     const stored = getStoredSession()
 
     if (stored) {
-      // C-02: stored.access_token is always null (AT is never persisted).
-      // The axios interceptor will refresh it automatically before the first request.
+      // Keep refresh_token and expires_at in sync from storage, but never write
+      // token: null here — doing so would reset a valid in-memory AT on every
+      // re-run of this effect (React Router's navigate() ref can change after
+      // navigation, triggering the [navigate] dep and re-running this effect
+      // right after a successful login, which would cause a redirect loop).
+      const currentToken = useAuthStore.getState().token
       useAuthStore.setState({
-        token: null,
         refresh_token: stored.refresh_token,
         expires_at: stored.expires_at,
       })
 
-      // Only sync Supabase if we have a valid AT (available after first interceptor refresh).
-      // Without an AT here, Supabase will be synced in setSession after the refresh call.
-      // L-02: log only err.message, never the error object that might include tokens.
-      if (stored.access_token) {
-        supabase.auth.setSession({
-          access_token: stored.access_token,
-          refresh_token: stored.refresh_token || '',
-        }).catch((err) => console.error('Supabase session sync failed:', err?.message ?? 'unknown'))
+      if (currentToken) {
+        // AT already in memory — session is valid (e.g. effect re-ran after login
+        // due to navigate() ref change). Nothing to load; just ensure loading is off.
+        useAuthStore.getState().setLoading(false)
+        const handleExpiredEarly = () => useAuthStore.getState().setSessionExpired(true)
+        window.addEventListener('session-expired', handleExpiredEarly)
+        return () => window.removeEventListener('session-expired', handleExpiredEarly)
       }
 
-      // getMe() will trigger the axios interceptor which refreshes the AT before the request.
+      // No AT in memory — obtain one via the axios interceptor (which will call
+      // /auth/token/refresh using the RT before forwarding the getMe() request).
       advisorsService.getMe()
         .then(({ advisor }) => {
           useAuthStore.getState().setAdvisor(advisor)
