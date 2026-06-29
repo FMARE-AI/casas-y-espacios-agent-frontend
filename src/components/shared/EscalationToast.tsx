@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useWSStore } from '../../store/wsStore'
 import { useAuthStore } from '../../store/authStore'
 
-const AUTO_DISMISS_MS = 8000
+const AUTO_DISMISS_MS = 12000
 
 export default function EscalationToast() {
   const navigate = useNavigate()
@@ -15,7 +15,7 @@ export default function EscalationToast() {
   const showTakeButton =
     !isAdmin &&
     pendingEscalation !== null &&
-    pendingEscalation.advisorId === null &&
+    (pendingEscalation.advisorId === null || pendingEscalation.advisorId === advisor?.id) &&
     (advisor?.area === 'ambas' || advisor?.area === pendingEscalation.channel)
 
   // Auto-dismiss after 8 seconds
