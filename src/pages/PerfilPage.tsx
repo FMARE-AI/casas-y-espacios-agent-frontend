@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useForm, type UseFormRegisterReturn } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { useToastStore } from "../store/toastStore";
 import {
   Activity,
@@ -19,6 +16,7 @@ import {
   ShieldAlert,
   X,
 } from "lucide-react";
+import { usePasswordStrength, type PasswordStrength } from "../hooks/usePasswordStrength";
 import { advisorsService } from "../services/advisors";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../lib/supabase";
@@ -26,25 +24,6 @@ import type { Advisor, AdvisorRole, AvailabilityStatus } from "../types";
 import ScheduleManager from "../components/perfil/ScheduleManager";
 
 const STORAGE_BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET_NAME || "casas-y-espacios-media") as string;
-
-// ── Schema contraseña ─────────────────────────────────────
-
-const passwordSchema = z
-  .object({
-    currentPassword: z.string().min(1, "Requerida"),
-    newPassword: z.string().min(8, "Mínimo 8 caracteres"),
-    confirmPassword: z.string().min(1, "Requerida"),
-  })
-  .refine((d) => d.currentPassword !== d.newPassword, {
-    message: "La nueva contraseña debe ser diferente",
-    path: ["newPassword"],
-  })
-  .refine((d) => d.newPassword === d.confirmPassword, {
-    message: "Las contraseñas no coinciden",
-    path: ["confirmPassword"],
-  });
-
-type PasswordFormData = z.infer<typeof passwordSchema>;
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -201,51 +180,27 @@ function ProfileSkeleton() {
   );
 }
 
-// ── Password strength ─────────────────────────────────────
+// ── Password components ───────────────────────────────────
 
-function getStrength(pwd: string): { text: string; color: string; bars: number } {
-  if (!pwd) return { text: "No ingresada", color: "#FF5B5B", bars: 0 };
-  if (pwd.length < 6) return { text: "Débil", color: "#FF5B5B", bars: 1 };
-  if (pwd.length < 10) return { text: "Media", color: "#FFB84D", bars: 2 };
-  return { text: "Fuerte", color: "#00D4AA", bars: 3 };
-}
-
-function PasswordStrengthBar({ password }: { password: string }) {
-  const { text, color, bars } = getStrength(password);
-  return (
-    <div className="space-y-1.5 mt-1.5">
-      <div className="flex justify-between items-center text-[11px]">
-        <span className="text-text-secondary font-medium">Seguridad de la contraseña:</span>
-        <span style={{ color }} className="font-semibold uppercase tracking-wider">
-          {text}
-        </span>
-      </div>
-      <div className="h-1.5 w-full bg-bg-tertiary/40 rounded-full overflow-hidden flex gap-1 border border-border-default/30 p-[1px]">
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="h-full w-1/3 rounded-full transition-all duration-300 ease-out"
-            style={{
-              backgroundColor: bars >= i ? color : "transparent",
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── PasswordInput ──────────────────────────────────────────
-
-interface PasswordInputProps {
+interface LocalPasswordInputProps {
   id: string;
   label: string;
-  register: UseFormRegisterReturn;
-  error?: string;
+  value: string;
+  onChange: (v: string) => void;
+  error?: string | null;
   placeholder?: string;
+  autoComplete?: string;
 }
 
-function PasswordInput({ id, label, register, error, placeholder }: PasswordInputProps) {
+function LocalPasswordInput({
+  id,
+  label,
+  value,
+  onChange,
+  error,
+  placeholder,
+  autoComplete,
+}: LocalPasswordInputProps) {
   const [show, setShow] = useState(false);
   return (
     <div className="space-y-1">
@@ -262,8 +217,11 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
         <input
           type={show ? "text" : "password"}
           id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          {...register}
+          autoComplete={autoComplete}
+          maxLength={72}
           className={[
             "w-full bg-bg-tertiary/10 border text-[13px] text-white rounded-xl pl-9 pr-9 py-2.5 outline-none transition-all duration-200",
             error
@@ -286,6 +244,40 @@ function PasswordInput({ id, label, register, error, placeholder }: PasswordInpu
           {error}
         </p>
       )}
+    </div>
+  );
+}
+
+function PasswordStrengthBar({ strength }: { strength: PasswordStrength }) {
+  const bars =
+    strength.level === "empty" ? 0 :
+    strength.level === "weak"  ? 1 :
+    strength.level === "fair"  ? 2 : 3;
+  const color =
+    strength.level === "strong" ? "#00D4AA" :
+    strength.level === "fair"   ? "#FFB84D" : "#FF5B5B";
+  const text =
+    strength.level === "empty"  ? "No ingresada" :
+    strength.level === "weak"   ? "Débil" :
+    strength.level === "fair"   ? "Media" : "Fuerte";
+
+  return (
+    <div className="space-y-1.5 mt-1.5">
+      <div className="flex justify-between items-center text-[11px]">
+        <span className="text-text-secondary font-medium">Seguridad de la contraseña:</span>
+        <span style={{ color }} className="font-semibold uppercase tracking-wider">
+          {text}
+        </span>
+      </div>
+      <div className="h-1.5 w-full bg-bg-tertiary/40 rounded-full overflow-hidden flex gap-1 border border-border-default/30 p-[1px]">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-full w-1/3 rounded-full transition-all duration-300 ease-out"
+            style={{ backgroundColor: bars >= i ? color : "transparent" }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -313,18 +305,23 @@ export default function PerfilPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors },
-  } = useForm<PasswordFormData>({ resolver: zodResolver(passwordSchema) });
+  const strength = usePasswordStrength(newPassword);
 
-  const newPasswordValue = watch("newPassword") ?? "";
+  const sameAsCurrentError =
+    newPassword.length > 0 && currentPassword.length > 0 && newPassword === currentPassword
+      ? 'La nueva contraseña debe ser diferente a la actual'
+      : null;
+
+  const confirmError =
+    confirmPassword.length > 0 && confirmPassword !== newPassword
+      ? 'Las contraseñas no coinciden'
+      : null;
 
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -510,15 +507,39 @@ export default function PerfilPage() {
     }
   }
 
-  async function onPasswordSubmit(data: PasswordFormData) {
+  async function onPasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setPasswordError(null);
+
+    if (!currentPassword) {
+      setPasswordError('Ingresá tu contraseña actual');
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setPasswordError('La nueva contraseña debe ser diferente a la actual');
+      return;
+    }
+
+    if (!strength.isValid) {
+      setPasswordError(strength.errorMessage);
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Las contraseñas no coinciden');
+      return;
+    }
+
     setIsSavingPassword(true);
     try {
       await advisorsService.updateMe({
-        current_password: data.currentPassword,
-        new_password: data.newPassword,
+        current_password: currentPassword,
+        new_password: newPassword,
       });
-      reset();
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
       useToastStore.getState().showToast("Contraseña actualizada correctamente", 'success');
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: { code?: string } | string } } };
@@ -870,7 +891,7 @@ export default function PerfilPage() {
 
               {/* Seguridad */}
               <form
-                onSubmit={handleSubmit(onPasswordSubmit)}
+                onSubmit={onPasswordSubmit}
                 className="rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm flex flex-col justify-between"
               >
                 <div className="space-y-3">
@@ -887,38 +908,45 @@ export default function PerfilPage() {
                     </div>
                   </div>
 
-                  {/* Contraseña actual */}
-                  <PasswordInput
+                  <LocalPasswordInput
                     id="current-password"
                     label="Contraseña actual"
-                    register={register("currentPassword")}
-                    error={passwordError ?? errors.currentPassword?.message}
+                    value={currentPassword}
+                    onChange={(v) => {
+                      setCurrentPassword(v);
+                      setPasswordError(null);
+                    }}
+                    autoComplete="current-password"
+                    error={passwordError}
                   />
 
                   {/* Nueva y Confirmar en 2 cols */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <PasswordInput
+                    <LocalPasswordInput
                       id="new-password"
                       label="Nueva contraseña"
-                      register={register("newPassword")}
-                      error={errors.newPassword?.message}
+                      value={newPassword}
+                      onChange={setNewPassword}
                       placeholder="Mín. 8 caracteres"
+                      autoComplete="new-password"
+                      error={sameAsCurrentError}
                     />
-                    <PasswordInput
+                    <LocalPasswordInput
                       id="confirm-password"
                       label="Confirmar nueva"
-                      register={register("confirmPassword")}
-                      error={errors.confirmPassword?.message}
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      autoComplete="new-password"
+                      error={confirmError}
                     />
                   </div>
 
-                  {/* Strength Bar */}
-                  <PasswordStrengthBar password={newPasswordValue} />
+                  <PasswordStrengthBar strength={strength} />
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isSavingPassword}
+                  disabled={!currentPassword || !strength.isValid || !!sameAsCurrentError || !!confirmError || !confirmPassword || isSavingPassword}
                   className="w-full bg-brand-blue hover:bg-[#0190C8] text-white py-3 rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-5 cursor-pointer shadow active:scale-[0.98]"
                 >
                   {isSavingPassword ? (

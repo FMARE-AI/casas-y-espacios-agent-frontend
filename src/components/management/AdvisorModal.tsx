@@ -1,10 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import type { Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import type { Advisor } from '../../types'
-import { Lock, X, AlertTriangle, Info, Eye, EyeOff } from 'lucide-react'
+import { Lock, X, AlertTriangle, Info } from 'lucide-react'
+import { PasswordInput } from '../shared/PasswordInput'
+import { usePasswordStrength } from '../../hooks/usePasswordStrength'
 
 const SPECIALTY_OPTIONS_BY_AREA: Record<string, { value: string; label: string }[]> = {
   administrativa: [
@@ -76,7 +78,6 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
   const isEdit = mode === 'edit'
   const schema = isEdit ? editSchema : createSchema
   const isFirstRender = useRef(true)
-  const [showPassword, setShowPassword] = useState(false)
 
   const {
     register,
@@ -108,6 +109,9 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
   const selectedArea = watch('area')
   const specialtyOptions = SPECIALTY_OPTIONS_BY_AREA[selectedArea] ?? []
   const isSpecialtyDisabled = selectedArea === 'ambas'
+
+  const passwordValue = watch('password') ?? ''
+  const passwordStrength = usePasswordStrength(passwordValue)
 
   // Reset specialty when area changes — skip on initial mount to preserve edit defaults
   useEffect(() => {
@@ -216,31 +220,19 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Contraseña temporal (solo crear) */}
           {!isEdit && (
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
-                Contraseña temporal
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Mínimo 8 caracteres"
-                  {...register('password')}
-                  className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 pr-10 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-colors focus:border-[#01A4E3] ${
-                    errors.password ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute top-1/2 right-3 -translate-y-1/2 text-[#8B8FA8] hover:text-[#F0F0F5] transition-colors cursor-pointer"
-                >
-                  {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-xs text-[#FF5B5B]">{errors.password.message}</p>
-              )}
-            </div>
+            <PasswordInput
+              value={passwordValue}
+              onChange={(v) => setValue('password', v, { shouldValidate: true })}
+              placeholder="Mínimo 8 caracteres"
+              label="Contraseña temporal"
+              showStrength={true}
+              autoComplete="new-password"
+              error={
+                passwordValue && !passwordStrength.isValid
+                  ? (errors.password?.message ?? passwordStrength.errorMessage)
+                  : null
+              }
+            />
           )}
 
           {/* Grid Rol + Área */}
@@ -346,7 +338,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || (!isEdit && !passwordStrength.isValid)}
               className="rounded-md bg-[#01A4E3] px-4.5 py-2 text-sm font-semibold text-white hover:bg-[#01A4E3]/95 active:bg-[#01A4E3]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSaving && (
