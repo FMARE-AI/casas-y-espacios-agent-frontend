@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   format,
   parseISO,
@@ -7,31 +7,31 @@ import {
   isYesterday,
   startOfDay,
   subDays,
-} from 'date-fns'
-import { conversationsService } from '../services/conversations'
-import type { Conversation } from '../types'
+} from "date-fns";
+import { conversationsService } from "../services/conversations";
+import type { Conversation } from "../types";
 
 // intent exists in the backend response but is not yet declared in types/index.ts
-type ConvRow = Conversation & { intent?: string }
+type ConvRow = Conversation & { intent?: string };
 
 // ── Helpers ───────────────────────────────────────────────
 
 // TODO: El backend tiene un bug conocido donde closed_at puede retornar null
 // incluso si la conversación está cerrada. Se usa last_activity como el fallback.
 function formatClosedDate(iso: string): string {
-  const date = parseISO(iso)
-  if (isToday(date)) return `Hoy, ${format(date, 'hh:mm aa')}`
-  if (isYesterday(date)) return `Ayer, ${format(date, 'hh:mm aa')}`
-  return format(date, 'dd/MM/yyyy')
+  const date = parseISO(iso);
+  if (isToday(date)) return `Hoy, ${format(date, "hh:mm aa")}`;
+  if (isYesterday(date)) return `Ayer, ${format(date, "hh:mm aa")}`;
+  return format(date, "dd/MM/yyyy");
 }
 
 const CHANNEL_CHIP: Record<string, string> = {
-  comercial: 'bg-[#01A4E3]/10 text-[#01A4E3]',
-  administrativa: 'bg-[#00D4AA]/10 text-[#00D4AA]',
-}
+  comercial: "bg-[#01A4E3]/10 text-[#01A4E3]",
+  administrativa: "bg-[#00D4AA]/10 text-[#00D4AA]",
+};
 
 function channelLabel(channel: string): string {
-  return channel.charAt(0).toUpperCase() + channel.slice(1)
+  return channel.charAt(0).toUpperCase() + channel.slice(1);
 }
 
 // ── Skeleton ──────────────────────────────────────────────
@@ -41,7 +41,10 @@ function TableSkeleton() {
     <div className="w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-hidden animate-pulse">
       <div className="h-10 bg-[#2E2E2B]/60 border-b border-[#3A3A37]" />
       {[0, 1, 2].map((i) => (
-        <div key={i} className="flex gap-4 p-4 border-b border-[#3A3A37] last:border-0">
+        <div
+          key={i}
+          className="flex gap-4 p-4 border-b border-[#3A3A37] last:border-0"
+        >
           <div className="h-3 bg-[#2E2E2B] rounded w-32" />
           <div className="h-3 bg-[#2E2E2B] rounded w-20" />
           <div className="h-3 bg-[#2E2E2B] rounded w-24" />
@@ -51,124 +54,129 @@ function TableSkeleton() {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 // ── Page ──────────────────────────────────────────────────
 
 export default function HistorialPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [conversations, setConversations] = useState<ConvRow[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [conversations, setConversations] = useState<ConvRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [searchText, setSearchText] = useState('')
-  const [lineFilter, setLineFilter] = useState<string>('todos')
-  const [dateFilter, setDateFilter] = useState<string>('todos')
+  const [searchText, setSearchText] = useState("");
+  const [lineFilter, setLineFilter] = useState<string>("todos");
+  const [dateFilter, setDateFilter] = useState<string>("todos");
 
-  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({})
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>(
+    {},
+  );
 
   const toggleNote = (id: string) => {
-    setExpandedNotes((prev) => ({ ...prev, [id]: !prev[id] }))
-  }
+    setExpandedNotes((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     conversationsService
-      .list({ status: 'cerrada', limit: 100, offset: 0 })
+      .list({ status: "cerrada", limit: 100, offset: 0 })
       .then((result) => {
-        setConversations(result.conversations as ConvRow[])
+        setConversations(result.conversations as ConvRow[]);
       })
       .catch(() => {
         // silently fail — table stays empty
       })
       .finally(() => {
-        setIsLoading(false)
-      })
-  }, [])
+        setIsLoading(false);
+      });
+  }, []);
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conv) => {
       if (searchText) {
-        const search = searchText.toLowerCase()
-        const matchesName = conv.client.full_name?.toLowerCase().includes(search) ?? false
-        const matchesDoc = conv.client.document_id?.toLowerCase().includes(search) ?? false
-        if (!matchesName && !matchesDoc) return false
+        const search = searchText.toLowerCase();
+        const matchesName =
+          conv.client.full_name?.toLowerCase().includes(search) ?? false;
+        const matchesDoc =
+          conv.client.document_id?.toLowerCase().includes(search) ?? false;
+        if (!matchesName && !matchesDoc) return false;
       }
 
-      if (lineFilter !== 'todos') {
-        if (conv.channel !== lineFilter.toLowerCase()) return false
+      if (lineFilter !== "todos") {
+        if (conv.channel !== lineFilter.toLowerCase()) return false;
       }
 
-      if (dateFilter !== 'todos') {
-        const closedDateStr = conv.closed_at ?? conv.last_activity
-        const lastActivity = parseISO(closedDateStr)
-        const today = startOfDay(new Date())
-        if (dateFilter === 'hoy') {
-          if (!isToday(lastActivity)) return false
+      if (dateFilter !== "todos") {
+        const closedDateStr = conv.closed_at ?? conv.last_activity;
+        const lastActivity = parseISO(closedDateStr);
+        const today = startOfDay(new Date());
+        if (dateFilter === "hoy") {
+          if (!isToday(lastActivity)) return false;
         }
-        if (dateFilter === 'semana') {
-          const sevenDaysAgo = subDays(today, 7)
-          if (lastActivity < sevenDaysAgo) return false
+        if (dateFilter === "semana") {
+          const sevenDaysAgo = subDays(today, 7);
+          if (lastActivity < sevenDaysAgo) return false;
         }
       }
 
-      return true
-    })
-  }, [conversations, searchText, lineFilter, dateFilter])
+      return true;
+    });
+  }, [conversations, searchText, lineFilter, dateFilter]);
 
   function exportCSV() {
     const headers = [
-      'Cliente',
-      'Cédula',
-      'Línea',
-      'Fecha de Cierre',
-      'Notas de resolución',
-      'Resolutor',
-      'Cliente satisfecho',
-    ]
+      "Cliente",
+      "Cédula",
+      "Línea",
+      "Fecha de Cierre",
+      "Notas de resolución",
+      "Resolutor",
+      "Cliente satisfecho",
+    ];
     const rows = filteredConversations.map((conv) => {
-      const closedDateStr = conv.closed_at ?? conv.last_activity
-      let formattedDate = '—'
+      const closedDateStr = conv.closed_at ?? conv.last_activity;
+      let formattedDate = "—";
       if (closedDateStr) {
         try {
-          formattedDate = format(parseISO(closedDateStr), 'dd/MM/yyyy HH:mm')
+          formattedDate = format(parseISO(closedDateStr), "dd/MM/yyyy HH:mm");
         } catch {
-          formattedDate = '—'
+          formattedDate = "—";
         }
       }
 
-      const resolutor = conv.closed_by === 'bot'
-        ? 'Bot'
-        : conv.closed_by === 'asesor'
-          ? (conv.escalation?.advisor?.full_name ?? '—')
-          : '—'
+      const resolutor =
+        conv.closed_by === "bot"
+          ? "Bot"
+          : conv.closed_by === "asesor"
+            ? "Asesor"
+            : "—";
 
-      let satisfaccion = 'Sin confirmar'
-      if (conv.client_satisfied === 'si') satisfaccion = 'Sí'
-      if (conv.client_satisfied === 'no') satisfaccion = 'No'
+      let satisfaccion = "Sin confirmar";
+      if (conv.client_satisfied === "si") satisfaccion = "Sí";
+      if (conv.client_satisfied === "no") satisfaccion = "No";
 
       return [
-        conv.client.full_name ?? '—',
-        conv.client.document_id ?? '—',
+        conv.client.full_name ?? "—",
+        conv.client.document_id ?? "—",
         channelLabel(conv.channel),
         formattedDate,
-        conv.resolution_notes ?? 'Sin notas',
+        conv.resolution_notes ?? "Sin notas",
         resolutor,
         satisfaccion,
-      ]
-    })
+      ];
+    });
     const csvContent = [headers, ...rows]
       .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
       )
-      .join('\n')
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `historial_${format(new Date(), 'yyyyMMdd')}.csv`
-    link.click()
-    URL.revokeObjectURL(url)
+      .join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `historial_${format(new Date(), "yyyyMMdd")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -183,7 +191,8 @@ export default function HistorialPage() {
             Historial de Conversaciones Cerradas
           </h2>
           <p className="text-xs text-[#8B8FA8]">
-            Busca, audita y analiza transcripciones de requerimientos finalizados
+            Busca, audita y analiza transcripciones de requerimientos
+            finalizados
           </p>
         </div>
         <button
@@ -273,11 +282,16 @@ export default function HistorialPage() {
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
                 <th className="p-4 whitespace-nowrap">Notas de resolución</th>
                 <th className="p-4 whitespace-nowrap">Resolutor</th>
-                <th className="p-4 whitespace-nowrap text-center">¿El cliente está satisfecho?</th>
+                <th className="p-4 whitespace-nowrap text-center">
+                  ¿El cliente está satisfecho?
+                </th>
                 <th className="p-4 text-center whitespace-nowrap">Acciones</th>
               </tr>
             </thead>
-            <tbody id="history-table-body" className="divide-y divide-[#3A3A37]">
+            <tbody
+              id="history-table-body"
+              className="divide-y divide-[#3A3A37]"
+            >
               {filteredConversations.length === 0 ? (
                 <tr>
                   <td colSpan={7}>
@@ -291,19 +305,23 @@ export default function HistorialPage() {
                 </tr>
               ) : (
                 filteredConversations.map((conv) => (
-                  <tr key={conv.id} className="hover:bg-[#2E2E2B]/30 transition">
+                  <tr
+                    key={conv.id}
+                    className="hover:bg-[#2E2E2B]/30 transition"
+                  >
                     <td
                       className="p-4 font-bold text-white whitespace-nowrap truncate max-w-[150px]"
                       title={conv.client.full_name ?? undefined}
                     >
-                      {conv.client.full_name ?? '—'}
+                      {conv.client.full_name ?? "—"}
                     </td>
                     <td className="p-4">
                       <span
                         className={[
-                          'text-[9px] px-2 py-0.5 rounded font-black uppercase',
-                          CHANNEL_CHIP[conv.channel] ?? 'bg-[#3A3A37] text-[#8B8FA8]',
-                        ].join(' ')}
+                          "text-[9px] px-2 py-0.5 rounded font-black uppercase",
+                          CHANNEL_CHIP[conv.channel] ??
+                            "bg-[#3A3A37] text-[#8B8FA8]",
+                        ].join(" ")}
                       >
                         {channelLabel(conv.channel)}
                       </span>
@@ -318,13 +336,11 @@ export default function HistorialPage() {
                           title={conv.resolution_notes}
                           onClick={() => toggleNote(conv.id)}
                         >
-                          {expandedNotes[conv.id] ? (
-                            conv.resolution_notes
-                          ) : (
-                            conv.resolution_notes.length > 60
-                              ? conv.resolution_notes.slice(0, 60) + '...'
-                              : conv.resolution_notes
-                          )}
+                          {expandedNotes[conv.id]
+                            ? conv.resolution_notes
+                            : conv.resolution_notes.length > 60
+                              ? conv.resolution_notes.slice(0, 60) + "..."
+                              : conv.resolution_notes}
                         </div>
                       ) : (
                         <span className="text-xs text-[#8B8FA8] italic">
@@ -333,22 +349,24 @@ export default function HistorialPage() {
                       )}
                     </td>
                     <td className="p-4 font-bold whitespace-nowrap">
-                      {conv.closed_by === 'bot' ? (
-                        <span className="text-[#00D4AA] text-xs font-semibold">Bot</span>
-                      ) : conv.closed_by === 'asesor' ? (
+                      {conv.closed_by === "bot" ? (
+                        <span className="text-[#00D4AA] text-xs font-semibold">
+                          Bot
+                        </span>
+                      ) : conv.closed_by === "asesor" ? (
                         <span className="text-[#F0F0F5] text-xs font-semibold">
-                          {conv.escalation?.advisor?.full_name ?? '—'}
+                          Asesor
                         </span>
                       ) : (
                         <span className="text-[#8B8FA8] text-xs">—</span>
                       )}
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
-                      {conv.client_satisfied === 'si' ? (
+                      {conv.client_satisfied === "si" ? (
                         <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#00D4AA]/15 text-[#00D4AA]">
                           Sí
                         </span>
-                      ) : conv.client_satisfied === 'no' ? (
+                      ) : conv.client_satisfied === "no" ? (
                         <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#FF5C5C]/15 text-[#FF5C5C]">
                           No
                         </span>
@@ -362,7 +380,9 @@ export default function HistorialPage() {
                       <button
                         type="button"
                         onClick={() =>
-                          navigate(`/chat/${conv.id}`, { state: { readonly: true } })
+                          navigate(`/chat/${conv.id}`, {
+                            state: { readonly: true },
+                          })
                         }
                         className="text-[#01A4E3] hover:underline font-bold px-2 py-1"
                       >
@@ -377,5 +397,5 @@ export default function HistorialPage() {
         </div>
       )}
     </section>
-  )
+  );
 }
