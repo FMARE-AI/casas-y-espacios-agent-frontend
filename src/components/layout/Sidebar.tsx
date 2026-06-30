@@ -6,12 +6,16 @@ import { useWSStore } from '../../store/wsStore'
 import { alertsService } from '../../services/alerts'
 import type { AvailabilityStatus, WSStatus } from '../../types'
 
-function getSystemStatus(wsStatus: WSStatus): { label: string; color: string; pulse: boolean } {
+function getSystemStatus(wsStatus: WSStatus): { emoji: string; label: string; subtitle: string; color: string; pulse: boolean } {
   switch (wsStatus) {
-    case 'connected':    return { label: 'Sistema operativo', color: '#00D4AA', pulse: false }
-    case 'reconnecting': return { label: 'Conexión inestable', color: '#FFB84D', pulse: true }
-    case 'disconnected': return { label: 'Sin conexión',       color: '#FF5B5B', pulse: false }
-    default:             return { label: 'Conectando...',      color: '#8B8FA8', pulse: true }
+    case 'connected':
+      return { emoji: '🟢', label: 'Estado del sistema', subtitle: 'Todo en orden', color: '#00D4AA', pulse: false }
+    case 'reconnecting':
+      return { emoji: '🟡', label: 'Estado del sistema', subtitle: 'Conexión inestable', color: '#FFB84D', pulse: true }
+    case 'disconnected':
+      return { emoji: '🔴', label: 'Estado del sistema', subtitle: 'Sin conexión', color: '#FF5B5B', pulse: false }
+    default:
+      return { emoji: '🔵', label: 'Estado del sistema', subtitle: 'Conectando...', color: '#8B8FA8', pulse: true }
   }
 }
 
@@ -268,17 +272,23 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           {(() => {
             const sys = getSystemStatus(wsStatus)
             return (
-              <div className="px-3 py-2.5 bg-[#1D1D1B] rounded-lg border border-[#3A3A37] flex items-center gap-2.5">
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{
-                    backgroundColor: sys.color,
-                    animation: sys.pulse ? 'wsPulse 1.6s infinite ease-in-out' : undefined,
-                  }}
-                />
-                <span className="text-[11px] font-semibold truncate" style={{ color: sys.color }}>
-                  {sys.label}
-                </span>
+              <div className="px-4 py-3.5 bg-[#1D1D1B] rounded-lg border border-[#3A3A37] flex items-start gap-3">
+                <span className="text-base leading-6 shrink-0">{sys.emoji}</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-[#D6D3C8]">{sys.label}</p>
+                  <p className="text-[11px] mt-1 truncate" style={{ color: sys.color }}>
+                    {sys.subtitle}
+                  </p>
+                  {sys.pulse && (
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full mt-1.5"
+                      style={{
+                        backgroundColor: sys.color,
+                        animation: 'wsPulse 1.6s infinite ease-in-out',
+                      }}
+                    />
+                  )}
+                </div>
               </div>
             )
           })()}
