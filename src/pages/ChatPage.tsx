@@ -5,9 +5,10 @@ import { useToastStore } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
 import type {
   Conversation,
-  
+
   Message,
   WSConversationClosed,
+  WSEscalationNew,
   WSEscalationAssigned,
 } from "../types";
 import MessageFeed from "../components/chat/MessageFeed";
@@ -480,16 +481,30 @@ export default function ChatPage() {
     [conversationId, loadConversation],
   );
 
+  // Covers auto-assign on escalation creation: the backend may emit a single
+  // `escalation.new` with `advisor_id` already set, with no follow-up
+  // `escalation.assigned` event, so this chat must also refresh on that event.
+  const onEscalationNew = useCallback(
+    (event: WSEscalationNew) => {
+      if (event.conversation_id === conversationId) {
+        loadConversation();
+      }
+    },
+    [conversationId, loadConversation],
+  );
+
   // Stable handlers object — prevents useWebSocket's effect from re-running on every render
   const wsHandlers = useMemo(
     () => ({
       onMessageNew: onNewMessage,
+      onEscalationNew: onEscalationNew,
       onConversationReturned: onConversationReturned,
       onConversationClosed: onConversationClosed,
       onEscalationAssigned: onEscalationAssigned,
     }),
     [
       onNewMessage,
+      onEscalationNew,
       onConversationReturned,
       onConversationClosed,
       onEscalationAssigned,
