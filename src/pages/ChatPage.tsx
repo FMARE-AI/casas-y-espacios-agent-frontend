@@ -619,8 +619,8 @@ export default function ChatPage() {
   function getChatVariant(): ChatVariant {
     if (role === "admin") return "monitoring";
     if (!conversation) return "unassigned";
-    if (conversation.bot_activo) return "bot";
     if (conversation.escalation?.advisor?.id === advisor?.id) return "assigned";
+    if (conversation.bot_activo) return "bot";
     return "unassigned";
   }
 
