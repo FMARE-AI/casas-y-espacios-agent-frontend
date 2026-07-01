@@ -413,7 +413,11 @@ export default function ChatPage() {
         { limit: 100, offset: apiOffsetRef.current },
       );
       apiOffsetRef.current += older.length;
-      setMessages((prev) => [...older, ...prev]);
+      setMessages((prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const filteredOlder = older.filter((m) => !existingIds.has(m.id));
+        return [...filteredOlder, ...prev];
+      });
       setTimeout(() => {
         if (container) {
           container.scrollTop = container.scrollHeight - prevScrollHeight;
