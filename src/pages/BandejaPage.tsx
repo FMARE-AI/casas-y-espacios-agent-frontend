@@ -30,7 +30,8 @@ function ConnectedAdvisors() {
   return (
     <div className="flex items-center gap-1.5 flex-wrap mt-1.5" id="connected-advisors-panel">
       {online.map((advisor) => {
-        const isBreak  = advisor.availability_status === 'break'
+        const isBreak   = advisor.availability_status === 'break'
+        const isOffline = advisor.availability_status === 'offline'
         const isAtLimit =
           isAdmin &&
           advisor.active_conversations !== undefined &&
@@ -42,15 +43,18 @@ function ConnectedAdvisors() {
             className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
               isBreak
                 ? 'bg-[#FFB84D]/10 border-[#FFB84D]/25 text-[#FFB84D]'
+                : isOffline
+                ? 'bg-[#8B8FA8]/10 border-[#8B8FA8]/25 text-[#8B8FA8]'
                 : 'bg-[#00D4AA]/10 border-[#00D4AA]/25 text-[#F0F0F5]'
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              isBreak ? 'bg-[#FFB84D] animate-pulse' : 'bg-[#00D4AA]'
+              isBreak ? 'bg-[#FFB84D] animate-pulse' : isOffline ? 'bg-[#8B8FA8]' : 'bg-[#00D4AA]'
             }`} />
             {advisor.full_name.split(' ')[0]}
             {isBreak && <span className="text-[#FFB84D]/80 font-normal">· Descanso</span>}
-            {!isBreak && isAdmin && advisor.active_conversations !== undefined && (
+            {isOffline && <span className="text-[#8B8FA8]/80 font-normal">· No disponible</span>}
+            {!isBreak && !isOffline && isAdmin && advisor.active_conversations !== undefined && (
               <span className={`font-mono ${isAtLimit ? 'text-[#FF5B5B]' : 'text-[#8B8FA8]'}`}>
                 {advisor.active_conversations}/{advisor.max_conversations}
               </span>
