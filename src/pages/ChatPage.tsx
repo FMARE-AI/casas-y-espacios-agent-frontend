@@ -327,8 +327,11 @@ export default function ChatPage() {
   const [isClosing, setIsClosing] = useState(false);
   const [showReturnedPill, setShowReturnedPill] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
-  // Tracks messages loaded via API only — WS messages must not affect pagination offset
+  // Tracks how many messages (counted back from the most recent one) have been
+  // loaded so far. offset=0 on the API means "the latest window", so this ref
+  // doubles as the offset to request on the next "load older" page.
   const apiOffsetRef = useRef(0);
+  const totalRef = useRef(0);
   // True after the first successful loadConversation — distinguishes the initial
   // load (where apiOffsetRef has no prior value worth preserving) from a WS-triggered
   // refresh (where the user may have already scrolled further back than the fresh fetch).
@@ -341,33 +344,21 @@ export default function ChatPage() {
       const limit = fromAlert ? 100 : 50;
       const {
         conversation: conv,
-        messages: firstBatch,
+        messages: msgs,
         total_messages: total,
       } = await conversationsService.getById(conversationId, limit);
-
-      // /conversations/{id} returns messages ASC from offset 0 — i.e. the OLDEST
-      // messages, not the most recent ones. When the conversation has more history
-      // than `limit`, re-fetch the actual tail (the latest messages) so the chat
-      // opens showing what the client last said, not the start of the conversation.
-      let msgs = firstBatch;
-      let startOffset = 0;
-      if (total > firstBatch.length) {
-        startOffset = Math.max(0, total - limit);
-        const { messages: tailBatch } = await conversationsService.getMessages(
-          conversationId,
-          { limit, offset: startOffset },
-        );
-        msgs = tailBatch;
-      }
+      // offset=0 returns the most recent `limit` messages (server orders DESC
+      // internally, then reverses to ASC for display) — no extra fetch needed.
 
       setConversation(conv);
       setShowReturnedPill(conv.bot_activo && conv.has_escalation_history);
       // Merge instead of replace. `msgs` is only the fresh window this call fetched
-      // (the tail) — it does NOT include older history the user already loaded via
-      // infinite scroll, nor messages added locally/via WS that the fetch raced
-      // against. Preserve anything from `prev` that falls outside the fresh window
-      // (older than its first message, or newer than its last) so a WS-triggered
-      // refresh (escalation assigned/returned/new) never drops already-visible messages.
+      // (the latest messages) — it does NOT include older history the user already
+      // loaded via infinite scroll, nor messages added locally/via WS that the
+      // fetch raced against. Preserve anything from `prev` that falls outside the
+      // fresh window (older than its first message, or newer than its last) so a
+      // WS-triggered refresh (escalation assigned/returned/new) never drops
+      // already-visible messages.
       setMessages((prev) => {
         if (prev.length === 0) return msgs
         const serverIds = new Set(msgs.map((m) => m.id))
@@ -387,13 +378,12 @@ export default function ChatPage() {
           (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         )
       })
-      // Tracks the offset (ASC, oldest-first) of the oldest message currently
-      // loaded — "load more" walks this backward toward 0, never forward. On a
-      // refresh (not the initial load), keep the deepest point already reached
-      // instead of resetting it to this call's fresh-window start.
+      totalRef.current = total;
+      // On a refresh (not the initial load), keep the deepest point already
+      // reached instead of resetting it back to just this fresh window's size.
       apiOffsetRef.current = initializedRef.current
-        ? Math.min(startOffset, apiOffsetRef.current)
-        : startOffset;
+        ? Math.max(msgs.length, apiOffsetRef.current)
+        : msgs.length;
       initializedRef.current = true;
     } catch {
       // interceptor already showed the error toast
@@ -437,21 +427,19 @@ export default function ChatPage() {
   }, [isLoading]);
 
   async function loadMoreMessages() {
-    if (isLoadingMore || apiOffsetRef.current <= 0) return;
+    if (isLoadingMore || apiOffsetRef.current >= totalRef.current) return;
     const container = feedRef.current;
     const prevScrollHeight = container ? container.scrollHeight : 0;
     setIsLoadingMore(true);
     try {
-      const pageSize = 100;
-      // Walk backward from the oldest currently-loaded message: /messages is ASC
-      // from offset 0, so "older" means a lower offset, not a higher one.
-      const newOffset = Math.max(0, apiOffsetRef.current - pageSize);
-      const fetchLimit = apiOffsetRef.current - newOffset;
+      // offset counts back from the most recent message, so requesting the next
+      // page at the current offset returns the window immediately preceding
+      // (older than) what's already loaded.
       const { messages: older } = await conversationsService.getMessages(
         conversationId!,
-        { limit: fetchLimit, offset: newOffset },
+        { limit: 100, offset: apiOffsetRef.current },
       );
-      apiOffsetRef.current = newOffset;
+      apiOffsetRef.current += older.length;
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
         const filteredOlder = older.filter((m) => !existingIds.has(m.id));

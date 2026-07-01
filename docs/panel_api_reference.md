@@ -234,7 +234,15 @@ No request body required.
 | Param    | Type      | Default | Description                         |
 | -------- | --------- | ------- | ----------------------------------- |
 | `limit`  | `integer` | 50      | Number of messages to fetch (1–100) |
-| `offset` | `integer` | 0       | Message pagination offset           |
+| `offset` | `integer` | 0       | Message pagination offset — see **Pagination contract** below |
+
+**Pagination contract (`messages` / `total_messages`):**
+
+`offset` counts backward from the **most recent** message, not forward from the oldest one. The server sorts messages `timestamp DESC`, takes the `[offset, offset + limit)` window, then reverses it back to ascending order before returning it — so the `messages` array itself is always chronological (oldest → newest), but which slice of history you get depends on `offset`:
+
+- `offset=0` (the default) returns the **latest** `limit` messages — always use this to open a chat.
+- To load older history (infinite scroll upward), increase `offset` by the number of messages already loaded (see the `/messages` endpoint below). Do **not** decrease `offset` or use `total_messages - limit` to "jump to the end" — `offset=0` already **is** the end.
+- Stop paginating once `offset >= total_messages`.
 
 **Response 200:**
 
@@ -307,7 +315,7 @@ No request body required.
 
 **Auth required:** Yes (any active advisor; area-restricted for non-admins)
 
-**Description:** Paginated message history for a conversation. Ordered by `timestamp` ASC (oldest first). Use this endpoint for infinite-scroll pagination after the initial load via the conversation detail endpoint.
+**Description:** Paginated message history for a conversation. The returned `messages` array is always ordered `timestamp` ASC (oldest first), but `offset` counts backward from the most recent message — see **Pagination contract** below. Use this endpoint for infinite-scroll pagination after the initial load via the conversation detail endpoint.
 
 **Path params:**
 
@@ -317,10 +325,12 @@ No request body required.
 
 **Query params:**
 
-| Param    | Type      | Default | Description       |
-| -------- | --------- | ------- | ----------------- |
-| `limit`  | `integer` | 20      | Page size (1–100) |
-| `offset` | `integer` | 0       | Pagination offset |
+| Param    | Type      | Default | Description                                                    |
+| -------- | --------- | ------- | ---------------------------------------------------------------|
+| `limit`  | `integer` | 20      | Page size (1–100)                                               |
+| `offset` | `integer` | 0       | Pagination offset, counted back from the most recent message — see **Pagination contract** below |
+
+**Pagination contract:** same as `GET /conversations/{conversation_id}` — `offset=0` is the latest window; to walk backward in history, call again with `offset = offset + messages.length` from the previous response. Stop once `offset >= total`.
 
 **Response 200:**
 
@@ -2158,11 +2168,15 @@ function renderMessage(msg) {
 ### Opening a Chat
 
 ```javascript
-// Fetch conversation detail with first 50 messages
+// offset=0 returns the LATEST 50 messages (ASC order within that window) —
+// this is what a chat should open with, not the beginning of the conversation.
 const detail = await fetch(
   `/api/v1/panel/conversations/${conversationId}?limit=50&offset=0`,
   { headers },
 ).then((r) => r.json());
+
+const { messages, total_messages } = detail.data.conversation;
+let loadedOffset = messages.length; // offset to request on the NEXT (older) page
 
 // Register the subscription on the WebSocket
 ws.send(
@@ -2172,11 +2186,17 @@ ws.send(
   }),
 );
 
-// Load older messages on scroll (infinite scroll upward)
-const older = await fetch(
-  `/api/v1/panel/conversations/${conversationId}/messages?limit=20&offset=50`,
-  { headers },
-).then((r) => r.json());
+// Load older messages on scroll (infinite scroll upward): increase offset by
+// how many messages are already loaded — never decrease it or "jump to the end",
+// offset=0 already is the end.
+if (loadedOffset < total_messages) {
+  const older = await fetch(
+    `/api/v1/panel/conversations/${conversationId}/messages?limit=100&offset=${loadedOffset}`,
+    { headers },
+  ).then((r) => r.json());
+  loadedOffset += older.data.messages.length;
+  // Prepend older.data.messages to the currently rendered list.
+}
 ```
 
 ---
