@@ -56,12 +56,12 @@ type CardVariant = 'A' | 'A2' | 'B' | 'C' | 'D'
 function getVariant(conversation: Conversation, now: number): CardVariant {
   if (conversation.status === 'cerrada') return 'D'
 
+  const hasAdvisor = !!conversation.escalation?.advisor
+  if (hasAdvisor) return 'B'
+
   if (conversation.status === 'activa') return 'C'
 
   if (conversation.status === 'escalada') {
-    const hasAdvisor = !!conversation.escalation?.advisor
-    if (hasAdvisor) return 'B'
-
     const waitSeconds = conversation.escalation?.wait_seconds !== undefined && conversation.escalation?.wait_seconds !== null
       ? conversation.escalation.wait_seconds
       : (conversation.escalation?.escalated_at
