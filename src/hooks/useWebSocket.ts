@@ -38,6 +38,16 @@ let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
+// True once the current session's socket has completed at least one handshake.
+// Used to tell apart "still opening the first connection" (quiet) from
+// "a live connection just dropped" (alarming) — both used to share the same
+// 'reconnecting' status, which flashed on every login.
+let hasConnectedOnce = false
+// Timestamp of the last pong received — the watchdog in startPing() closes the
+// socket if the server stops answering, since a dead TCP connection can sit in
+// readyState OPEN for a long time (until the OS notices) without this check.
+let lastPongAt = 0
+const PONG_TIMEOUT_MS = 45000
 // Tracks which conversation the active advisor has open — used to gate message sounds
 // and suppress unread badge increments for the chat currently visible.
 let currentSubscribedConversationId: string | null = null
@@ -74,10 +84,19 @@ function clearReconnect() {
 
 function startPing() {
   clearPing()
+  lastPongAt = Date.now()
   pingInterval = setInterval(() => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'ping' }))
+    if (socket?.readyState !== WebSocket.OPEN) return
+
+    if (Date.now() - lastPongAt > PONG_TIMEOUT_MS) {
+      // No pong in 1.5 ping cycles — the network likely dropped without a close
+      // frame (wifi/cable pulled, dead router). Force-close so onclose can flip
+      // the status and start reconnecting, instead of sitting "connected" forever.
+      socket.close()
+      return
     }
+
+    socket.send(JSON.stringify({ type: 'ping' }))
   }, 30000)
 }
 
@@ -85,6 +104,29 @@ function sendMessage(payload: object): void {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(payload))
   }
+}
+
+// The browser fires 'offline' the instant it detects the OS has no network,
+// which is much faster than waiting for the ping/pong watchdog to time out.
+// Registered once at module load — this file is a singleton, never re-imported.
+if (typeof window !== 'undefined') {
+  window.addEventListener('offline', () => {
+    if (socket) {
+      useWSStore.getState().setStatus('reconnecting')
+      socket.close()
+    }
+  })
+
+  window.addEventListener('online', () => {
+    // Skip the remaining backoff delay and retry immediately once the network is back.
+    if (socket || isConnecting) return
+    const token = useAuthStore.getState().token
+    if (!token) return
+    clearReconnect()
+    getValidToken().then((validToken) => {
+      if (validToken) connect(validToken)
+    }).catch(() => {})
+  })
 }
 
 // Single teardown path for the module-singleton socket — used both when a
@@ -103,6 +145,13 @@ function connect(token: string): void {
 
   connectedToken = token
   isConnecting = true
+
+  // Only the "recovering from a live drop" case deserves the alarming
+  // 'reconnecting' banner. A first-time handshake (fresh login, or the retry
+  // loop before it has ever succeeded) shows the quiet 'connecting' status instead.
+  if (!hasConnectedOnce) {
+    useWSStore.getState().setStatus('connecting')
+  }
 
   const wsBaseEnv: string | undefined = import.meta.env.VITE_WS_BASE_URL
   const apiUrl: string = import.meta.env.VITE_API_URL || 'https://casasyespaciosagent.up.railway.app'
@@ -124,6 +173,7 @@ function connect(token: string): void {
   ws.onopen = () => {
     isConnecting = false
     const wasReconnecting = useWSStore.getState().reconnectAttempt > 0
+    hasConnectedOnce = true
     useWSStore.getState().setStatus('connected')
     useWSStore.getState().setReconnectAttempt(0)
     startPing()
@@ -147,8 +197,10 @@ function connect(token: string): void {
       return
     }
 
-    // Ignore pong frames
-    if (parsed.type === 'pong') return
+    if (parsed.type === 'pong') {
+      lastPongAt = Date.now()
+      return
+    }
 
     const { event: eventType, data } = parsed
     if (!eventType) return
@@ -343,8 +395,12 @@ function connect(token: string): void {
       return
     }
 
-    useWSStore.getState().setStatus('reconnecting')
     const attempt = useWSStore.getState().reconnectAttempt
+    // A drop after a live connection is always alarming. Before the first
+    // successful handshake, give it a couple of quiet retries (e.g. a token
+    // race right after login) before treating it as a real problem too.
+    const shouldAlarm = hasConnectedOnce || attempt >= 2
+    useWSStore.getState().setStatus(shouldAlarm ? 'reconnecting' : 'connecting')
     useWSStore.getState().setReconnectAttempt(attempt + 1)
 
     const delay = getBackoffDelay(attempt)
@@ -495,6 +551,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (!accessToken || sessionExpired) {
       setStatus('disconnected')
       closeSocket()
+      hasConnectedOnce = false
       return
     }
 

@@ -20,7 +20,7 @@ export type ClientType =
   | 'propietario'
   | 'prospecto'
   | 'desconocido'
-export type WSStatus = 'connected' | 'reconnecting' | 'disconnected'
+export type WSStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected'
 
 // ── MODELOS DE DOMINIO ────────────────────────────────────
 

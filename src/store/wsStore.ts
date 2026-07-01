@@ -33,7 +33,7 @@ interface WSState {
 }
 
 export const useWSStore = create<WSState>((set) => ({
-  status: 'disconnected',
+  status: 'connecting',
   reconnectAttempt: 0,
   unreadAlerts: 0,
   pendingEscalation: null,

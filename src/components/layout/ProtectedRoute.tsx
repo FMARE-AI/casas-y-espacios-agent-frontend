@@ -65,6 +65,7 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   }
 
   const WS_DOT_CLASSES: Record<WSStatus, string> = {
+    connecting: 'bg-[#8B8FA8] animate-pulse',
     connected: 'bg-[#01A4E3] ws-pulse-dot',
     reconnecting: 'bg-[#FFB84D]',
     disconnected: 'bg-[#FF5B5B]',
