@@ -11,6 +11,8 @@ node_modules
 dist
 
 # Environment variables
+.env.production
+.env.development
 .env
 .env.local
 .env.production
