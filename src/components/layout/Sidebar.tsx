@@ -1,6 +1,5 @@
 import { useEffect, useCallback, memo } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
 import { alertsService } from '../../services/alerts'
@@ -121,8 +120,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const isActive = (path: string) =>
     path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
-  const handleSignOut = useCallback(async () => {
-    await supabase.auth.signOut()
+  const handleSignOut = useCallback(() => {
     reset()
     navigate('/login')
   }, [reset, navigate])
