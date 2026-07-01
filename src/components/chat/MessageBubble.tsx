@@ -186,6 +186,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
         <img
           src={msg.media_url}
           alt={msg.content ?? 'Imagen'}
+          loading="lazy"
           className="rounded-lg w-full h-auto max-h-[300px] object-cover cursor-pointer hover:opacity-90 hover:scale-[1.01] active:scale-95 transition-all duration-200"
           onClick={() => setIsExpanded(true)}
         />
@@ -312,6 +313,7 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
         <audio
           src={msg.media_url}
           controls
+          preload="none"
           className="h-8 w-full max-w-[240px] shadow-sm rounded-lg"
           style={{ accentColor: '#01A4E3' }}
         />
@@ -351,7 +353,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
         <div className="rounded-xl overflow-hidden border border-[#3A3A37]/60 shadow-md bg-black w-full max-h-[320px] flex items-center justify-center relative group/video">
           <video
             controls
-            preload="metadata"
+            preload="none"
             playsInline
             className="w-full min-h-[135px] max-h-[320px] object-contain bg-black"
           >
