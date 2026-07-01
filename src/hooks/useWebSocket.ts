@@ -15,6 +15,7 @@ import type {
   WSAdvisorConnected,
   WSAdvisorDisconnected,
   WSBehaviorAlertEvent,
+  Advisor,
 } from '../types'
 
 // Global handlers registry to allow pages to hook into specific events without duplicate connections
@@ -84,6 +85,17 @@ function sendMessage(payload: object): void {
   if (socket?.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(payload))
   }
+}
+
+// Single teardown path for the module-singleton socket — used both when a
+// session ends (no reconnect wanted) and when swapping to a new token.
+function closeSocket(): void {
+  clearPing()
+  clearReconnect()
+  if (socket) socket.close()
+  socket = null
+  connectedToken = null
+  isConnecting = false
 }
 
 function connect(token: string): void {
@@ -233,22 +245,25 @@ function connect(token: string): void {
 
       case 'escalation.new': {
         const escData = data as WSEscalationNew
-        // Admin never sounds. Asesor always sounds — new escalation is actionable work.
-        const isAdminOnEscalation = useAuthStore.getState().advisor?.role === 'admin'
-        if (!isAdminOnEscalation) {
+        const advisor = useAuthStore.getState().advisor
+        const eligible = isEligibleForEscalation(advisor, escData)
+
+        if (eligible) {
           playNotificationSound()
+          // Feed the EscalationToast via wsStore — same eligibility gate as the sound.
+          useWSStore.getState().setPendingEscalation({
+            clientName: escData.channel,
+            reason: escData.reason ?? '',
+            conversationId: escData.conversation_id,
+            advisorId: escData.advisor_id,
+            channel: escData.channel,
+          })
         }
+
+        // Bandeja queue counts are cross-area info, not a personal signal — always refresh.
         if (_handlers.onEscalationNew) {
           _handlers.onEscalationNew(escData)
         }
-        // Feed the EscalationToast via wsStore
-        useWSStore.getState().setPendingEscalation({
-          clientName: escData.channel,
-          reason: escData.reason ?? '',
-          conversationId: escData.conversation_id,
-          advisorId: escData.advisor_id,
-          channel: escData.channel,
-        })
         break
       }
 
@@ -317,6 +332,17 @@ function connect(token: string): void {
       return
     }
 
+    // Session intentionally ended (logout, or blocked pending confirmation) —
+    // do not reconnect. Without this guard, a socket closed explicitly by the
+    // connection effect (session end) would reopen itself via this same
+    // onclose handler moments later, since the refresh_token can still be
+    // present (e.g. ADVISOR_INACTIVE keeps it until the user confirms).
+    const { refresh_token, sessionExpired } = useAuthStore.getState()
+    if (!refresh_token || sessionExpired) {
+      useWSStore.getState().setStatus('disconnected')
+      return
+    }
+
     useWSStore.getState().setStatus('reconnecting')
     const attempt = useWSStore.getState().reconnectAttempt
     useWSStore.getState().setReconnectAttempt(attempt + 1)
@@ -325,20 +351,34 @@ function connect(token: string): void {
     // L-03: use getValidToken() instead of reading the raw token from state.
     // This refreshes the AT if it's expired before reconnecting, avoiding a
     // 4001 close that would force the user back to the login screen unnecessarily.
-    const { refresh_token } = useAuthStore.getState()
-    if (refresh_token) {
-      reconnectTimeout = setTimeout(() => {
-        reconnectTimeout = null
-        getValidToken().then((token) => {
-          if (token) connect(token)
-        }).catch(() => {})
-      }, delay)
-    }
+    reconnectTimeout = setTimeout(() => {
+      reconnectTimeout = null
+      getValidToken().then((token) => {
+        if (token) connect(token)
+      }).catch(() => {})
+    }, delay)
   }
 
   ws.onerror = () => {
     // onclose fires automatically after onerror — nothing else needed
   }
+}
+
+// Scope rule for escalation.new (sound + toast): admin never; if already
+// assigned, only the assigned advisor; if queued, any advisor whose area
+// matches the channel (or 'ambas'), has capacity, and is available.
+function isEligibleForEscalation(advisor: Advisor | null, escData: WSEscalationNew): boolean {
+  if (!advisor || advisor.role === 'admin') return false
+
+  if (escData.advisor_id !== null) {
+    return advisor.id === escData.advisor_id
+  }
+
+  return (
+    (advisor.area === escData.channel || advisor.area === 'ambas') &&
+    advisor.active_conversations < advisor.max_conversations &&
+    advisor.availability_status === 'available'
+  )
 }
 
 // I-01: Singleton AudioContext — browsers cap concurrent contexts (~6 in Chrome).
@@ -405,6 +445,7 @@ export function playNotificationSound() {
 
 export function useWebSocket(handlers?: WSHandlers) {
   const accessToken = useAuthStore((s) => s.token)
+  const sessionExpired = useAuthStore((s) => s.sessionExpired)
   const setStatus = useWSStore((s) => s.setStatus)
 
   // M-03: track each handler function individually instead of the whole object.
@@ -448,10 +489,12 @@ export function useWebSocket(handlers?: WSHandlers) {
     onConversationClosed, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 
-  // Open / reopen connection when token changes
+  // Open / reopen connection when the session changes; close it whenever
+  // there is no valid session (no token, or blocked pending confirmation).
   useEffect(() => {
-    if (!accessToken) {
+    if (!accessToken || sessionExpired) {
       setStatus('disconnected')
+      closeSocket()
       return
     }
 
@@ -459,29 +502,16 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (socket && connectedToken === accessToken) return
 
     // Token changed — tear down old socket and reconnect
-    if (socket) {
-      clearPing()
-      clearReconnect()
-      socket.close()
-      socket = null
-      connectedToken = null
-      isConnecting = false
-    }
-
+    closeSocket()
     connect(accessToken)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken])
+  }, [accessToken, sessionExpired])
 
   const reconnect = useCallback(() => {
+    if (useAuthStore.getState().sessionExpired) return
     const token = useAuthStore.getState().token
     if (!token) return
-    clearReconnect()
-    if (socket) {
-      clearPing()
-      socket.close()
-      socket = null
-      isConnecting = false
-    }
+    closeSocket()
     connect(token)
   }, [])
 
