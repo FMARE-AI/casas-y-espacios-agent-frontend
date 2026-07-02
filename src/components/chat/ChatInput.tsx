@@ -23,19 +23,19 @@ const FILE_TYPES = {
   image: {
     label: 'Imagen',
     accept: 'image/jpeg,image/png',
-    maxMB: 5,
+    maxMB: 50,
     iconColor: '#01A4E3',
   },
   document: {
     label: 'Documento',
     accept: 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    maxMB: 20,
+    maxMB: 50,
     iconColor: '#FFB84D',
   },
   video: {
     label: 'Video',
     accept: 'video/mp4,video/3gpp',
-    maxMB: 16,
+    maxMB: 50,
     iconColor: '#00D4AA',
   },
 }

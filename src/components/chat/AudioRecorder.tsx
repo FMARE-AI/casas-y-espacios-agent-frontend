@@ -109,7 +109,7 @@ export default function AudioRecorder({
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
       if (code === 'FILE_TOO_LARGE') {
-        setErrorMessage('El audio supera el límite de 16MB')
+        setErrorMessage('El audio supera el límite de 50MB')
       } else if (code === 'FILE_TYPE_NOT_ALLOWED') {
         setErrorMessage('Tipo de audio no permitido')
       } else if (code === 'META_API_ERROR') {
