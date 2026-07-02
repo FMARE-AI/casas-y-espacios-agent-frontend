@@ -63,6 +63,11 @@ export interface Message {
   timestamp: string
   created_at: string
   advisor_name: string | null
+  // Optimistic-UI-only fields — populated locally by ChatInput/AudioRecorder
+  // before the server confirms the message; never present in API responses.
+  _localId?: string
+  _status?: 'sending' | 'failed'
+  _fileName?: string
 }
 
 export interface Escalation {

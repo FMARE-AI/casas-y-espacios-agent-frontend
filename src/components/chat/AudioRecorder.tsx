@@ -6,9 +6,16 @@ import type { Message } from '../../types'
 
 interface AudioRecorderProps {
   conversationId: string
-  onAudioSent: (message: Message) => void
+  currentAdvisorName?: string
+  onOptimisticMessage: (message: Message) => void
+  onMessageConfirmed: (localId: string, message: Message) => void
+  onMessageFailed: (localId: string) => void
   disabled?: boolean
   onStateChange?: (state: RecorderState) => void
+}
+
+function makeLocalId(): string {
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 type RecorderState =
@@ -23,7 +30,10 @@ const MAX_DURATION_SECONDS = 300 // 5 minutes
 
 export default function AudioRecorder({
   conversationId,
-  onAudioSent,
+  currentAdvisorName,
+  onOptimisticMessage,
+  onMessageConfirmed,
+  onMessageFailed,
   disabled = false,
   onStateChange,
 }: AudioRecorderProps) {
@@ -35,6 +45,7 @@ export default function AudioRecorder({
 
   const recorderRef = useRef<any>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const retryLocalIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     // @ts-ignore
@@ -95,9 +106,34 @@ export default function AudioRecorder({
   async function sendAudio() {
     if (!audioBlob) return
     setState('sending')
+
+    const localId = retryLocalIdRef.current ?? makeLocalId()
+    retryLocalIdRef.current = null
+
+    // Show the recorded clip as a bubble immediately — uploading + delivering
+    // via Meta can take a few seconds and shouldn't block the perceived send.
+    onOptimisticMessage({
+      id: localId,
+      conversation_id: conversationId,
+      wam_id: null,
+      direction: 'outbound_advisor',
+      msg_type: 'audio',
+      content: null,
+      media_url: audioUrl,
+      media_mime_type: 'audio/mpeg',
+      media_size_bytes: audioBlob.size,
+      transcription: null,
+      delivered_via: 'panel',
+      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      advisor_name: currentAdvisorName ?? null,
+      _localId: localId,
+      _status: 'sending',
+    })
+
     try {
       const { message } = await conversationsService.replyAudio(conversationId, audioBlob)
-      onAudioSent(message)
+      onMessageConfirmed(localId, message)
       cancelRecording() // Clear state after success
 
       // Auto scroll to bottom
@@ -106,6 +142,8 @@ export default function AudioRecorder({
         if (feed) feed.scrollTop = feed.scrollHeight
       }, 50)
     } catch (error) {
+      onMessageFailed(localId)
+      retryLocalIdRef.current = localId
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
       if (code === 'FILE_TOO_LARGE') {

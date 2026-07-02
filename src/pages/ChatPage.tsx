@@ -573,6 +573,44 @@ export default function ChatPage() {
     }
   }, [messages]);
 
+  // ── Optimistic UI helpers ──────────────────────────────────
+  // ChatInput/AudioRecorder append a local placeholder message the instant the
+  // advisor hits send (before the HTTP round-trip to Meta/Storage completes),
+  // then reconcile it once the server responds. Matched by `_localId` since the
+  // placeholder doesn't have a real message id yet.
+
+  const addOptimisticMessage = useCallback((msg: Message) => {
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m._localId && m._localId === msg._localId);
+      if (idx !== -1) {
+        const next = [...prev];
+        next[idx] = msg;
+        return next;
+      }
+      return [...prev, msg];
+    });
+  }, []);
+
+  const confirmOptimisticMessage = useCallback(
+    (localId: string, serverMessage: Message) => {
+      setMessages((prev) => {
+        // The WS `message.new` event may have already appended the real message
+        // (race with the HTTP response) — drop the placeholder instead of duplicating.
+        if (prev.some((m) => m.id === serverMessage.id)) {
+          return prev.filter((m) => m._localId !== localId);
+        }
+        return prev.map((m) => (m._localId === localId ? serverMessage : m));
+      });
+    },
+    [],
+  );
+
+  const failOptimisticMessage = useCallback((localId: string) => {
+    setMessages((prev) =>
+      prev.map((m) => (m._localId === localId ? { ...m, _status: "failed" as const } : m)),
+    );
+  }, []);
+
   function extractErrorCode(err: unknown): string | undefined {
     const e = err as { response?: { data?: { detail?: { code?: string } } } };
     return e.response?.data?.detail?.code;
@@ -789,12 +827,10 @@ export default function ChatPage() {
             clientName={clientName}
             channel={channel}
             waitMinutes={waitMinutes}
-            onMessageSent={(msg) =>
-              setMessages((prev) =>
-                prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
-              )
-            }
-            onError={() => {}}
+            currentAdvisorName={advisor?.full_name}
+            onOptimisticMessage={addOptimisticMessage}
+            onMessageConfirmed={confirmOptimisticMessage}
+            onMessageFailed={failOptimisticMessage}
           />
         ) : (
           <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">

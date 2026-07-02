@@ -67,6 +67,27 @@ function getFileIcon(mimeType: string | null): { icon: string; color: string } {
   return { icon: '📄', color: '#8B8FA8' }
 }
 
+// ── Optimistic UI status indicator ────────────────────────
+
+const MessageStatus = memo(function MessageStatus({ status }: { status?: 'sending' | 'failed' }) {
+  if (status === 'sending') {
+    return (
+      <span
+        className="inline-block w-2.5 h-2.5 border-[1.5px] border-[#8B8FA8] border-t-transparent rounded-full animate-spin"
+        title="Enviando..."
+      />
+    )
+  }
+  if (status === 'failed') {
+    return (
+      <span className="text-[#FF5B5B] font-bold" title="No se pudo enviar">
+        ⚠ No enviado •
+      </span>
+    )
+  }
+  return null
+})
+
 function getFileName(url: string | null, mimeType: string | null = null): string {
   if (!url) return 'Archivo'
   try {
@@ -276,7 +297,7 @@ const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
           <p className={`text-sm font-semibold truncate transition ${
             isAdvisor ? 'text-white group-hover:text-white' : 'text-[#F0F0F5] group-hover:text-white'
           }`}>
-            {getFileName(msg.media_url, msg.media_mime_type)}
+            {msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type)}
           </p>
           <p className={`text-[10px] mt-0.5 font-medium ${
             isAdvisor ? 'text-white/70' : 'text-[#8B8FA8]'
@@ -522,10 +543,15 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
   // outbound_advisor
   return (
     <div className="flex flex-col items-end max-w-[75%] ml-auto space-y-0.5 shrink-0">
-      <div className={`bg-gradient-to-br from-[#01B4F3] to-[#01A4E3] text-white rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-md border border-[#01A4E3]/10`}>
+      <div
+        className={`bg-gradient-to-br from-[#01B4F3] to-[#01A4E3] text-white rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-md border ${
+          message._status === 'failed' ? 'border-[#FF5B5B]/60' : 'border-[#01A4E3]/10'
+        } ${message._status === 'sending' ? 'opacity-70' : ''}`}
+      >
         <BubbleContent msg={message} isDocument={isDocument} />
       </div>
-      <span className="text-[9px] text-[#8B8FA8] mr-1">
+      <span className="text-[9px] text-[#8B8FA8] mr-1 inline-flex items-center gap-1">
+        <MessageStatus status={message._status} />
         {time}{advisorName ? ` • ${advisorName}` : ''}
       </span>
     </div>
