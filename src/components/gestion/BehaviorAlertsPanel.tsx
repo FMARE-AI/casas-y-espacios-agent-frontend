@@ -163,9 +163,9 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <h2 className="text-sm font-semibold text-[#F0F0F5]">Alertas de Comportamiento</h2>
-          {alerts.length > 0 && (
+          {filteredAlerts.length > 0 && (
             <span className="bg-[#FF5B5B] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-              {alerts.length}
+              {filteredAlerts.length}
             </span>
           )}
           {isRefreshing && (
