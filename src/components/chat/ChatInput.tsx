@@ -23,7 +23,7 @@ const FILE_TYPES = {
   image: {
     label: 'Imagen',
     accept: 'image/jpeg,image/png',
-    maxMB: 50,
+    maxMB: 5,
     iconColor: '#01A4E3',
   },
   document: {
@@ -35,7 +35,7 @@ const FILE_TYPES = {
   video: {
     label: 'Video',
     accept: 'video/mp4,video/3gpp',
-    maxMB: 50,
+    maxMB: 16,
     iconColor: '#00D4AA',
   },
 }
