@@ -238,11 +238,13 @@ No request body required.
 
 **Pagination contract (`messages` / `total_messages`):**
 
-`offset` counts backward from the **most recent** message, not forward from the oldest one. The server sorts messages `timestamp DESC`, takes the `[offset, offset + limit)` window, then reverses it back to ascending order before returning it — so the `messages` array itself is always chronological (oldest → newest), but which slice of history you get depends on `offset`:
+`offset` counts backward from the **most recent** message, not forward from the oldest one. The server sorts messages `timestamp DESC, created_at DESC` (the `created_at` tiebreaker guarantees a deterministic order even for messages inserted within the same second — see **Ordering guarantee** below), takes the `[offset, offset + limit)` window, then reverses it back to ascending order before returning it — so the `messages` array itself is always chronological (oldest → newest), but which slice of history you get depends on `offset`:
 
 - `offset=0` (the default) returns the **latest** `limit` messages — always use this to open a chat.
 - To load older history (infinite scroll upward), increase `offset` by the number of messages already loaded (see the `/messages` endpoint below). Do **not** decrease `offset` or use `total_messages - limit` to "jump to the end" — `offset=0` already **is** the end.
 - Stop paginating once `offset >= total_messages`.
+
+**Ordering guarantee:** the backend serializes processing of messages from the same client (`phone_number`) end-to-end, so `INSERT` order into `messages` always matches the real arrival order of the client's WhatsApp messages — even when several arrive within the same second via concurrent webhook deliveries. No API contract change; this only affects internal ordering reliability. Same guarantee applies to the `message.new` WebSocket event below (a per-connection send lock prevents two near-simultaneous events from corrupting delivery to the same advisor socket).
 
 **Response 200:**
 
