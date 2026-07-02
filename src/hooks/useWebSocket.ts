@@ -187,6 +187,18 @@ function connect(token: string): void {
         .then((advisors) => useWSStore.getState().setAdvisors(advisors))
         .catch(() => {})
     }
+
+    // The server tracks subscription state per-connection, not per-advisor —
+    // a fresh socket always starts at "bandeja" level. If the advisor still has
+    // a chat open when the old socket drops, resubscribe on the new one so
+    // bot_activo=true conversations (routed only to subscribed connections)
+    // keep updating live instead of going silent until the advisor re-enters the chat.
+    if (currentSubscribedConversationId) {
+      sendMessage({
+        type: 'subscribe_conversation',
+        conversation_id: currentSubscribedConversationId,
+      })
+    }
   }
 
   ws.onmessage = (event: MessageEvent) => {

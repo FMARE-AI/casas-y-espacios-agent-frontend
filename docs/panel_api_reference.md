@@ -231,9 +231,9 @@ No request body required.
 
 **Query params:**
 
-| Param    | Type      | Default | Description                         |
-| -------- | --------- | ------- | ----------------------------------- |
-| `limit`  | `integer` | 50      | Number of messages to fetch (1–100) |
+| Param    | Type      | Default | Description                                                   |
+| -------- | --------- | ------- | ------------------------------------------------------------- |
+| `limit`  | `integer` | 50      | Number of messages to fetch (1–100)                           |
 | `offset` | `integer` | 0       | Message pagination offset — see **Pagination contract** below |
 
 **Pagination contract (`messages` / `total_messages`):**
@@ -325,9 +325,9 @@ No request body required.
 
 **Query params:**
 
-| Param    | Type      | Default | Description                                                    |
-| -------- | --------- | ------- | ---------------------------------------------------------------|
-| `limit`  | `integer` | 20      | Page size (1–100)                                               |
+| Param    | Type      | Default | Description                                                                                      |
+| -------- | --------- | ------- | ------------------------------------------------------------------------------------------------ |
+| `limit`  | `integer` | 20      | Page size (1–100)                                                                                |
 | `offset` | `integer` | 0       | Pagination offset, counted back from the most recent message — see **Pagination contract** below |
 
 **Pagination contract:** same as `GET /conversations/{conversation_id}` — `offset=0` is the latest window; to walk backward in history, call again with `offset = offset + messages.length` from the previous response. Stop once `offset >= total`.
@@ -1687,7 +1687,7 @@ Subscribe to a specific conversation. Use when the advisor opens a chat view.
 }
 ```
 
-No direct server response. The subscription state is tracked server-side in memory.
+No direct server response. The subscription state is tracked server-side in memory. While subscribed, the connection also starts receiving `message.new` for that conversation's bot↔client turns (see `message.new` below) — this is how the chat view stays live while `bot_activo = true`.
 
 #### unsubscribe_conversation
 
@@ -1758,11 +1758,13 @@ Emitted to **all connected advisors** when an advisor changes their availability
 
 #### message.new
 
-Emitted when a new message is created in a conversation. Routing depends on origin:
+Emitted when a new message is created in a conversation. Routing depends on whether the bot or an advisor is currently handling the conversation (`bot_activo`):
 
-- **Outbound advisor** (advisor sends via panel) — broadcast to **all connected advisors**.
-- **Inbound, conversation assigned** — unicast to the **assigned advisor** + broadcast to **all admins** (admin who is also the assigned advisor receives it only once).
-- **Inbound, conversation unassigned / queued** — broadcast to all advisors in the **conversation's channel** (`area = channel` or `area = "ambas"`).
+- **`bot_activo = false`** (advisor has taken over) — routing depends on origin:
+  - **Outbound advisor** (advisor sends via panel) — broadcast to **all connected advisors**.
+  - **Inbound, conversation assigned** — unicast to the **assigned advisor** + broadcast to **all admins** (admin who is also the assigned advisor receives it only once).
+  - **Inbound, conversation unassigned / queued** — broadcast to all advisors in the **conversation's channel** (`area = channel` or `area = "ambas"`).
+- **`bot_activo = true`** (bot is handling the conversation — client turns, bot replies, and bot-sent inactivity/closing messages) — sent **only to connections with an active `subscribe_conversation` subscription** to that `conversation_id` (see `subscribe_conversation` above). This is intentionally narrower than a channel/area broadcast: the bot resolves most conversations without any advisor watching, so broadcasting every bot↔client turn to the whole area would generate WS traffic nobody consumes. An advisor (or admin) only receives these events while they have that specific conversation's chat view open. If nobody is subscribed, nothing is sent. The payload omits `unread_count` for this case (it's not incremented/reset by this code path — that field is only meaningful for the inbox view under the `bot_activo = false` flows above).
 
 **Payload (outbound_advisor — with `advisor_name`):**
 
@@ -1811,6 +1813,33 @@ Emitted when a new message is created in a conversation. Routing depends on orig
       "timestamp": "2026-06-22T14:35:00+00:00",
       "created_at": "2026-06-22T14:35:01+00:00",
       "advisor_name": null
+    }
+  }
+}
+```
+
+**Payload (`bot_activo = true` — sent only to advisors subscribed to this `conversation_id`, no `unread_count` key):**
+
+```json
+{
+  "event": "message.new",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "message": {
+      "id": "550e8400-e29b-41d4-a716-446655440057",
+      "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+      "wam_id": "wamid.HBgLNTczMDAxMjM0NTY3FQIAEhgWM0E4QjA2RjhDRjhCMzVCODk1NDUD",
+      "direction": "outbound_bot",
+      "msg_type": "text",
+      "content": "Tu saldo actual es de $150.000.",
+      "media_url": null,
+      "media_mime_type": null,
+      "media_size_bytes": null,
+      "transcription": null,
+      "advisor_name": null,
+      "delivered_via": "webhook_meta",
+      "timestamp": "2026-06-22T14:35:05+00:00",
+      "created_at": "2026-06-22T14:35:05+00:00"
     }
   }
 }
