@@ -404,7 +404,11 @@ export default function BandejaPage() {
   }, [navigate])
 
   return (
-    <section id="screen-bandeja" className="flex-1 flex flex-col p-4 md:p-6 space-y-4">
+    <section
+      id="screen-bandeja"
+      className="flex-1 flex flex-col p-4 md:p-6 space-y-4"
+      style={{ background: 'radial-gradient(ellipse at 50% -10%, #1e3a4a 0%, #1a1a18 40%, #111110 100%)' }}
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#3A3A37] pb-4">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
