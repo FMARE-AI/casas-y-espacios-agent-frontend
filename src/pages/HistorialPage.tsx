@@ -34,6 +34,16 @@ function channelLabel(channel: string): string {
   return channel.charAt(0).toUpperCase() + channel.slice(1);
 }
 
+// closed_by_advisor is null for bot closures and for historical
+// closures that could not be backfilled — fall back to "Asesor".
+function resolutorLabel(conv: Conversation): string | null {
+  if (conv.closed_by === "bot") return "Bot";
+  if (conv.closed_by === "asesor") {
+    return conv.closed_by_advisor?.full_name ?? "Asesor";
+  }
+  return null;
+}
+
 // ── Skeleton ──────────────────────────────────────────────
 
 function TableSkeleton() {
@@ -144,12 +154,7 @@ export default function HistorialPage() {
         }
       }
 
-      const resolutor =
-        conv.closed_by === "bot"
-          ? "Bot"
-          : conv.closed_by === "asesor"
-            ? "Asesor"
-            : "—";
+      const resolutor = resolutorLabel(conv) ?? "—";
 
       let satisfaccion = "Sin confirmar";
       if (conv.client_satisfied === "si") satisfaccion = "Sí";
@@ -354,8 +359,11 @@ export default function HistorialPage() {
                           Bot
                         </span>
                       ) : conv.closed_by === "asesor" ? (
-                        <span className="text-[#F0F0F5] text-xs font-semibold">
-                          Asesor
+                        <span
+                          className="text-[#F0F0F5] text-xs font-semibold truncate max-w-[140px] inline-block align-bottom"
+                          title={resolutorLabel(conv) ?? undefined}
+                        >
+                          {resolutorLabel(conv)}
                         </span>
                       ) : (
                         <span className="text-[#8B8FA8] text-xs">—</span>

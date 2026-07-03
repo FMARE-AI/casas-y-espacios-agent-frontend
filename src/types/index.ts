@@ -79,6 +79,11 @@ export interface Escalation {
   wait_seconds?: number | null
 }
 
+export interface ClosedByAdvisor {
+  id: string
+  full_name: string
+}
+
 export interface ConversationLastMessage {
   msg_type: 'text' | 'audio' | 'image' | 'video' | 'document'
   content: string | null
@@ -97,6 +102,8 @@ export interface Conversation {
   resolution_notes: string | null
   client_satisfied: 'si' | 'no' | 'sin_confirmar' | null
   closed_by: 'asesor' | 'bot' | null
+  // null for bot closures and for historical closures that could not be backfilled
+  closed_by_advisor: ClosedByAdvisor | null
   closed_at: string | null
   last_message: ConversationLastMessage | null
   unread_count: number

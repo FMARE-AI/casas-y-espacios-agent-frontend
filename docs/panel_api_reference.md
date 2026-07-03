@@ -164,6 +164,7 @@ No request body required.
         "resolution_notes": null,
         "client_satisfied": null,
         "closed_by": null,
+        "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
         "client": {
@@ -260,6 +261,7 @@ No request body required.
       "resolution_notes": null,
       "client_satisfied": null,
       "closed_by": null,
+      "closed_by_advisor": null,
       "closed_at": null,
       "client": {
         "id": "550e8400-e29b-41d4-a716-446655440020",
@@ -825,6 +827,10 @@ msg_type = "document" → render download link using media_url
       "resolution_notes": "El propietario confirmó recibo del estado de cuenta.",
       "client_satisfied": "si",
       "closed_by": "asesor",
+      "closed_by_advisor": {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "full_name": "Ana Gómez"
+      },
       "closed_at": "2026-06-23T14:30:00+00:00"
     }
   }
@@ -846,6 +852,7 @@ msg_type = "document" → render download link using media_url
 **Notes:**
 
 - `closed_by` is always set to `"asesor"` by this endpoint. Bot-initiated closure (see below) sets `"bot"`.
+- `closed_by_advisor` identifies the specific advisor who closed the conversation (from the JWT). It is persisted in `conversations.closed_by_advisor_id` and returned as `{id, full_name}` in the conversation list and detail endpoints. It is `null` for bot closures and for historical closures that could not be backfilled — render "Bot" when `closed_by = "bot"`, the advisor's `full_name` when present, and a generic "Asesor" otherwise.
 - The bot can close conversations in two ways: (1) the inactivity job closes after no client response to a follow-up message, and (2) the AI agent closes proactively when it detects a farewell or satisfaction signal from the client (e.g., "gracias, ya quedó", "adiós"). Both cases emit `conversation.closed` via WebSocket with `closed_by: "bot"` and no `advisor_id`.
 - `resolution_notes` accepts `null` — sending `null` or omitting the field stores `NULL` in the database.
 
