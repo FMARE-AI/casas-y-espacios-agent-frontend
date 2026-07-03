@@ -47,6 +47,11 @@ let hasConnectedOnce = false
 // socket if the server stops answering, since a dead TCP connection can sit in
 // readyState OPEN for a long time (until the OS notices) without this check.
 let lastPongAt = 0
+// Timestamp of the oldest UNANSWERED ping. 0 while all pings are answered.
+// The watchdog measures silence from here, not from lastPongAt: background
+// tabs throttle the ping interval to ~1/min, so "time since last pong" grows
+// past the timeout on perfectly healthy sockets that simply weren't pinged.
+let lastPingSentAt = 0
 const PONG_TIMEOUT_MS = 45000
 // Tracks which conversation the active advisor has open — used to gate message sounds
 // and suppress unread badge increments for the chat currently visible.
@@ -85,15 +90,22 @@ function clearReconnect() {
 function startPing() {
   clearPing()
   lastPongAt = Date.now()
+  lastPingSentAt = 0
   pingInterval = setInterval(() => {
     if (socket?.readyState !== WebSocket.OPEN) return
 
-    if (Date.now() - lastPongAt > PONG_TIMEOUT_MS) {
-      // No pong in 1.5 ping cycles — the network likely dropped without a close
-      // frame (wifi/cable pulled, dead router). Force-close so onclose can flip
-      // the status and start reconnecting, instead of sitting "connected" forever.
-      socket.close()
-      return
+    if (lastPingSentAt > lastPongAt) {
+      // A previous ping went unanswered — the network likely dropped without
+      // a close frame (wifi/cable pulled, dead router). Give it one more
+      // interval, then force-close so onclose can start reconnecting instead
+      // of sitting "connected" forever. lastPingSentAt is NOT refreshed here,
+      // so the deadline keeps counting from the first unanswered ping.
+      if (Date.now() - lastPingSentAt > PONG_TIMEOUT_MS) {
+        socket.close()
+        return
+      }
+    } else {
+      lastPingSentAt = Date.now()
     }
 
     socket.send(JSON.stringify({ type: 'ping' }))
@@ -120,12 +132,41 @@ if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     // Skip the remaining backoff delay and retry immediately once the network is back.
     if (socket || isConnecting) return
-    const token = useAuthStore.getState().token
-    if (!token) return
+    const { token, sessionExpired } = useAuthStore.getState()
+    if (!token || sessionExpired) return
     clearReconnect()
     getValidToken().then((validToken) => {
       if (validToken) connect(validToken)
-    }).catch(() => {})
+      else scheduleReconnect()
+    }).catch(() => scheduleReconnect())
+  })
+
+  // Returning to a throttled background tab or waking from sleep: verify the
+  // connection immediately instead of waiting for the next (throttled) timer.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return
+
+    if (socket?.readyState === WebSocket.OPEN) {
+      if (lastPingSentAt > lastPongAt) {
+        // A ping is already outstanding — if it's past its deadline the
+        // connection is dead: close now so onclose starts the reconnect chain.
+        if (Date.now() - lastPingSentAt > PONG_TIMEOUT_MS) socket.close()
+        return
+      }
+      // Probe the connection right away; the watchdog handles the verdict.
+      lastPingSentAt = Date.now()
+      socket.send(JSON.stringify({ type: 'ping' }))
+      return
+    }
+
+    if (socket || isConnecting) return
+    const { token, sessionExpired } = useAuthStore.getState()
+    if (!token || sessionExpired) return
+    clearReconnect()
+    getValidToken().then((validToken) => {
+      if (validToken) connect(validToken)
+      else scheduleReconnect()
+    }).catch(() => scheduleReconnect())
   })
 }
 
@@ -138,6 +179,43 @@ function closeSocket(): void {
   socket = null
   connectedToken = null
   isConnecting = false
+}
+
+// Single scheduling path for automatic reconnection. Keeps the retry chain
+// alive even when the token refresh fails transiently (network down, backend
+// restarting): a failed attempt schedules the next one instead of dying silently.
+function scheduleReconnect(): void {
+  if (reconnectTimeout !== null || socket || isConnecting) return
+
+  // Session intentionally ended (logout, expired, or blocked pending
+  // confirmation) — do not reconnect. Without this guard, a socket closed
+  // because the session ended would reopen itself moments later.
+  const { refresh_token, sessionExpired } = useAuthStore.getState()
+  if (!refresh_token || sessionExpired) {
+    useWSStore.getState().setStatus('disconnected')
+    return
+  }
+
+  const attempt = useWSStore.getState().reconnectAttempt
+  // A drop after a live connection is always alarming. Before the first
+  // successful handshake, give it a couple of quiet retries (e.g. a token
+  // race right after login) before treating it as a real problem too.
+  const shouldAlarm = hasConnectedOnce || attempt >= 2
+  useWSStore.getState().setStatus(shouldAlarm ? 'reconnecting' : 'connecting')
+  useWSStore.getState().setReconnectAttempt(attempt + 1)
+
+  reconnectTimeout = setTimeout(() => {
+    reconnectTimeout = null
+    // L-03: use getValidToken() instead of reading the raw token from state.
+    // This refreshes the AT if it's expired before reconnecting, avoiding a
+    // 4001 close that would force the user back to the login screen unnecessarily.
+    getValidToken()
+      .then((token) => {
+        if (token) connect(token)
+        else scheduleReconnect()
+      })
+      .catch(() => scheduleReconnect())
+  }, getBackoffDelay(attempt))
 }
 
 function connect(token: string): void {
@@ -167,10 +245,23 @@ function connect(token: string): void {
   }
   const url = `${wsOrigin}/api/v1/panel/ws?token=${encodeURIComponent(token)}`
 
-  const ws = new WebSocket(url)
+  let ws: WebSocket
+  try {
+    ws = new WebSocket(url)
+  } catch {
+    // The constructor can throw synchronously (e.g. malformed URL). Without
+    // this reset, isConnecting would stay true forever and block every
+    // future automatic reconnection.
+    isConnecting = false
+    connectedToken = null
+    scheduleReconnect()
+    return
+  }
   socket = ws
 
   ws.onopen = () => {
+    // Stale callback from a socket that was already replaced — ignore.
+    if (socket !== ws) return
     isConnecting = false
     const wasReconnecting = useWSStore.getState().reconnectAttempt > 0
     hasConnectedOnce = true
@@ -186,6 +277,10 @@ function connect(token: string): void {
       advisorsService.getOnline()
         .then((advisors) => useWSStore.getState().setAdvisors(advisors))
         .catch(() => {})
+      // Events emitted while disconnected are gone for good — tell mounted
+      // pages (bandeja, open chat, alerts panel) to refetch their data so the
+      // panel doesn't stay stale after the gap.
+      window.dispatchEvent(new CustomEvent('ws:reconnected'))
     }
 
     // The server tracks subscription state per-connection, not per-advisor —
@@ -202,6 +297,9 @@ function connect(token: string): void {
   }
 
   ws.onmessage = (event: MessageEvent) => {
+    // A replaced socket must not process events — the new socket receives
+    // them too, and handling both would duplicate sounds and list updates.
+    if (socket !== ws) return
     let parsed: { event?: string; type?: string; data?: unknown }
     try {
       parsed = JSON.parse(event.data as string)
@@ -385,6 +483,12 @@ function connect(token: string): void {
   }
 
   ws.onclose = (event: CloseEvent) => {
+    // Stale callback from a socket that was already replaced (token swap,
+    // manual reconnect). The CURRENT socket owns the module state — letting
+    // this run would kill the new socket's ping loop, drop its reference and
+    // schedule a duplicate connection alongside it.
+    if (socket !== ws) return
+
     clearPing()
     isConnecting = false
     socket = null
@@ -396,35 +500,9 @@ function connect(token: string): void {
       return
     }
 
-    // Session intentionally ended (logout, or blocked pending confirmation) —
-    // do not reconnect. Without this guard, a socket closed explicitly by the
-    // connection effect (session end) would reopen itself via this same
-    // onclose handler moments later, since the refresh_token can still be
-    // present (e.g. ADVISOR_INACTIVE keeps it until the user confirms).
-    const { refresh_token, sessionExpired } = useAuthStore.getState()
-    if (!refresh_token || sessionExpired) {
-      useWSStore.getState().setStatus('disconnected')
-      return
-    }
-
-    const attempt = useWSStore.getState().reconnectAttempt
-    // A drop after a live connection is always alarming. Before the first
-    // successful handshake, give it a couple of quiet retries (e.g. a token
-    // race right after login) before treating it as a real problem too.
-    const shouldAlarm = hasConnectedOnce || attempt >= 2
-    useWSStore.getState().setStatus(shouldAlarm ? 'reconnecting' : 'connecting')
-    useWSStore.getState().setReconnectAttempt(attempt + 1)
-
-    const delay = getBackoffDelay(attempt)
-    // L-03: use getValidToken() instead of reading the raw token from state.
-    // This refreshes the AT if it's expired before reconnecting, avoiding a
-    // 4001 close that would force the user back to the login screen unnecessarily.
-    reconnectTimeout = setTimeout(() => {
-      reconnectTimeout = null
-      getValidToken().then((token) => {
-        if (token) connect(token)
-      }).catch(() => {})
-    }, delay)
+    // scheduleReconnect() handles the intentionally-ended-session case
+    // (logout / expired / blocked): it sets 'disconnected' and stops there.
+    scheduleReconnect()
   }
 
   ws.onerror = () => {
@@ -551,7 +629,6 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onAdvisorStatusChanged && _handlers.onAdvisorStatusChanged === onAdvisorStatusChanged) delete _handlers.onAdvisorStatusChanged
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
     onConversationClosed, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,

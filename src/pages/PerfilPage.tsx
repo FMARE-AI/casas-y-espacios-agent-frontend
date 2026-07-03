@@ -20,10 +20,30 @@ import { usePasswordStrength, type PasswordStrength } from "../hooks/usePassword
 import { advisorsService } from "../services/advisors";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../lib/supabase";
+import { getValidToken } from "../lib/axios";
 import type { Advisor, AdvisorRole, AvailabilityStatus } from "../types";
 import ScheduleManager from "../components/perfil/ScheduleManager";
 
 const STORAGE_BUCKET = (import.meta.env.VITE_SUPABASE_BUCKET_NAME || "casas-y-espacios-media") as string;
+
+// Extension derived from the MIME type, never from file.name: a name without
+// extension (or an uppercase/multi-dot one) would produce unstable storage
+// paths, and upsert only overwrites the exact same path.
+const ALLOWED_AVATAR_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+const MAX_AVATAR_SIZE_MB = 2;
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -396,30 +416,52 @@ export default function PerfilPage() {
   }, []);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const input = e.target;
+    const file = input.files?.[0];
     if (!file || !advisor) return;
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!allowedTypes.includes(file.type)) {
-      useToastStore.getState().showToast("Solo se permiten imágenes JPG, PNG o WEBP", 'error');
-      e.target.value = "";
+
+    const ext = ALLOWED_AVATAR_TYPES[file.type];
+    if (!ext) {
+      useToastStore.getState().showToast(
+        "Formato no válido. Solo se permiten imágenes JPG, PNG o WEBP.", 'error');
+      input.value = "";
       return;
     }
-    if (file.size > 2 * 1024 * 1024) {
-      useToastStore.getState().showToast("La imagen no debe superar 2MB", 'error');
-      e.target.value = "";
+    if (file.size > MAX_AVATAR_SIZE_MB * 1024 * 1024) {
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+      useToastStore.getState().showToast(
+        `La imagen pesa ${sizeMb}MB y el máximo permitido es ${MAX_AVATAR_SIZE_MB}MB. Usa una imagen más liviana.`, 'error');
+      input.value = "";
       return;
     }
+
     setUploadingAvatar(true);
     const originalAvatarUrl = advisor.avatar_url;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const localUrl = reader.result as string;
-      setAdvisor((prev) => prev ? { ...prev, avatar_url: localUrl } : prev);
-      setStoreAdvisor({ ...useAuthStore.getState().advisor, avatar_url: localUrl } as Advisor);
-    };
-    reader.readAsDataURL(file);
+    // Tracks how far the flow got, so the catch can tell the user exactly
+    // what failed instead of a single generic message for every stage.
+    let stage: 'session' | 'storage' | 'profile' = 'session';
     try {
-      const ext = file.name.split(".").pop() ?? "jpg";
+      // Local preview while the upload runs. Awaited (not a floating callback)
+      // so a slow read can never land AFTER the upload finished and overwrite
+      // the final signed URL with a base64 blob.
+      try {
+        const localUrl = await readFileAsDataUrl(file);
+        setAdvisor((prev) => prev ? { ...prev, avatar_url: localUrl } : prev);
+        setStoreAdvisor({ ...useAuthStore.getState().advisor, avatar_url: localUrl } as Advisor);
+      } catch {
+        // Preview is cosmetic — continue with the upload without it.
+      }
+
+      // Storage calls run on supabase-js's own session, which does not
+      // auto-refresh (see lib/supabase.ts). Refresh the panel token if needed
+      // and sync the client explicitly, so uploading after the tab sat idle
+      // past token expiry doesn't fail with an authorization error.
+      const token = await getValidToken();
+      const refreshToken = useAuthStore.getState().refresh_token;
+      if (!token || !refreshToken) throw new Error("no active session");
+      await supabase.auth.setSession({ access_token: token, refresh_token: refreshToken });
+
+      stage = 'storage';
       const path = `avatars/${advisor.id}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
@@ -428,20 +470,29 @@ export default function PerfilPage() {
       const { data: signData, error: signError } = await supabase.storage
         .from(STORAGE_BUCKET)
         .createSignedUrl(path, 31536000);
-      if (signError || !signData?.signedUrl) throw signError ?? new Error("Sin URL firmada");
+      if (signError || !signData?.signedUrl) throw signError ?? new Error("no signed URL returned");
+
+      stage = 'profile';
       const { advisor: updated } = await advisorsService.updateMe({
         avatar_url: signData.signedUrl,
       });
       setAdvisor(updated);
       setStoreAdvisor(updated);
       useToastStore.getState().showToast("Foto de perfil actualizada", 'success');
-    } catch {
-      useToastStore.getState().showToast("No se pudo subir la imagen", 'error');
+    } catch (err) {
+      console.error(`Avatar upload failed at stage "${stage}":`, err);
+      const message =
+        stage === 'session'
+          ? "Tu sesión no está activa. Recarga la página e intenta de nuevo."
+          : stage === 'profile'
+            ? "La imagen se subió pero no se pudo guardar en tu perfil. Intenta de nuevo."
+            : "No se pudo subir la imagen. Verifica tu conexión e intenta de nuevo.";
+      useToastStore.getState().showToast(message, 'error');
       setAdvisor((prev) => prev ? { ...prev, avatar_url: originalAvatarUrl } : prev);
       setStoreAdvisor({ ...useAuthStore.getState().advisor, avatar_url: originalAvatarUrl } as Advisor);
     } finally {
       setUploadingAvatar(false);
-      e.target.value = "";
+      input.value = "";
     }
   }
 

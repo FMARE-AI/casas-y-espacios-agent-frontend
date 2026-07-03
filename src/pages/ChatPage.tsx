@@ -399,6 +399,16 @@ export default function ChatPage() {
     return () => clearTimeout(timer);
   }, [loadConversation]);
 
+  // Messages emitted while the WS was down are lost — refetch on reconnection
+  // so the open chat doesn't miss anything from the gap.
+  useEffect(() => {
+    const handleReconnected = () => {
+      loadConversation();
+    };
+    window.addEventListener('ws:reconnected', handleReconnected);
+    return () => window.removeEventListener('ws:reconnected', handleReconnected);
+  }, [loadConversation]);
+
   // Reset unread count when the ASSIGNED ADVISOR opens this conversation.
   // Admin is excluded: admin viewing the chat must not clear the badge
   // that belongs to the assigned advisor.

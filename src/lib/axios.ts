@@ -41,9 +41,15 @@ export async function getValidToken(): Promise<string | null> {
       useAuthStore.getState().setSession(data)
       return data.access_token as string
     })
-    .catch(() => {
-      useAuthStore.getState().clearSession()
-      window.dispatchEvent(new CustomEvent('session-expired'))
+    .catch((error) => {
+      // Only a definitive server rejection invalidates the session. A network
+      // failure (offline, timeout, backend restarting) must NOT log the user
+      // out — callers retry: HTTP requests fail visibly with their own toast,
+      // and the WS backoff chain keeps polling until the network returns.
+      if (axios.isAxiosError(error) && error.response) {
+        useAuthStore.getState().clearSession()
+        window.dispatchEvent(new CustomEvent('session-expired'))
+      }
       return null
     })
     .finally(() => {
