@@ -112,6 +112,16 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
     }
   }, [loadAlerts, role])
 
+  // behavior.alert events emitted while the WS was down are lost — refetch
+  // silently on reconnection so the admin panel doesn't stay stale.
+  useEffect(() => {
+    const handleReconnected = () => {
+      if (role === 'admin') loadAlerts(true).catch(() => {})
+    }
+    window.addEventListener('ws:reconnected', handleReconnected)
+    return () => window.removeEventListener('ws:reconnected', handleReconnected)
+  }, [loadAlerts, role])
+
   const handleBehaviorAlert = useCallback(() => {
     if (role === 'admin') {
       loadAlerts(true).catch(() => {})

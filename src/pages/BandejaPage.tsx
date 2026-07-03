@@ -294,6 +294,16 @@ export default function BandejaPage() {
     }
   }, [loadConversations])
 
+  // Events emitted while the WS was down are lost — refetch on reconnection
+  // so the list doesn't stay stale after a network gap.
+  useEffect(() => {
+    const handleReconnected = () => {
+      loadConversations()
+    }
+    window.addEventListener('ws:reconnected', handleReconnected)
+    return () => window.removeEventListener('ws:reconnected', handleReconnected)
+  }, [loadConversations])
+
   const confirmTake = async () => {
     if (!takeTarget) return
     setIsTaking(true)
