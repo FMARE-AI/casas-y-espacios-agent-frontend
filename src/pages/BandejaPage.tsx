@@ -77,13 +77,13 @@ function ConnectedAdvisors() {
 
 function SkeletonCard() {
   return (
-    <div className="bg-[#252522] border border-[#3A3A37] rounded-lg p-3.5 space-y-3.5 animate-pulse">
+    <div className="bg-[#252522] border border-[#3A3A37] rounded-lg p-4 space-y-3 animate-pulse">
       <div className="flex justify-between items-center">
-        <div className="h-3 bg-[#2E2E2B] rounded w-1/4"></div>
-        <div className="h-3 bg-[#2E2E2B] rounded w-1/12"></div>
+        <div className="h-3.5 bg-[#2E2E2B] rounded w-1/4"></div>
+        <div className="h-3.5 bg-[#2E2E2B] rounded w-1/12"></div>
       </div>
       <div className="h-5 bg-[#2E2E2B] rounded w-3/4"></div>
-      <div className="h-3 bg-[#2E2E2B] rounded w-1/2"></div>
+      <div className="h-3.5 bg-[#2E2E2B] rounded w-1/2"></div>
     </div>
   )
 }
@@ -292,6 +292,16 @@ export default function BandejaPage() {
       ignore = true
       clearTimeout(timer)
     }
+  }, [loadConversations])
+
+  // Events emitted while the WS was down are lost — refetch on reconnection
+  // so the list doesn't stay stale after a network gap.
+  useEffect(() => {
+    const handleReconnected = () => {
+      loadConversations()
+    }
+    window.addEventListener('ws:reconnected', handleReconnected)
+    return () => window.removeEventListener('ws:reconnected', handleReconnected)
   }, [loadConversations])
 
   const confirmTake = async () => {

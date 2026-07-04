@@ -63,6 +63,11 @@ export interface Message {
   timestamp: string
   created_at: string
   advisor_name: string | null
+  // Optimistic-UI-only fields — populated locally by ChatInput/AudioRecorder
+  // before the server confirms the message; never present in API responses.
+  _localId?: string
+  _status?: 'sending' | 'failed'
+  _fileName?: string
 }
 
 export interface Escalation {
@@ -72,6 +77,11 @@ export interface Escalation {
   escalated_at: string
   advisor: Advisor | null
   wait_seconds?: number | null
+}
+
+export interface ClosedByAdvisor {
+  id: string
+  full_name: string
 }
 
 export interface ConversationLastMessage {
@@ -92,6 +102,8 @@ export interface Conversation {
   resolution_notes: string | null
   client_satisfied: 'si' | 'no' | 'sin_confirmar' | null
   closed_by: 'asesor' | 'bot' | null
+  // null for bot closures and for historical closures that could not be backfilled
+  closed_by_advisor: ClosedByAdvisor | null
   closed_at: string | null
   last_message: ConversationLastMessage | null
   unread_count: number

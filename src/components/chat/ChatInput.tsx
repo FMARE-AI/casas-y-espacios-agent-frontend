@@ -9,10 +9,16 @@ interface ChatInputProps {
   clientName: string
   channel: string
   waitMinutes: number | null
-  onMessageSent: (message: Message) => void
-  onError: () => void
+  currentAdvisorName?: string
+  onOptimisticMessage: (message: Message) => void
+  onMessageConfirmed: (localId: string, message: Message) => void
+  onMessageFailed: (localId: string) => void
   variant?: string
   onTypingChange?: (isTyping: boolean) => void
+}
+
+function makeLocalId(): string {
+  return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
 // WhatsApp Cloud API only supports jpeg and png for images.
@@ -456,8 +462,10 @@ export default function ChatInput({
   clientName,
   channel,
   waitMinutes,
-  onMessageSent,
-  onError,
+  currentAdvisorName,
+  onOptimisticMessage,
+  onMessageConfirmed,
+  onMessageFailed,
   variant = 'assigned',
   onTypingChange,
 }: ChatInputProps) {
@@ -474,6 +482,10 @@ export default function ChatInput({
   const attachMenuRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Reused across a failed send's retry so the same optimistic bubble is
+  // updated in place instead of a duplicate "sending" bubble appearing.
+  const textRetryLocalIdRef = useRef<string | null>(null)
+  const mediaRetryLocalIdRef = useRef<string | null>(null)
 
   // Auto-focus textarea when switching conversations, loading, or when recording ends
   useEffect(() => {
@@ -611,25 +623,51 @@ export default function ChatInput({
   }
 
   async function sendTextMessage() {
+    const trimmed = text.trim()
+    const localId = textRetryLocalIdRef.current ?? makeLocalId()
+    textRetryLocalIdRef.current = null
+
+    // Paint the bubble immediately — the HTTP round-trip (Meta + Storage + DB)
+    // can take a few seconds and shouldn't block the perceived send.
+    onOptimisticMessage({
+      id: localId,
+      conversation_id: conversationId,
+      wam_id: null,
+      direction: 'outbound_advisor',
+      msg_type: 'text',
+      content: trimmed,
+      media_url: null,
+      media_mime_type: null,
+      media_size_bytes: null,
+      transcription: null,
+      delivered_via: 'panel',
+      timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      advisor_name: currentAdvisorName ?? null,
+      _localId: localId,
+      _status: 'sending',
+    })
+    setText('')
     setSending(true)
     setSendError(null)
-    try {
-      const { message } = await conversationsService.replyText(conversationId, text.trim())
-      onMessageSent(message)
-      setText('')
 
-      // Auto scroll to bottom
-      setTimeout(() => {
-        const feed = document.getElementById('chat-message-feed')
-        if (feed) feed.scrollTop = feed.scrollHeight
-      }, 50)
+    setTimeout(() => {
+      const feed = document.getElementById('chat-message-feed')
+      if (feed) feed.scrollTop = feed.scrollHeight
+    }, 50)
+
+    try {
+      const { message } = await conversationsService.replyText(conversationId, trimmed)
+      onMessageConfirmed(localId, message)
 
       setTimeout(() => {
         textareaRef.current?.focus()
       }, 100)
     } catch (error) {
+      onMessageFailed(localId)
+      textRetryLocalIdRef.current = localId
+      setText(trimmed)
       setSendError(getErrorMessage(error, 'No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.'))
-      onError()
     } finally {
       setSending(false)
     }
@@ -639,27 +677,55 @@ export default function ChatInput({
     updateTypingStatus(false)
     if (selectedFile) {
       // PW-5 — enviar multimedia
+      const file = selectedFile
+      const caption = text.trim() || undefined
+      const category = getFileType(file.type) ?? 'document'
+      const localId = mediaRetryLocalIdRef.current ?? makeLocalId()
+      mediaRetryLocalIdRef.current = null
+
+      // Show the local blob preview as the bubble right away instead of
+      // waiting for the file to upload to Storage and be delivered via Meta.
+      onOptimisticMessage({
+        id: localId,
+        conversation_id: conversationId,
+        wam_id: null,
+        direction: 'outbound_advisor',
+        msg_type: category,
+        content: caption ?? null,
+        media_url: previewUrl,
+        media_mime_type: file.type,
+        media_size_bytes: file.size,
+        transcription: null,
+        delivered_via: 'panel',
+        timestamp: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        advisor_name: currentAdvisorName ?? null,
+        _localId: localId,
+        _status: 'sending',
+        _fileName: file.name,
+      })
+      setPreviewModalOpen(false)
       setSending(true)
       setSendError(null)
+
+      setTimeout(() => {
+        const feed = document.getElementById('chat-message-feed')
+        if (feed) feed.scrollTop = feed.scrollHeight
+      }, 50)
+
       try {
-        const caption = text.trim() || undefined
-        const { message } = await conversationsService
-          .replyMedia(conversationId, selectedFile, caption)
-        onMessageSent(message)
+        const { message } = await conversationsService.replyMedia(conversationId, file, caption)
+        onMessageConfirmed(localId, message)
         removeSelectedFile()
         setText('')
-
-        // Auto scroll to bottom
-        setTimeout(() => {
-          const feed = document.getElementById('chat-message-feed')
-          if (feed) feed.scrollTop = feed.scrollHeight
-        }, 50)
 
         setTimeout(() => {
           textareaRef.current?.focus()
         }, 100)
       } catch (error) {
-        setSendError(getErrorMessage(error, 'No se pudo enviar el archivo.', selectedFile))
+        onMessageFailed(localId)
+        mediaRetryLocalIdRef.current = localId
+        setSendError(getErrorMessage(error, 'No se pudo enviar el archivo.', file))
       } finally {
         setSending(false)
       }
@@ -834,7 +900,10 @@ export default function ChatInput({
         {/* Audio recording mechanism */}
         <AudioRecorder
           conversationId={conversationId}
-          onAudioSent={onMessageSent}
+          currentAdvisorName={currentAdvisorName}
+          onOptimisticMessage={onOptimisticMessage}
+          onMessageConfirmed={onMessageConfirmed}
+          onMessageFailed={onMessageFailed}
           disabled={variant !== 'assigned'}
           onStateChange={setRecorderState}
         />

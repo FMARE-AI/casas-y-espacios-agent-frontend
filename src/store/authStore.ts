@@ -93,7 +93,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(LEGACY_TOKEN_KEY)
     sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(EXPIRES_AT_KEY)
-    supabase.auth.signOut().catch(() => {})
+    // scope 'local' revokes only THIS session's refresh token. The default
+    // ('global') revokes every session of the user — fired-and-forgotten here,
+    // it could land after a new login and kill the freshly issued tokens,
+    // forcing the user to log in twice.
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     set({
       token: null,
       refresh_token: null,
@@ -142,7 +146,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(LEGACY_TOKEN_KEY)
     sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(EXPIRES_AT_KEY)
-    supabase.auth.signOut().catch(() => {})
+    // scope 'local' — see clearSession() for why global revocation is unsafe.
+    supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     set({
       token: null,
       refresh_token: null,

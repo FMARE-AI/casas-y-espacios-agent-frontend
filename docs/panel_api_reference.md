@@ -164,6 +164,7 @@ No request body required.
         "resolution_notes": null,
         "client_satisfied": null,
         "closed_by": null,
+        "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
         "client": {
@@ -238,11 +239,13 @@ No request body required.
 
 **Pagination contract (`messages` / `total_messages`):**
 
-`offset` counts backward from the **most recent** message, not forward from the oldest one. The server sorts messages `timestamp DESC`, takes the `[offset, offset + limit)` window, then reverses it back to ascending order before returning it — so the `messages` array itself is always chronological (oldest → newest), but which slice of history you get depends on `offset`:
+`offset` counts backward from the **most recent** message, not forward from the oldest one. The server sorts messages `timestamp DESC, created_at DESC` (the `created_at` tiebreaker guarantees a deterministic order even for messages inserted within the same second — see **Ordering guarantee** below), takes the `[offset, offset + limit)` window, then reverses it back to ascending order before returning it — so the `messages` array itself is always chronological (oldest → newest), but which slice of history you get depends on `offset`:
 
 - `offset=0` (the default) returns the **latest** `limit` messages — always use this to open a chat.
 - To load older history (infinite scroll upward), increase `offset` by the number of messages already loaded (see the `/messages` endpoint below). Do **not** decrease `offset` or use `total_messages - limit` to "jump to the end" — `offset=0` already **is** the end.
 - Stop paginating once `offset >= total_messages`.
+
+**Ordering guarantee:** the backend serializes processing of messages from the same client (`phone_number`) end-to-end, so `INSERT` order into `messages` always matches the real arrival order of the client's WhatsApp messages — even when several arrive within the same second via concurrent webhook deliveries. No API contract change; this only affects internal ordering reliability. Same guarantee applies to the `message.new` WebSocket event below (a per-connection send lock prevents two near-simultaneous events from corrupting delivery to the same advisor socket).
 
 **Response 200:**
 
@@ -258,6 +261,7 @@ No request body required.
       "resolution_notes": null,
       "client_satisfied": null,
       "closed_by": null,
+      "closed_by_advisor": null,
       "closed_at": null,
       "client": {
         "id": "550e8400-e29b-41d4-a716-446655440020",
@@ -823,6 +827,10 @@ msg_type = "document" → render download link using media_url
       "resolution_notes": "El propietario confirmó recibo del estado de cuenta.",
       "client_satisfied": "si",
       "closed_by": "asesor",
+      "closed_by_advisor": {
+        "id": "550e8400-e29b-41d4-a716-446655440001",
+        "full_name": "Ana Gómez"
+      },
       "closed_at": "2026-06-23T14:30:00+00:00"
     }
   }
@@ -844,6 +852,7 @@ msg_type = "document" → render download link using media_url
 **Notes:**
 
 - `closed_by` is always set to `"asesor"` by this endpoint. Bot-initiated closure (see below) sets `"bot"`.
+- `closed_by_advisor` identifies the specific advisor who closed the conversation (from the JWT). It is persisted in `conversations.closed_by_advisor_id` and returned as `{id, full_name}` in the conversation list and detail endpoints. It is `null` for bot closures and for historical closures that could not be backfilled — render "Bot" when `closed_by = "bot"`, the advisor's `full_name` when present, and a generic "Asesor" otherwise.
 - The bot can close conversations in two ways: (1) the inactivity job closes after no client response to a follow-up message, and (2) the AI agent closes proactively when it detects a farewell or satisfaction signal from the client (e.g., "gracias, ya quedó", "adiós"). Both cases emit `conversation.closed` via WebSocket with `closed_by: "bot"` and no `advisor_id`.
 - `resolution_notes` accepts `null` — sending `null` or omitting the field stores `NULL` in the database.
 
