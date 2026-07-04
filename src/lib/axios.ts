@@ -138,6 +138,10 @@ apiClient.interceptors.response.use(
     }
 
     switch (status) {
+      case 422:
+        // Validation errors are handled locally by components/forms (e.g. password length constraints)
+        return Promise.reject(error)
+
       case 403:
         if (code === 'ADVISOR_INACTIVE') {
           // Show blocking modal — token stays until user confirms (see SessionExpiredModal)

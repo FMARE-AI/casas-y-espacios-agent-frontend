@@ -69,9 +69,26 @@ export function FirstLoginPage() {
       authStore.setFirstLogin(false)
       navigate('/')
     } catch (err) {
-      const axiosErr = err as { response?: { data?: { detail?: { code?: string; message?: string } } } }
-      const code = axiosErr?.response?.data?.detail?.code
-      const message = axiosErr?.response?.data?.detail?.message ?? 'Error al cambiar la contraseña'
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: { code?: string; message?: string } | Array<{ loc?: string[]; type?: string; msg?: string }> } } }
+      const detail = axiosErr?.response?.data?.detail
+      
+      if (axiosErr?.response?.status === 422) {
+        if (Array.isArray(detail)) {
+          const hasMaxLengthError = detail.some((d) => 
+            (d.loc?.includes('new_password') || d.loc?.includes('password') || d.loc?.includes('current_password')) &&
+            (d.type === 'string_too_long' || d.type?.includes('max_length') || d.msg?.toLowerCase().includes('72') || d.msg?.toLowerCase().includes('max'))
+          );
+          if (hasMaxLengthError) {
+            setRootError('Máximo 72 caracteres')
+            return
+          }
+        }
+        setRootError('La contraseña no cumple con los requisitos')
+        return
+      }
+
+      const code = typeof detail === 'object' && detail !== null && !Array.isArray(detail) ? detail.code : undefined
+      const message = typeof detail === 'object' && detail !== null && !Array.isArray(detail) ? (detail.message ?? 'Error al cambiar la contraseña') : 'Error al cambiar la contraseña'
       if (code === 'INVALID_CURRENT_PASSWORD') {
         setCurrentPasswordError('Contraseña actual incorrecta')
       } else {

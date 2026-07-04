@@ -71,7 +71,7 @@ export const GestionPage: React.FC = () => {
       )
 
       setAdvisors(filtered)
-    } catch (err: unknown) {
+    } catch {
       setAdvisors([])
     } finally {
       setIsLoading(false)
@@ -112,10 +112,23 @@ export const GestionPage: React.FC = () => {
       await loadAdvisors()
     } catch (error: unknown) {
       const code = extractErrorCode(error)
-      if (code === 'EMAIL_ALREADY_EXISTS') {
+      const err = error as { response?: { status?: number; data?: { detail?: { code?: string; message?: string } | Array<{ loc?: string[]; type?: string; msg?: string }> } }; message?: string }
+      if (err.response?.status === 422) {
+        const detail = err.response?.data?.detail
+        if (Array.isArray(detail)) {
+          const hasMaxLengthError = detail.some((d) => 
+            (d.loc?.includes('password')) &&
+            (d.type === 'string_too_long' || d.type?.includes('max_length') || d.msg?.toLowerCase().includes('72') || d.msg?.toLowerCase().includes('max'))
+          );
+          if (hasMaxLengthError) {
+            setModalError('Máximo 72 caracteres')
+            return
+          }
+        }
+        setModalError('La contraseña no cumple con los requisitos.')
+      } else if (code === 'EMAIL_ALREADY_EXISTS') {
         setModalError('EMAIL_ALREADY_EXISTS')
       } else {
-        const err = error as ApiErrorResponse
         setModalError(err.message ?? 'Error inesperado al crear el asesor.')
       }
     } finally {

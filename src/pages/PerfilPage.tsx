@@ -221,7 +221,6 @@ function LocalPasswordInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           autoComplete={autoComplete}
-          maxLength={72}
           className={[
             "w-full bg-bg-tertiary/10 border text-[13px] text-white rounded-xl pl-9 pr-9 py-2.5 outline-none transition-all duration-200",
             error
@@ -289,7 +288,7 @@ export default function PerfilPage() {
   const setStoreAdvisor = useAuthStore((s) => s.setAdvisor);
 
   const [advisor, setAdvisor] = useState<Advisor | null>(storeAdvisor);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!storeAdvisor);
 
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState(storeAdvisor?.full_name ?? "");
@@ -299,7 +298,12 @@ export default function PerfilPage() {
   const [selectedStatus, setSelectedStatus] = useState<AvailabilityStatus>(
     storeAdvisor?.availability_status ?? "available",
   );
-  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(30);
+  const [selectedMinutes, setSelectedMinutes] = useState<number | null>(() => {
+    if (!storeAdvisor) return 30;
+    return storeAdvisor.availability_status === "available" ? null
+      : storeAdvisor.status_until != null ? 30
+      : null;
+  });
   const [isSavingStatus, setIsSavingStatus] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -352,15 +356,6 @@ export default function PerfilPage() {
   useEffect(() => {
     const cached = useAuthStore.getState().advisor;
     if (cached) {
-      setAdvisor(cached);
-      setNameValue(cached.full_name);
-      setSelectedStatus(cached.availability_status);
-      setSelectedMinutes(
-        cached.availability_status === "available" ? null
-        : cached.status_until != null ? 30
-        : null,
-      );
-      setIsLoading(false);
       scheduleStatusRefresh(
         cached.status_until
           ? new Date(cached.status_until + "-05:00").getTime() - Date.now() + 1000
@@ -542,14 +537,43 @@ export default function PerfilPage() {
       setConfirmPassword('');
       useToastStore.getState().showToast("Contraseña actualizada correctamente", 'success');
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: { code?: string } | string } } };
+      const err = error as {
+        response?: {
+          status?: number;
+          data?: {
+            detail?:
+              | { code?: string }
+              | string
+              | {
+                  loc?: (string | number)[];
+                  msg?: string;
+                  type?: string;
+                }[];
+          };
+        };
+      };
       const detail = err.response?.data?.detail;
-      const code = typeof detail === "object" && detail !== null ? detail.code : undefined;
-      setPasswordError(
-        code === "INVALID_CURRENT_PASSWORD"
-          ? "La contraseña actual es incorrecta"
-          : "No se pudo actualizar la contraseña",
-      );
+      
+      if (err.response?.status === 422) {
+        if (Array.isArray(detail)) {
+          const hasMaxLengthError = detail.some((d) => 
+            (d.loc?.includes('new_password') || d.loc?.includes('password') || d.loc?.includes('current_password')) &&
+            (d.type === 'string_too_long' || d.type?.includes('max_length') || d.msg?.toLowerCase().includes('72') || d.msg?.toLowerCase().includes('max'))
+          );
+          if (hasMaxLengthError) {
+            setPasswordError('Máximo 72 caracteres');
+            return;
+          }
+        }
+        setPasswordError('La contraseña no cumple con los requisitos');
+      } else {
+        const code = typeof detail === "object" && detail !== null && !Array.isArray(detail) ? detail.code : undefined;
+        setPasswordError(
+          code === "INVALID_CURRENT_PASSWORD"
+            ? "La contraseña actual es incorrecta"
+            : "No se pudo actualizar la contraseña",
+        );
+      }
     } finally {
       setIsSavingPassword(false);
     }

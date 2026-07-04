@@ -40,6 +40,7 @@ export function usePasswordStrength(password: string): PasswordStrength {
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /\d/.test(password),
+    // eslint-disable-next-line no-useless-escape
     special: /[!@#$%^&*(),.?":{}|<>\-_+=\[\]\/\\]/.test(password),
   }
 
@@ -58,7 +59,6 @@ export function usePasswordStrength(password: string): PasswordStrength {
 
   const isValid =
     checks.minLength &&
-    checks.maxLength &&
     complexityScore >= 3
 
   let errorMessage: string | null = null

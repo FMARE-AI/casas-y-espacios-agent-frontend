@@ -33,7 +33,11 @@ describe('axios interceptors', () => {
 
   describe('request interceptor', () => {
     it('adds Authorization header when token exists in store', async () => {
-      useAuthStore.getState().setToken('my-jwt-token')
+      useAuthStore.setState({
+        token: 'my-jwt-token',
+        refresh_token: 'my-refresh-token',
+        expires_at: Date.now() + 3600 * 1000,
+      })
 
       let capturedAuthHeader: string | undefined
       apiClient.defaults.adapter = async (config) => {

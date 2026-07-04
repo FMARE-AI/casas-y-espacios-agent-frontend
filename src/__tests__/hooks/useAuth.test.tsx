@@ -81,7 +81,7 @@ describe('useAuth', () => {
 
   describe('signIn — success flow', () => {
     it('calls POST /auth/token, stores token, fetches advisor, navigates to /', async () => {
-      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token' } })
+      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token', refresh_token: 'real-refresh-token', expires_in: 3600 } })
       mockGetMe.mockResolvedValue({ advisor: makeAdvisor() })
 
       const { result } = renderUseAuth()
@@ -95,7 +95,7 @@ describe('useAuth', () => {
         password: 'password123',
       })
       expect(useAuthStore.getState().token).toBe('real-jwt-token')
-      expect(localStorage.getItem('panel_token')).toBe('real-jwt-token')
+      expect(localStorage.getItem('panel_refresh_token')).toBe('real-refresh-token')
       expect(useAuthStore.getState().advisor?.id).toBe('advisor-1')
       expect(useAuthStore.getState().error).toBeNull()
       expect(mockNavigate).toHaveBeenCalledWith('/')
@@ -104,7 +104,7 @@ describe('useAuth', () => {
 
   describe('signIn — must_change_password', () => {
     it('sets isFirstLogin and navigates to /first-login', async () => {
-      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token' } })
+      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token', refresh_token: 'real-refresh-token', expires_in: 3600 } })
       mockGetMe.mockResolvedValue({ advisor: makeAdvisor({ must_change_password: true }) })
 
       const { result } = renderUseAuth()
@@ -150,7 +150,7 @@ describe('useAuth', () => {
         await result.current.signIn('ana@casasyespacios.co', 'wrongpassword')
       })
 
-      expect(useAuthStore.getState().error).toBe('Credenciales incorrectas')
+      expect(useAuthStore.getState().error).toBe('Correo o contraseña incorrectos.')
       expect(useAuthStore.getState().token).toBeNull()
       expect(mockNavigate).not.toHaveBeenCalledWith('/')
       expect(mockNavigate).not.toHaveBeenCalledWith('/first-login')
@@ -159,7 +159,7 @@ describe('useAuth', () => {
 
   describe('signIn — getMe fails after successful token', () => {
     it('resets store and stores error message', async () => {
-      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token' } })
+      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token', refresh_token: 'real-refresh-token', expires_in: 3600 } })
       mockGetMe.mockRejectedValue(new Error('Network Error'))
 
       const { result } = renderUseAuth()
@@ -168,7 +168,7 @@ describe('useAuth', () => {
         await result.current.signIn('ana@casasyespacios.co', 'password123')
       })
 
-      expect(useAuthStore.getState().error).toBe('Network Error')
+      expect(useAuthStore.getState().error).toBe('No se pudo conectar al servidor. Verifica tu conexión o intenta más tarde.')
       expect(useAuthStore.getState().token).toBeNull()
     })
   })
@@ -204,8 +204,12 @@ describe('useAuth', () => {
 
   describe('session restore on mount', () => {
     it('restores token and advisor from localStorage', async () => {
-      localStorage.setItem('panel_token', 'stored-jwt')
-      mockGetMe.mockResolvedValue({ advisor: makeAdvisor() })
+      localStorage.setItem('panel_refresh_token', 'stored-refresh-jwt')
+      localStorage.setItem('panel_expires_at', String(Date.now() + 3600 * 1000))
+      mockGetMe.mockImplementation(async () => {
+        useAuthStore.setState({ token: 'stored-jwt' })
+        return { advisor: makeAdvisor() }
+      })
 
       const { unmount } = renderUseAuth()
 
@@ -217,8 +221,12 @@ describe('useAuth', () => {
     })
 
     it('sets isFirstLogin when restored advisor has must_change_password', async () => {
-      localStorage.setItem('panel_token', 'stored-jwt')
-      mockGetMe.mockResolvedValue({ advisor: makeAdvisor({ must_change_password: true }) })
+      localStorage.setItem('panel_refresh_token', 'stored-refresh-jwt')
+      localStorage.setItem('panel_expires_at', String(Date.now() + 3600 * 1000))
+      mockGetMe.mockImplementation(async () => {
+        useAuthStore.setState({ token: 'stored-jwt' })
+        return { advisor: makeAdvisor({ must_change_password: true }) }
+      })
 
       const { unmount } = renderUseAuth()
 
@@ -229,7 +237,8 @@ describe('useAuth', () => {
     })
 
     it('resets store when getMe fails during restore (expired token)', async () => {
-      localStorage.setItem('panel_token', 'expired-jwt')
+      localStorage.setItem('panel_refresh_token', 'expired-refresh-jwt')
+      localStorage.setItem('panel_expires_at', '0')
       mockGetMe.mockRejectedValue(new Error('401'))
 
       const { unmount } = renderUseAuth()
@@ -237,7 +246,7 @@ describe('useAuth', () => {
       await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
 
       expect(useAuthStore.getState().token).toBeNull()
-      expect(localStorage.getItem('panel_token')).toBeNull()
+      expect(localStorage.getItem('panel_refresh_token')).toBeNull()
       unmount()
     })
 
@@ -283,6 +292,7 @@ describe('useAuth', () => {
     it('resets store, clears localStorage, and navigates to /login', async () => {
       useAuthStore.getState().setToken('active-token')
       useAuthStore.getState().setAdvisor(makeAdvisor())
+      localStorage.setItem('panel_refresh_token', 'some-refresh-token')
 
       const { result } = renderUseAuth()
 
@@ -290,7 +300,7 @@ describe('useAuth', () => {
 
       expect(useAuthStore.getState().token).toBeNull()
       expect(useAuthStore.getState().advisor).toBeNull()
-      expect(localStorage.getItem('panel_token')).toBeNull()
+      expect(localStorage.getItem('panel_refresh_token')).toBeNull()
       expect(mockNavigate).toHaveBeenCalledWith('/login')
     })
   })

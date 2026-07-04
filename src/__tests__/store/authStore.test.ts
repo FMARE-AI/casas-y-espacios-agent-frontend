@@ -75,14 +75,8 @@ describe('authStore', () => {
       expect(useAuthStore.getState().token).toBe('my-jwt-token')
     })
 
-    it('persists token to localStorage', () => {
+    it('does NOT persist token to localStorage (memory-only)', () => {
       useAuthStore.getState().setToken('my-jwt-token')
-      expect(localStorage.getItem('panel_token')).toBe('my-jwt-token')
-    })
-
-    it('removes token from localStorage when set to null', () => {
-      useAuthStore.getState().setToken('my-jwt-token')
-      useAuthStore.getState().setToken(null)
       expect(localStorage.getItem('panel_token')).toBeNull()
     })
 

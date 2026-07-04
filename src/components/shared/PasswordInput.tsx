@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { usePasswordStrength, PASSWORD_MAX } from '../../hooks/usePasswordStrength'
+import { usePasswordStrength } from '../../hooks/usePasswordStrength'
 
 interface PasswordInputProps {
   value: string
@@ -71,7 +71,6 @@ export function PasswordInput({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          maxLength={PASSWORD_MAX}
           disabled={disabled}
           autoComplete={autoComplete}
           className="w-full bg-transparent px-3 py-2.5 text-sm text-[#F0F0F5] outline-none pr-10 placeholder-[#8B8FA8]/50 disabled:opacity-50"
