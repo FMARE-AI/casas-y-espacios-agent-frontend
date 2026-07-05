@@ -46,6 +46,7 @@ VITE_WS_BASE_URL=ws://localhost:8000
 
 Ver [CONFIGURATION.md](docs/CONFIGURATION.md) para la referencia completa.
 
+
 ## Comandos
 
 ```bash
