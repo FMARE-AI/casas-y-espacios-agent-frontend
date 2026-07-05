@@ -14,6 +14,16 @@ interface ClientPanelProps {
   onCloseConversation?: () => void
 }
 
+const CHANNEL_LABELS: Record<string, string> = {
+  administrativa: 'Administrativa',
+  comercial:      'Comercial',
+}
+
+const CHANNEL_STYLES: Record<string, string> = {
+  administrativa: 'bg-[#00D4AA]/15 text-[#00D4AA]',
+  comercial:      'bg-[#01A4E3]/15 text-[#01A4E3]',
+}
+
 function getInitials(name: string | null | undefined): string {
   if (!name) return '?'
   return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
@@ -30,7 +40,7 @@ export default function ClientPanel({
   onClose,
   onCloseConversation,
 }: ClientPanelProps) {
-  const { client, escalation } = conversation
+  const { client, escalation, channel } = conversation
 
   return (
     <aside
@@ -54,83 +64,105 @@ export default function ClientPanel({
           </button>
         </div>
 
-        {/* AI escalation summary */}
-        {escalation && (
-          <div className="bg-[#FF5B5B]/5 border-2 border-[#FF5B5B] rounded-lg p-3.5 space-y-3 shadow-lg">
-            <div className="flex items-center justify-between text-[#FF5B5B] font-black uppercase text-[10px] tracking-wider">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#FF5B5B] animate-ping" />
-                <span>⚠️ ANÁLISIS DE ESCALADO IA</span>
-              </span>
-            </div>
-
-            <div className="space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[#8B8FA8] uppercase font-bold">Diagnóstico:</span>
-                <span className="bg-[#FF5B5B]/15 text-[#FF5B5B] px-2 py-0.5 rounded text-[9px] font-mono font-bold">
-                  {escalation.reason}
-                </span>
-              </div>
-              <div className="bg-[#1D1D1B] p-2.5 rounded border border-[#3A3A37]">
-                <p className="text-white font-semibold leading-relaxed text-[11.5px]">
-                  {escalation.summary ?? 'El asesor revisará el historial de la conversación.'}
-                </p>
-              </div>
-              <div className="flex justify-between text-[9px] text-[#8B8FA8] pt-1">
-                <span>
-                  Escalado:{' '}
-                  <strong className="text-white">
-                    {new Date(escalation.escalated_at).toLocaleTimeString('es-CO', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </strong>
-                </span>
-                <span>ID: {escalation.id.slice(0, 8).toUpperCase()}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Client data card */}
-        <div className="bg-[#2E2E2B]/30 border border-[#3A3A37] rounded-lg p-3 space-y-3">
-          <div className="flex items-center space-x-3 pb-2 border-b border-[#3A3A37]">
-            <div className="w-10 h-10 rounded bg-[#01A4E3]/25 text-[#01A4E3] font-bold text-base flex items-center justify-center shrink-0">
+        <div className="bg-[#2E2E2B]/40 border border-[#3A3A37] rounded-xl overflow-hidden shadow-sm">
+          <div className="flex flex-col items-center text-center px-4 pt-6 pb-5 bg-gradient-to-b from-[#01A4E3]/10 to-transparent">
+            <div className="w-16 h-16 rounded-full bg-[#01A4E3]/15 border-2 border-[#01A4E3]/40 text-[#01A4E3] font-bold text-xl flex items-center justify-center shrink-0">
               {getInitials(client.full_name)}
             </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">{client.full_name ?? '—'}</h4>
-              <span className="bg-[#01A4E3]/15 text-[#01A4E3] text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-extrabold">
-                {client.client_type}
-              </span>
-            </div>
+            <h4 className="mt-3 text-sm font-bold text-white leading-tight max-w-full truncate">
+              {client.full_name ?? 'Sin identificar'}
+            </h4>
+            <span
+              className={`mt-2 text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider font-extrabold ${
+                CHANNEL_STYLES[channel] ?? 'bg-[#3A3A37]/60 text-[#8B8FA8]'
+              }`}
+            >
+              {CHANNEL_LABELS[channel] ?? channel}
+            </span>
           </div>
 
-          <div className="space-y-2 text-xs">
-            <div className="flex justify-between">
-              <span className="text-[#8B8FA8]">Celular:</span>
-              <span className="text-white font-mono text-[11px]">{client.phone_number}</span>
+          <div className="divide-y divide-[#3A3A37]/70 border-t border-[#3A3A37]">
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 rounded-lg bg-[#3A3A37]/60 flex items-center justify-center shrink-0">
+                <svg
+                  className="w-4 h-4 text-[#8B8FA8]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] text-[#8B8FA8] uppercase tracking-wider font-bold">
+                  Celular
+                </p>
+                <p className="text-white font-mono text-xs truncate">{client.phone_number}</p>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-[#8B8FA8]">Cédula/NIT:</span>
-              <span className="text-white font-mono text-[11px]">
-                {client.document_id ?? 'No registrada'}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8B8FA8]">Contrato No:</span>
-              <span className="text-[#00D4AA] font-mono font-bold text-[11px]">
-                No disponible
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8B8FA8]">Dirección:</span>
-              <span className="text-white truncate max-w-[150px] text-[11px]">
-                No disponible
-              </span>
+
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 rounded-lg bg-[#3A3A37]/60 flex items-center justify-center shrink-0">
+                <svg
+                  className="w-4 h-4 text-[#8B8FA8]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] text-[#8B8FA8] uppercase tracking-wider font-bold">
+                  Cédula / NIT
+                </p>
+                <p className="text-white font-mono text-xs truncate">
+                  {client.document_id ?? 'No registrada'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* AI escalation summary */}
+        {escalation && (
+          <div className="bg-[#FF5B5B]/[0.06] border border-[#FF5B5B]/40 rounded-xl p-3.5 space-y-2.5 shadow-sm">
+            <div className="flex items-center gap-1.5 text-[#FF5B5B] font-black uppercase text-[10px] tracking-wider">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#FF5B5B] animate-pulse" />
+              <span>Análisis de escalado IA</span>
+            </div>
+
+            <div className="bg-[#1D1D1B] p-2.5 rounded-lg border border-[#3A3A37]">
+              <p className="text-white/90 font-medium leading-relaxed text-[11.5px]">
+                {escalation.summary ?? 'El asesor revisará el historial de la conversación.'}
+              </p>
+            </div>
+
+            <div className="flex justify-between text-[9px] text-[#8B8FA8]">
+              <span>
+                Escalado:{' '}
+                <strong className="text-white font-semibold">
+                  {new Date(escalation.escalated_at).toLocaleTimeString('es-CO', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </strong>
+              </span>
+              <span className="font-mono">ID: {escalation.id.slice(0, 8).toUpperCase()}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
