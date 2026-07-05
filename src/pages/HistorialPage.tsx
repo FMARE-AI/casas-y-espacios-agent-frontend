@@ -161,7 +161,7 @@ export default function HistorialPage() {
       if (conv.client_satisfied === "no") satisfaccion = "No";
 
       return [
-        conv.client.full_name ?? "—",
+        conv.client.full_name ?? "Sin identificar",
         conv.client.document_id ?? "—",
         channelLabel(conv.channel),
         formattedDate,
@@ -316,9 +316,13 @@ export default function HistorialPage() {
                   >
                     <td
                       className="p-4 font-bold text-white whitespace-nowrap truncate max-w-[150px]"
-                      title={conv.client.full_name ?? undefined}
+                      title={conv.client.full_name ?? "Cliente no autenticado"}
                     >
-                      {conv.client.full_name ?? "—"}
+                      {conv.client.full_name ?? (
+                        <span className="text-[#8B8FA8] font-medium italic">
+                          Sin identificar
+                        </span>
+                      )}
                     </td>
                     <td className="p-4">
                       <span
