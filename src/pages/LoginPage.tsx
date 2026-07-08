@@ -101,8 +101,8 @@ export function LoginPage() {
       >
         <style>{`
           @keyframes cardEntrance {
-            from { opacity: 0; transform: translateY(20px) scale(0.98); }
-            to   { opacity: 1; transform: translateY(0)    scale(1);    }
+            from { transform: translateY(20px) scale(0.98); }
+            to   { transform: translateY(0)    scale(1);    }
           }
           .input-field:focus {
             box-shadow: 0 0 0 1px rgba(1,164,227,0.5), 0 0 16px rgba(1,164,227,0.12);
