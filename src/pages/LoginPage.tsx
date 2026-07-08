@@ -156,13 +156,14 @@ export function LoginPage() {
                 <input
                   type="email"
                   id="login-email"
+                  autoComplete="email"
                   {...register('email')}
                   className="input-field peer w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3 pr-10 pt-5 pb-1.5 text-base outline-none transition-all duration-200"
                   placeholder=" "
                 />
                 <label
                   htmlFor="login-email"
-                  className="absolute text-xs text-[#8B8FA8] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none"
+                  className="absolute text-xs text-[#9296AC] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none"
                 >
                   Correo Electrónico
                 </label>
@@ -183,20 +184,21 @@ export function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   id="login-password"
+                  autoComplete="current-password"
                   {...register('password')}
                   className="input-field peer w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3 pr-10 pt-5 pb-1.5 text-base outline-none transition-all duration-200"
                   placeholder=" "
                 />
                 <label
                   htmlFor="login-password"
-                  className="absolute text-xs text-[#8B8FA8] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none"
+                  className="absolute text-xs text-[#9296AC] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none"
                 >
                   Contraseña
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B8FA8] hover:text-[#01A4E3] transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#8B8FA8] hover:text-[#01A4E3] transition-colors"
                   aria-label="Toggle password visibility"
                 >
                   {showPassword ? (
