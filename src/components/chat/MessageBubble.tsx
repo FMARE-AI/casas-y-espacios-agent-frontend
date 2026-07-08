@@ -219,7 +219,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
 
         {isExpanded && (
           <div
-            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fade-in"
+            className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fade-in"
             onClick={() => setIsExpanded(false)}
           >
             {/* Botón Cerrar */}
@@ -437,7 +437,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
 
         {isExpanded && (
           <div
-            className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm flex flex-col items-center justify-center p-4 animate-fade-in"
+            className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 animate-fade-in"
             onClick={() => setIsExpanded(false)}
           >
             {/* Botón Cerrar */}

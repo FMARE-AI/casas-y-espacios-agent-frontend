@@ -235,7 +235,7 @@ function DocxPreview({ file }: DocxPreviewProps) {
       `}</style>
 
       {loading && (
-        <div className="absolute inset-0 bg-[#2E2E2B]/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20">
+        <div className="absolute inset-0 bg-[#2E2E2B]/95 flex flex-col items-center justify-center gap-3 z-20">
           <div className="w-8 h-8 border-4 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-white/90">Procesando y mejorando vista de Word...</span>
         </div>
@@ -398,7 +398,7 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
       {/* Content Area */}
       <div className="flex-1 overflow-auto p-4 excel-table-container docx-preview-scroll">
         {loading && (
-          <div className="absolute inset-0 bg-[#2E2E2B]/85 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20">
+          <div className="absolute inset-0 bg-[#2E2E2B]/95 flex flex-col items-center justify-center gap-3 z-20">
             <div className="w-8 h-8 border-4 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
             <span className="text-xs text-white/90">Cargando datos de Excel...</span>
           </div>
@@ -787,7 +787,7 @@ export default function ChatInput({
       {selectedFile && (
         <div
           id="file-preview-bar"
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-[#2E2E2B]/90 backdrop-blur-sm border border-[#3A3A37] rounded-xl text-xs shadow-lg gap-3 animate-fade-in"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-[#2E2E2B]/95 border border-[#3A3A37] rounded-xl text-xs shadow-lg gap-3 animate-fade-in"
         >
           <div className="flex items-start sm:items-center gap-3 w-full sm:w-auto">
             {/* Contenedor del Preview más grande para Imagen/Video */}
@@ -969,7 +969,7 @@ export default function ChatInput({
 
       {/* Media Preview Modal Overlay */}
       {previewModalOpen && selectedFile && previewUrl && (
-        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={removeSelectedFile}>
+        <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 animate-fade-in" onClick={removeSelectedFile}>
           <div 
             className={`bg-[#252522] border border-[#3A3A37] rounded-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up transition-all duration-300 ${
               activeCategory === 'document' ? 'max-w-4xl' : 'max-w-xl'

@@ -52,7 +52,7 @@ function ReturnBotModal({
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
       <div
         id="modal-confirm-release"
         className="bg-[#252522] border border-[#3A3A37] rounded-xl shadow-2xl p-6 max-w-md w-full space-y-4"
@@ -184,7 +184,7 @@ function CloseConversationModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
       <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 max-w-sm w-full space-y-4">
         {/* Header */}
         <div className="flex items-center gap-3">

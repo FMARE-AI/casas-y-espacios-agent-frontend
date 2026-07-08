@@ -14,7 +14,7 @@ const DateSeparator = memo(function DateSeparator({ date }: { date: Date }) {
   return (
     <div className="text-center my-3 shrink-0 flex items-center justify-center gap-4 select-none">
       <div className="flex-1 h-[1px] bg-white/5" />
-      <span className="bg-[#252522]/80 backdrop-blur-md text-[#8B8FA8] text-[9px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-xl border border-[#3A3A37]/50 shadow-sm">
+      <span className="bg-[#252522]/95 text-[#8B8FA8] text-[9px] font-bold uppercase tracking-wider px-3.5 py-1.5 rounded-xl border border-[#3A3A37]/50 shadow-sm">
         {label}
       </span>
       <div className="flex-1 h-[1px] bg-white/5" />
