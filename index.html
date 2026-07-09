@@ -3,6 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      H-03: Content Security Policy.
+      'unsafe-inline' for style-src is required by Tailwind CSS and inline <style> blocks
+      in components. Tighten this progressively by migrating to nonce-based styles.
+      For frame-ancestors and stricter enforcement, configure HTTP headers in Railway
+      (RAILWAY_HEADERS env / nginx config) — meta CSP does not support frame-ancestors.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: blob: https://*.supabase.co;
+      media-src 'self' blob: https://*.supabase.co;
+      frame-src blob:;
+      connect-src 'self' https://*.railway.app wss://*.railway.app https://*.supabase.co wss://*.supabase.co;
+      font-src 'self';
+      worker-src blob:;
+      object-src 'none';
+      base-uri 'self';
+    " />
+    <link rel="icon" type="image/webp" href="/src/assets/logo.webp" />
+    <meta name="description" content="Panel web interno de Casas y Espacios para la gestión de conversaciones, asesores y escalaciones del agente de WhatsApp." />
     <title>Casas y Espacios</title>
   </head>
   <body>

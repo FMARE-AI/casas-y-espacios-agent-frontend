@@ -11,12 +11,21 @@ node_modules
 dist
 
 # Environment variables
+.env.production
+.env.development
 .env
 .env.local
 .env.production
 .env.*.local
 dist-ssr
 *.local
+
+# Local mockups
+mockup.html
+
+# AI tool artifacts
+.atl/
+.gga
 
 # Editor directories and files
 .vscode/*
