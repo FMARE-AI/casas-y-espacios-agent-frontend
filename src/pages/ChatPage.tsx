@@ -326,6 +326,7 @@ export default function ChatPage() {
   const [isReturning, setIsReturning] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [showReturnedPill, setShowReturnedPill] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const feedRef = useRef<HTMLDivElement>(null);
   // Tracks how many messages (counted back from the most recent one) have been
   // loaded so far. offset=0 on the API means "the latest window", so this ref
@@ -408,6 +409,12 @@ export default function ChatPage() {
     window.addEventListener('ws:reconnected', handleReconnected);
     return () => window.removeEventListener('ws:reconnected', handleReconnected);
   }, [loadConversation]);
+
+  // Ticks every minute so the "esperando respuesta" indicator in ChatInput stays live
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Reset unread count when the ASSIGNED ADVISOR opens this conversation.
   // Admin is excluded: admin viewing the chat must not clear the badge
@@ -709,8 +716,12 @@ export default function ChatPage() {
   const clientName = conversation?.client.full_name ?? "Cliente";
   const channel = conversation?.channel ?? "";
 
-  // Wait time placeholder — will come from conversation metadata in future
-  const waitMinutes: number | null = null;
+  const waitSeconds = conversation?.escalation?.wait_seconds ?? (
+    conversation?.escalation?.escalated_at
+      ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
+      : null
+  );
+  const waitMinutes: number | null = waitSeconds !== null ? Math.floor(waitSeconds / 60) : null;
 
   return (
     <section
