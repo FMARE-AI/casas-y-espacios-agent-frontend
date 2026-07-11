@@ -62,11 +62,9 @@ function getVariant(conversation: Conversation, now: number): CardVariant {
   if (conversation.status === 'activa') return 'C'
 
   if (conversation.status === 'escalada') {
-    const waitSeconds = conversation.escalation?.wait_seconds !== undefined && conversation.escalation?.wait_seconds !== null
-      ? conversation.escalation.wait_seconds
-      : (conversation.escalation?.escalated_at
-        ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
-        : 0)
+    const waitSeconds = conversation.escalation?.escalated_at
+      ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
+      : (conversation.escalation?.wait_seconds ?? 0)
 
     return waitSeconds >= 900 ? 'A2' : 'A'
   }
