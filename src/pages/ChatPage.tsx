@@ -719,7 +719,8 @@ export default function ChatPage() {
   const waitSeconds = conversation?.escalation?.escalated_at
     ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
     : (conversation?.escalation?.wait_seconds ?? null);
-  const waitMinutes: number | null = waitSeconds !== null ? Math.floor(waitSeconds / 60) : null;
+  const hasAdvisor = !!conversation?.escalation?.advisor;
+  const waitMinutes: number | null = hasAdvisor ? null : (waitSeconds !== null ? Math.floor(waitSeconds / 60) : null);
 
   return (
     <section
