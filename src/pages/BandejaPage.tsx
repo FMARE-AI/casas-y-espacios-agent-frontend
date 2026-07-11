@@ -318,6 +318,7 @@ export default function BandejaPage() {
         console.error('Error refreshing advisor profile after take:', profileErr)
       }
       await loadConversations()
+      navigate(`/chat/${takeTarget.id}`)
     } catch (error: unknown) {
       const err = error as { response?: { data?: { detail?: { code?: string } } } }
       const code = err.response?.data?.detail?.code
