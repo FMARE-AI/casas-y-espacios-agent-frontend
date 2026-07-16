@@ -167,6 +167,7 @@ No request body required.
         "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
+        "case_number": "CE-2026-000043",
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
@@ -215,6 +216,7 @@ No request body required.
 - Advisors with `area = "ambas"` see conversations from both channels.
 - **`status=mine`** is a special filter that returns only the conversations with an active escalation assigned to the authenticated advisor (i.e., the "My conversations" tab). It can be combined freely with `channel`. Admins using `mine` see only conversations assigned to themselves — not all conversations.
 - **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
+- **`case_number`** is a human-readable, unique case reference in the format `CE-YYYY-NNNNNN` (e.g. `CE-2026-000043`), generated atomically in Postgres when the conversation is created. It is `null` for conversations created before this feature was deployed — render `—` (or similar) in that case. It never changes for the lifetime of the conversation, including when a closed conversation is transparently reused within the grace window (see `CLAUDE.md` §3.6.1) — the reused conversation keeps its original `case_number`.
 
 ---
 
@@ -263,6 +265,7 @@ No request body required.
       "closed_by": null,
       "closed_by_advisor": null,
       "closed_at": null,
+      "case_number": "CE-2026-000043",
       "client": {
         "id": "550e8400-e29b-41d4-a716-446655440020",
         "full_name": "Carlos Rodríguez",
@@ -1931,17 +1934,19 @@ Emitted to **all connected advisors** when the bot escalates a conversation — 
     "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
     "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
     "reason": "solicitud_usuario",
-    "channel": "administrativa"
+    "channel": "administrativa",
+    "case_number": "CE-2026-000043"
   }
 }
 ```
 
-| Field             | Type                      | Description                                                     |
-| ----------------- | ------------------------- | --------------------------------------------------------------- |
-| `conversation_id` | `string` (UUID)           | The escalated conversation                                      |
-| `advisor_id`      | `string` (UUID) or `null` | Assigned advisor, or `null` when placed in the unassigned queue |
-| `reason`          | `string` or `null`        | The escalation reason. May be `null` if unclassified            |
-| `channel`         | `string`                  | `"administrativa"` or `"comercial"`                             |
+| Field             | Type                      | Description                                                                                                                                                                             |
+| ----------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conversation_id` | `string` (UUID)           | The escalated conversation                                                                                                                                                              |
+| `advisor_id`      | `string` (UUID) or `null` | Assigned advisor, or `null` when placed in the unassigned queue                                                                                                                         |
+| `reason`          | `string` or `null`        | The escalation reason. May be `null` if unclassified                                                                                                                                    |
+| `channel`         | `string`                  | `"administrativa"` or `"comercial"`                                                                                                                                                     |
+| `case_number`     | `string` or `null`        | Human-readable case reference (`CE-YYYY-NNNNNN`). `null` only if the backend failed to fetch it when emitting the event (fail-soft) — re-fetch via `GET /conversations/{id}` if needed. |
 
 **When `advisor_id` is `null`:** the conversation is in the unassigned queue — any available advisor in the channel can take it via `PATCH /conversations/{id}/assign`.
 
@@ -2163,6 +2168,22 @@ Use `status=escalada` to show only the escalation queue, or omit to show all con
 
 ---
 
+### Displaying the Case Number
+
+Every conversation carries a `case_number` field (e.g. `"CE-2026-000043"`) — a short, human-readable reference clients and advisors can cite instead of the internal UUID. Show it in the inbox row and in the chat header:
+
+```javascript
+function CaseNumberBadge({ caseNumber }) {
+  return <span className="case-badge">{caseNumber ?? "—"}</span>;
+}
+```
+
+- **Always handle `null`**: conversations created before this feature shipped have `case_number: null` — render `—` (or hide the badge), never `"CE-null"` or similar.
+- **It's static for the life of the conversation** — no need to re-fetch it on every message; it never changes once assigned, including across bot-close/reuse cycles within the grace window.
+- Arrives in the initial `GET /conversations/` and `GET /conversations/{id}` payloads, and again in the `escalation.new` WebSocket event (see below) — no dedicated endpoint or extra fetch is needed to keep it in sync in real time.
+
+---
+
 ### Rendering Messages
 
 Each message object has a `msg_type` field that determines how it should be displayed. Use `msg_type` — not `content` or `media_url` nullability — as the source of truth for rendering decisions.
@@ -2369,7 +2390,10 @@ ws.onmessage = (event) => {
       break;
 
     case "escalation.new":
-      // New escalation arrived from the bot
+      // New escalation arrived from the bot. data.case_number lets you show
+      // the reference (e.g. in a toast) without an extra fetch — may be null
+      // if the backend failed to look it up (fail-soft); re-fetch the
+      // conversation detail in that case if you need to display it.
       if (data.advisor_id) {
         // Auto-assigned — update the card to show the assigned advisor
         updateConversationAssignment(
@@ -2379,8 +2403,15 @@ ws.onmessage = (event) => {
         );
       } else {
         // Unassigned queue — add or highlight in the inbox
-        addToUnassignedQueue(data.conversation_id, data.channel);
-        showToast(`Nueva conversación en cola (${data.channel})`, "warning");
+        addToUnassignedQueue(
+          data.conversation_id,
+          data.channel,
+          data.case_number,
+        );
+        showToast(
+          `Nueva conversación en cola (${data.case_number ?? data.channel})`,
+          "warning",
+        );
       }
       break;
 
