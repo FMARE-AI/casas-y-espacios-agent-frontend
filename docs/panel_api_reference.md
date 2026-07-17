@@ -167,6 +167,7 @@ No request body required.
         "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
+        "duration_seconds": null,
         "case_number": "CE-2026-000043",
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
@@ -217,6 +218,7 @@ No request body required.
 - **`status=mine`** is a special filter that returns only the conversations with an active escalation assigned to the authenticated advisor (i.e., the "My conversations" tab). It can be combined freely with `channel`. Admins using `mine` see only conversations assigned to themselves — not all conversations.
 - **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
 - **`case_number`** is a human-readable, unique case reference in the format `CE-YYYY-NNNNNN` (e.g. `CE-2026-000043`), generated atomically in Postgres when the conversation is created. It is `null` for conversations created before this feature was deployed — render `—` (or similar) in that case. It never changes for the lifetime of the conversation, including when a closed conversation is transparently reused within the grace window (see `CLAUDE.md` §3.6.1) — the reused conversation keeps its original `case_number`.
+- **`duration_seconds`** is calculated at request time as the difference in seconds between `closed_at` and `started_at` (or `created_at` if `started_at` is missing). It is returned as an integer for conversations with status `"cerrada"`. For other statuses, it is `null`.
 
 ---
 
@@ -862,6 +864,75 @@ msg_type = "document" → render download link using media_url
 **WebSocket events emitted:**
 
 - `conversation.closed` — broadcast to all connected advisors
+
+---
+
+### POST /api/v1/panel/conversations/{conversation_id}/transfer
+
+**Auth required:** Yes (assigned advisor or admin)
+
+**Description:** Transfers the conversation's active escalation to another advisor when the customer changes the topic. Reassigns the active escalation row to the new advisor, preserving the conversation history and previous metadata. If the target advisor's area is different from the conversation's current channel, the conversation's channel is updated.
+
+**Path params:**
+
+| Param             | Type            | Description                  |
+| ----------------- | --------------- | ---------------------------- |
+| `conversation_id` | `string` (UUID) | The conversation to transfer |
+
+**Request body:**
+
+```json
+{
+  "target_advisor_id": "550e8400-e29b-41d4-a716-446655449999",
+  "reason": "Cliente cambió temática a comercial, pregunta por arriendo."
+}
+```
+
+| Field               | Type               | Default | Constraints                  |
+| ------------------- | ------------------ | ------- | ---------------------------- |
+| `target_advisor_id` | `string` (UUID)    | none    | Required. Target advisor ID  |
+| `reason`            | `string` or `null` | `null`  | Optional, max 500 characters |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "case_number": "CE-2026-000043",
+    "status": "activa",
+    "channel": "comercial",
+    "escalation": {
+      "id": "550e8400-e29b-41d4-a716-446655440030",
+      "advisor_id": "550e8400-e29b-41d4-a716-446655449999",
+      "transfer_reason": "Cliente cambió temática a comercial, pregunta por arriendo."
+    }
+  }
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode                 | When                                                                                    |
+| ---- | ------------------------- | --------------------------------------------------------------------------------------- |
+| 401  | `INVALID_TOKEN`           | Missing or invalid JWT                                                                  |
+| 403  | `FORBIDDEN`               | Non-admin advisor is not the currently assigned advisor of the conversation             |
+| 404  | `CONVERSATION_NOT_FOUND`  | No conversation with the given ID, or advisor does not have access to its channel       |
+| 404  | `ADVISOR_NOT_FOUND`       | Target advisor does not exist                                                           |
+| 409  | `CONVERSATION_NOT_ACTIVE` | Conversation status is `cerrada`                                                        |
+| 409  | `NO_ACTIVE_ESCALATION`    | Conversation has no active escalation to transfer                                       |
+| 409  | `ALREADY_ASSIGNED`        | Conversation is already assigned to the target advisor                                 |
+| 409  | `INVALID_STATUS`          | Target advisor is inactive (`is_active = false`) or not available (`availability_status != 'available'`) |
+| 409  | `TARGET_AT_CAPACITY`      | Target advisor has reached their `max_conversations` limit                              |
+
+**Notes:**
+- Reassigns the active escalation row without creating a new row in the database, preserving message history.
+- If the target advisor's area is different from the conversation's channel (and not `"ambas"`), the conversation's `channel` is updated to match.
+- WebSocket notification `conversation.transferred` is emitted to the source advisor, target advisor, and all admins.
+
+**WebSocket events emitted:**
+
+- `conversation.transferred` — targeted real-time event
 
 ---
 
