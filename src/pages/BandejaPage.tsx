@@ -10,6 +10,8 @@ import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
 import { useWebSocket, setMyAssignedConversations } from '../hooks/useWebSocket'
 
+export const BANDEJA_STATUS_FILTER_KEY = 'bandeja_status_filter'
+
 // --- LOCAL COMPONENTS ---
 
 function ConnectedAdvisors() {
@@ -187,11 +189,19 @@ export default function BandejaPage() {
   const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0, mine: 0 })
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
 
-  // Filtros activos — asesor inicia en "mine", admin en todas
-  const [statusFilter, setStatusFilter] = useState<string | null>(() =>
-    role === 'asesor' ? 'mine' : null
-  )
+  // Filtros activos — se restauran de la sesión de navegador al volver de un chat,
+  // pero siempre inician en "mine" (asesor) / null (admin) en un login nuevo —
+  // authStore.clearSession() limpia BANDEJA_STATUS_FILTER_KEY.
+  const [statusFilter, setStatusFilter] = useState<string | null>(() => {
+    const stored = sessionStorage.getItem(BANDEJA_STATUS_FILTER_KEY)
+    if (stored !== null) return stored === 'null' ? null : stored
+    return role === 'asesor' ? 'mine' : null
+  })
   const [channelFilter, setChannelFilter] = useState<string | null>(null)
+
+  useEffect(() => {
+    sessionStorage.setItem(BANDEJA_STATUS_FILTER_KEY, statusFilter ?? 'null')
+  }, [statusFilter])
 
   // Modal tomar conversación
   const [takeTarget, setTakeTarget] = useState<Conversation | null>(null)

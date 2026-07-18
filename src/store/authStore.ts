@@ -13,6 +13,10 @@ const REMEMBER_KEY = 'panel_remember'
 // Legacy key — read-only, cleared on next setSession to clean up old data.
 const LEGACY_TOKEN_KEY = 'panel_token'
 
+// Kept in sync with BANDEJA_STATUS_FILTER_KEY in pages/BandejaPage.tsx.
+// Duplicated (not imported) to avoid a store -> page dependency.
+const BANDEJA_STATUS_FILTER_KEY = 'bandeja_status_filter'
+
 function getTokenStorage(): Storage {
   return localStorage.getItem(REMEMBER_KEY) === 'true' ? localStorage : sessionStorage
 }
@@ -93,6 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(LEGACY_TOKEN_KEY)
     sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(EXPIRES_AT_KEY)
+    sessionStorage.removeItem(BANDEJA_STATUS_FILTER_KEY)
     // scope 'local' revokes only THIS session's refresh token. The default
     // ('global') revokes every session of the user — fired-and-forgotten here,
     // it could land after a new login and kill the freshly issued tokens,
@@ -146,6 +151,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(LEGACY_TOKEN_KEY)
     sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(EXPIRES_AT_KEY)
+    sessionStorage.removeItem(BANDEJA_STATUS_FILTER_KEY)
     // scope 'local' — see clearSession() for why global revocation is unsafe.
     supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     set({
