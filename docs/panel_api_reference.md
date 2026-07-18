@@ -2611,3 +2611,5 @@ The following gaps were found between the current code and the CLAUDE.md specifi
 6. **`behavior.alert` WebSocket event payload contains only `alert_id`** — This is an intentional design choice per the code comment, but it requires the frontend to make a follow-up API call to get the full alert. This is not documented anywhere in CLAUDE.md.
 
 7. **`AdvisorRepository.update_availability` stores `status_until` as a naive Bogotá local time** — The `status_until` value returned from any endpoint echoing the advisor object will be a naive ISO string without a timezone suffix. Frontend code that parses this field must not assume UTC.
+
+Made with ❤️ By the Team
