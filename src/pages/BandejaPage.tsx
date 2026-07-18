@@ -184,7 +184,7 @@ export default function BandejaPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0 })
+  const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0, mine: 0 })
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
 
   // Filtros activos — asesor inicia en "mine", admin en todas
@@ -229,11 +229,13 @@ export default function BandejaPage() {
       const all = result.conversations || []
       const escaladas = all.filter(c => c.status === 'escalada').length
       const activas = all.filter(c => c.status === 'activa').length
+      const currentAdvisorId = useAuthStore.getState().advisor?.id
       setStatusCounts({
         all: escaladas + activas,
         escaladas,
         activas,
         cerradas: all.filter(c => c.status === 'cerrada').length,
+        mine: all.filter(c => c.status !== 'cerrada' && c.escalation?.advisor?.id === currentAdvisorId).length,
       })
     } catch (err) {
       console.error('Error fetching counts', err)
@@ -435,11 +437,9 @@ export default function BandejaPage() {
       </div>
 
       <FilterBar
-        conversations={conversations}
         statusCounts={statusCounts}
         activeStatus={statusFilter}
         activeChannel={channelFilter}
-        currentAdvisorId={advisor?.id ?? ''}
         advisorRole={role}
         onStatusChange={setStatusFilter}
         onChannelChange={setChannelFilter}

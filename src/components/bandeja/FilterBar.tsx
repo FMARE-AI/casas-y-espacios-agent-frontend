@@ -1,19 +1,17 @@
-import { memo, useMemo } from 'react'
-import type { Conversation } from '../../types'
+import { memo } from 'react'
 
 interface StatusCounts {
   all: number
   escaladas: number
   activas: number
   cerradas: number
+  mine: number
 }
 
 interface FilterBarProps {
-  conversations: Conversation[]
   statusCounts: StatusCounts
   activeStatus: string | null
   activeChannel: string | null
-  currentAdvisorId: string
   advisorRole: string | null
   onStatusChange: (status: string | null) => void
   onChannelChange: (channel: string | null) => void
@@ -21,22 +19,16 @@ interface FilterBarProps {
 }
 
 export const FilterBar = memo(function FilterBar({
-  conversations,
   statusCounts,
   activeStatus,
   activeChannel,
-  currentAdvisorId,
   advisorRole,
   onStatusChange,
   onChannelChange,
   onRefresh,
 }: FilterBarProps) {
   const totals = statusCounts
-
-  const myCount = useMemo(
-    () => conversations.filter((conv) => conv.escalation?.advisor?.id === currentAdvisorId).length,
-    [conversations, currentAdvisorId]
-  )
+  const myCount = statusCounts.mine
 
   const btnBase = 'px-3 py-1.5 rounded transition flex items-center gap-1.5 text-xs font-semibold border'
   const btnActive = 'bg-[#01A4E3] border-[#01A4E3] text-white'
