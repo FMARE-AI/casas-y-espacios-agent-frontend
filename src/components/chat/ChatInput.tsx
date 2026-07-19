@@ -557,9 +557,7 @@ export default function ChatInput({
     }
   }
 
-  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
+  function processFile(file: File) {
     // Detectar el tipo según el mime
     const type = getFileType(file.type)
     if (!type) {
@@ -592,10 +590,31 @@ export default function ChatInput({
     if (type === 'image' || type === 'video' || type === 'document') {
       setPreviewModalOpen(true)
     }
+  }
 
+  function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    processFile(file)
     // Limpiar el input para permitir seleccionar
     // el mismo archivo dos veces
     e.target.value = ''
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    if (variant !== 'assigned' || selectedFile) return
+    const items = e.clipboardData?.items
+    if (!items) return
+    for (const item of items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile()
+        if (file) {
+          e.preventDefault()
+          processFile(file)
+        }
+        return
+      }
+    }
   }
 
   function removeSelectedFile() {
@@ -934,6 +953,7 @@ export default function ChatInput({
                 }
               }}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder={
                 selectedFile
                   ? 'Añade una descripción opcional...'
