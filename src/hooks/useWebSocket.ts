@@ -34,7 +34,6 @@ const _handlers: WSHandlers = {}
 
 // Module-level singletons — exactly one socket active at any time
 let socket: WebSocket | null = null
-let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
@@ -177,7 +176,6 @@ function closeSocket(): void {
   clearReconnect()
   if (socket) socket.close()
   socket = null
-  connectedToken = null
   isConnecting = false
 }
 
@@ -221,7 +219,6 @@ function scheduleReconnect(): void {
 function connect(token: string): void {
   if (socket || isConnecting) return
 
-  connectedToken = token
   isConnecting = true
 
   // Only the "recovering from a live drop" case deserves the alarming
@@ -253,7 +250,6 @@ function connect(token: string): void {
     // this reset, isConnecting would stay true forever and block every
     // future automatic reconnection.
     isConnecting = false
-    connectedToken = null
     scheduleReconnect()
     return
   }
@@ -492,7 +488,6 @@ function connect(token: string): void {
     clearPing()
     isConnecting = false
     socket = null
-    connectedToken = null
 
     if (event.code === 4001) {
       useWSStore.getState().setStatus('disconnected')
@@ -634,8 +629,16 @@ export function useWebSocket(handlers?: WSHandlers) {
     onConversationClosed, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 
-  // Open / reopen connection when the session changes; close it whenever
-  // there is no valid session (no token, or blocked pending confirmation).
+  // Open the connection when a session exists; close it whenever there is no
+  // valid session (no token, or blocked pending confirmation).
+  //
+  // IMPORTANT: a live socket is NEVER torn down because the access token
+  // changed. The token is only validated at handshake time — the server never
+  // re-checks it on an open connection — so recycling the socket on every
+  // refresh produced visible reconnect churn in the panel (each token refresh
+  // closed and reopened both advisors' sockets during the 2026-07-17 demo).
+  // Reconnect paths (watchdog, onclose, online/visibility) already fetch a
+  // fresh token via getValidToken() before dialing.
   useEffect(() => {
     if (!accessToken || sessionExpired) {
       setStatus('disconnected')
@@ -644,11 +647,10 @@ export function useWebSocket(handlers?: WSHandlers) {
       return
     }
 
-    // Socket already open for this token — nothing to do
-    if (socket && connectedToken === accessToken) return
+    // A socket is already open, connecting, or scheduled to reconnect — leave
+    // it alone; it keeps working regardless of which token it connected with.
+    if (socket || isConnecting || reconnectTimeout !== null) return
 
-    // Token changed — tear down old socket and reconnect
-    closeSocket()
     connect(accessToken)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, sessionExpired])
