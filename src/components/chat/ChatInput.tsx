@@ -936,7 +936,10 @@ export default function ChatInput({
               disabled={sending || variant !== 'assigned'}
               onChange={(e) => {
                 const val = e.target.value
-                if (val.length <= 2000) {
+                if (val.length > 2000) {
+                  setText(val.slice(0, 2000))
+                  showError('El mensaje supera el límite de 2000 caracteres.')
+                } else {
                   setText(val)
                 }
 
