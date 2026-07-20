@@ -1,4 +1,5 @@
 import type { Conversation } from '../../types'
+import { useAuthStore } from '../../store/authStore'
 
 export type ChatVariant = 'assigned' | 'unassigned' | 'bot' | 'monitoring'
 
@@ -12,6 +13,7 @@ interface ClientPanelProps {
   isAdmin?: boolean
   onClose?: () => void
   onCloseConversation?: () => void
+  onTransfer?: () => void
 }
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -39,8 +41,21 @@ export default function ClientPanel({
   isAdmin = false,
   onClose,
   onCloseConversation,
+  onTransfer,
 }: ClientPanelProps) {
   const { client, escalation, channel } = conversation
+  const currentAdvisor = useAuthStore((s) => s.advisor)
+
+  // An `escalation` object is only ever included in the conversation payload
+  // when it is unresolved (resolved_at IS NULL) — see docs/panel_api_reference.md.
+  // Do not gate on `status === 'activa'`: the docs disagree on whether an
+  // assigned conversation can still carry status 'escalada' (the "en_atención"
+  // state). Whether it's actually assigned is `escalation.advisor` being set —
+  // same source of truth ConversationCard.tsx already uses for the inbox.
+  const showTransfer =
+    conversation.bot_activo === false &&
+    !!escalation?.advisor &&
+    (escalation.advisor.id === currentAdvisor?.id || isAdmin)
 
   return (
     <aside
@@ -149,6 +164,17 @@ export default function ClientPanel({
               </p>
             </div>
 
+            {escalation.transfer_reason && (
+              <div className="bg-[#01A4E3]/10 border border-[#01A4E3]/30 rounded-lg p-2.5">
+                <p className="text-[9px] text-[#01A4E3] uppercase font-bold tracking-wider mb-1">
+                  Motivo de transferencia
+                </p>
+                <p className="text-white/80 text-[11px] leading-relaxed">
+                  {escalation.transfer_reason}
+                </p>
+              </div>
+            )}
+
             <div className="flex justify-between text-[9px] text-[#8B8FA8]">
               <span>
                 Escalado:{' '}
@@ -209,6 +235,18 @@ export default function ClientPanel({
             >
               Cerrar conversación
             </button>
+            {showTransfer && (
+              <button
+                type="button"
+                onClick={onTransfer}
+                className="w-full h-12 border border-[#01A4E3]/20 hover:border-[#01A4E3]/40 hover:bg-[#01A4E3]/10 text-[#01A4E3] hover:text-white text-xs font-semibold rounded transition mt-2 flex items-center justify-center gap-2"
+              >
+                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+                <span>Transferir</span>
+              </button>
+            )}
           </>
         )}
       </div>

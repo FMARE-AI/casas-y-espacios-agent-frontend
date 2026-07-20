@@ -10,11 +10,13 @@ import type {
   WSConversationClosed,
   WSEscalationNew,
   WSEscalationAssigned,
+  WSConversationTransferred,
 } from "../types";
 import MessageFeed from "../components/chat/MessageFeed";
 import ChatInput from "../components/chat/ChatInput";
 import ClientPanel, { type ChatVariant } from "../components/chat/ClientPanel";
-import { useWebSocket } from "../hooks/useWebSocket";
+import TransferModal from "../components/chat/TransferModal";
+import { useWebSocket, consumePendingTransferReason } from "../hooks/useWebSocket";
 import { ROUTES } from "../constants/routes";
 
 function getInitials(name: string): string {
@@ -322,6 +324,7 @@ export default function ChatPage() {
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -352,6 +355,18 @@ export default function ChatPage() {
       // internally, then reverses to ASC for display) — no extra fetch needed.
 
       setConversation(conv);
+      // Backend may not echo transfer_reason back on a plain GET — fall back to
+      // whatever the conversation.transferred WS event cached for this conversation.
+      if (conv.escalation && !conv.escalation.transfer_reason) {
+        const cachedReason = consumePendingTransferReason(conv.id)
+        if (cachedReason) {
+          setConversation((prev) =>
+            prev && prev.escalation && !prev.escalation.transfer_reason
+              ? { ...prev, escalation: { ...prev.escalation, transfer_reason: cachedReason } }
+              : prev
+          )
+        }
+      }
       setShowReturnedPill(conv.bot_activo && conv.has_escalation_history);
       // Merge instead of replace. `msgs` is only the fresh window this call fetched
       // (the latest messages) — it does NOT include older history the user already
@@ -529,6 +544,47 @@ export default function ChatPage() {
     [conversationId, loadConversation],
   );
 
+  const onConversationTransferred = useCallback(
+    (event: WSConversationTransferred) => {
+      if (event.conversation_id === conversationId) {
+        const selfId = useAuthStore.getState().advisor?.id;
+        const isAdmin = useAuthStore.getState().advisor?.role === "admin";
+        if (selfId && event.source_advisor_id === selfId && !isAdmin) {
+          navigate(ROUTES.BANDEJA);
+        } else {
+          loadConversation();
+        }
+      }
+    },
+    [conversationId, navigate, loadConversation],
+  );
+
+  const handleTransfer = useCallback(
+    async (targetAdvisorId: string, reason: string | null) => {
+      if (!conversationId) return;
+      const result = await conversationsService.transfer(conversationId, {
+        target_advisor_id: targetAdvisorId,
+        reason,
+      });
+      setShowTransferModal(false);
+      if (result?.escalation?.transfer_reason) {
+        setConversation((prev) =>
+          prev && prev.escalation
+            ? { ...prev, escalation: { ...prev.escalation, transfer_reason: result.escalation.transfer_reason } }
+            : prev
+        );
+      }
+      useToastStore.getState().showToast(
+        reason
+          ? `Conversación transferida: "${reason.length > 60 ? reason.slice(0, 60) + '...' : reason}"`
+          : "Conversación transferida exitosamente.",
+        "success"
+      );
+      navigate(ROUTES.BANDEJA);
+    },
+    [conversationId, navigate]
+  );
+
   // Covers auto-assign on escalation creation: the backend may emit a single
   // `escalation.new` with `advisor_id` already set, with no follow-up
   // `escalation.assigned` event, so this chat must also refresh on that event.
@@ -549,6 +605,7 @@ export default function ChatPage() {
       onConversationReturned: onConversationReturned,
       onConversationClosed: onConversationClosed,
       onEscalationAssigned: onEscalationAssigned,
+      onConversationTransferred: onConversationTransferred,
     }),
     [
       onNewMessage,
@@ -556,6 +613,7 @@ export default function ChatPage() {
       onConversationReturned,
       onConversationClosed,
       onEscalationAssigned,
+      onConversationTransferred,
     ],
   );
 
@@ -902,6 +960,7 @@ export default function ChatPage() {
             onTake={handleTake}
             onReturnBot={() => setShowReturnModal(true)}
             onCloseConversation={() => setShowCloseModal(true)}
+            onTransfer={() => setShowTransferModal(true)}
             isTaking={isAssigning}
             isReturning={isReturning}
             isAdmin={role === 'admin'}
@@ -925,6 +984,15 @@ export default function ChatPage() {
           onConfirm={handleClose}
           onCancel={() => setShowCloseModal(false)}
           isClosing={isClosing}
+        />
+      )}
+
+      {/* ── Transfer conversation modal ── */}
+      {showTransferModal && (
+        <TransferModal
+          onConfirm={handleTransfer}
+          onCancel={() => setShowTransferModal(false)}
+          currentAssignedAdvisorId={conversation?.escalation?.advisor?.id}
         />
       )}
     </section>

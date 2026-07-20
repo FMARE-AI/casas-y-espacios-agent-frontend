@@ -404,6 +404,10 @@ export default function BandejaPage() {
     loadConversations()
   }, [loadConversations])
 
+  const handleConversationTransferred = useCallback(() => {
+    loadConversations()
+  }, [loadConversations])
+
   const handleQueuePending = useCallback((data: WSQueuePending) => {
     useToastStore.getState().showToast(data.message, 'info')
     loadConversations()
@@ -416,6 +420,7 @@ export default function BandejaPage() {
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,
     onConversationReturned: handleConversationReturned,
+    onConversationTransferred: handleConversationTransferred,
     onQueuePending: handleQueuePending,
   })
 

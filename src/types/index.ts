@@ -77,6 +77,7 @@ export interface Escalation {
   escalated_at: string
   advisor: Advisor | null
   wait_seconds?: number | null
+  transfer_reason?: string | null
 }
 
 export interface ClosedByAdvisor {
@@ -244,4 +245,13 @@ export interface WSQueuePending {
 
 export interface WSBehaviorAlertEvent {
   alert_id: string
+}
+
+export interface WSConversationTransferred {
+  conversation_id: string
+  source_advisor_id: string
+  target_advisor_id: string
+  target_advisor_name: string
+  reason?: string | null
+  channel?: string
 }
