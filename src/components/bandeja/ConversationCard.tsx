@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, memo } from 'react'
-import type { Conversation, ConversationLastMessage } from '../../types'
+import type { Conversation, ConversationLastMessage, ConversationPriority } from '../../types'
 
 interface ConversationCardProps {
   conversation: Conversation
@@ -23,6 +23,19 @@ const ESCALATION_REASON_LABELS: Record<string, string> = {
   frustracion_detectada: 'Frustración detectada',
   no_clasificado:        'Sin clasificar',
   error_simi:            'Error del sistema',
+}
+
+// Only alta/critica ever render a badge — see specs/priority_badge/01-spec.md
+// Revision (2026-07-20): a badge on every card, even a muted one for baja,
+// trains advisors to ignore it. It should interrupt only when actionable.
+const PRIORITY_BADGE_STYLES: Record<Extract<ConversationPriority, 'alta' | 'critica'>, string> = {
+  alta:    'bg-[#FFB84D] text-[#1D1D1B]',
+  critica: 'bg-[#FF5B5B] text-white',
+}
+
+const PRIORITY_BADGE_LABELS: Record<Extract<ConversationPriority, 'alta' | 'critica'>, string> = {
+  alta:    'Alta',
+  critica: 'Crítica',
 }
 
 function formatWaitTime(seconds: number): string {
@@ -147,6 +160,13 @@ export const ConversationCard = memo(function ConversationCard({
 
   return (
     <div className={`relative bg-[#252522] border border-[#3A3A37] rounded-r-lg p-4 flex flex-col justify-between transition ${containerStyles[variant]}`}>
+      {(conversation.priority === 'alta' || conversation.priority === 'critica') && (
+        <span
+          className={`absolute -top-2 -right-2 z-10 ${PRIORITY_BADGE_STYLES[conversation.priority]} text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md border border-[#252522]`}
+        >
+          {PRIORITY_BADGE_LABELS[conversation.priority]}
+        </span>
+      )}
       <div className="space-y-2.5">
         <div className="flex justify-between items-start gap-2">
           <div className="flex flex-wrap gap-1.5 min-w-0">

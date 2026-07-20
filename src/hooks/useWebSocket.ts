@@ -11,6 +11,7 @@ import type {
   WSConversationReturned,
   WSConversationClosed,
   WSConversationTransferred,
+  WSConversationPriorityUpdated,
   WSQueuePending,
   WSAdvisorStatusChanged,
   WSAdvisorConnected,
@@ -27,6 +28,7 @@ interface WSHandlers {
   onConversationReturned?: (data: WSConversationReturned) => void
   onConversationClosed?: (data: WSConversationClosed) => void
   onConversationTransferred?: (data: WSConversationTransferred) => void
+  onConversationPriorityUpdated?: (data: WSConversationPriorityUpdated) => void
   onQueuePending?: (data: WSQueuePending) => void
   onAdvisorStatusChanged?: (data: WSAdvisorStatusChanged) => void
   onBehaviorAlert?: (data: WSBehaviorAlertEvent) => void
@@ -505,6 +507,12 @@ function connect(token: string): void {
         break
       }
 
+      case 'conversation.priority_updated':
+        if (_handlers.onConversationPriorityUpdated) {
+          _handlers.onConversationPriorityUpdated(data as WSConversationPriorityUpdated)
+        }
+        break
+
       case 'queue.pending':
         if (_handlers.onQueuePending) {
           _handlers.onQueuePending(data as WSQueuePending)
@@ -644,6 +652,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     onConversationReturned,
     onConversationClosed,
     onConversationTransferred,
+    onConversationPriorityUpdated,
     onQueuePending,
     onAdvisorStatusChanged,
     onBehaviorAlert,
@@ -656,6 +665,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
     if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
     if (onConversationTransferred) _handlers.onConversationTransferred = onConversationTransferred
+    if (onConversationPriorityUpdated) _handlers.onConversationPriorityUpdated = onConversationPriorityUpdated
     if (onQueuePending)       _handlers.onQueuePending       = onQueuePending
     if (onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = onAdvisorStatusChanged
     if (onBehaviorAlert)      _handlers.onBehaviorAlert      = onBehaviorAlert
@@ -667,13 +677,15 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
       if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
       if (onConversationTransferred && _handlers.onConversationTransferred === onConversationTransferred) delete _handlers.onConversationTransferred
+      if (onConversationPriorityUpdated && _handlers.onConversationPriorityUpdated === onConversationPriorityUpdated) delete _handlers.onConversationPriorityUpdated
       if (onQueuePending       && _handlers.onQueuePending       === onQueuePending)       delete _handlers.onQueuePending
       if (onAdvisorStatusChanged && _handlers.onAdvisorStatusChanged === onAdvisorStatusChanged) delete _handlers.onAdvisorStatusChanged
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
   }, [
     onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
-    onConversationClosed, onConversationTransferred, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
+    onConversationClosed, onConversationTransferred, onConversationPriorityUpdated,
+    onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 
   // Open the connection when a session exists; close it whenever there is no
