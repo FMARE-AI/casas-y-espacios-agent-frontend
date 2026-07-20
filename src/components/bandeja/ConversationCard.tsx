@@ -162,7 +162,9 @@ export const ConversationCard = memo(function ConversationCard({
     <div className={`relative bg-[#252522] border border-[#3A3A37] rounded-r-lg p-4 flex flex-col justify-between transition ${containerStyles[variant]}`}>
       {(conversation.priority === 'alta' || conversation.priority === 'critica') && (
         <span
-          className={`absolute -top-2 -right-2 z-10 ${PRIORITY_BADGE_STYLES[conversation.priority]} text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md border border-[#252522]`}
+          className={`absolute -top-2 -right-2 z-10 ${PRIORITY_BADGE_STYLES[conversation.priority]} text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md border border-[#252522] ${
+            conversation.priority === 'critica' ? 'critical-pulse-badge' : ''
+          }`}
         >
           {PRIORITY_BADGE_LABELS[conversation.priority]}
         </span>
