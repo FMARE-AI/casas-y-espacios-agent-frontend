@@ -249,13 +249,17 @@ export interface WSBehaviorAlertEvent {
   alert_id: string
 }
 
+export interface WSTransferAdvisorRef {
+  id: string
+  full_name: string
+}
+
 export interface WSConversationTransferred {
   conversation_id: string
-  source_advisor_id: string
-  target_advisor_id: string
-  target_advisor_name: string
-  reason?: string | null
-  channel?: string
+  case_number: string
+  from_advisor: WSTransferAdvisorRef | null
+  to_advisor: WSTransferAdvisorRef
+  reason: string | null
 }
 
 export interface WSConversationPriorityUpdated {

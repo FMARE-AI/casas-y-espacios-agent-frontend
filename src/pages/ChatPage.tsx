@@ -549,7 +549,7 @@ export default function ChatPage() {
       if (event.conversation_id === conversationId) {
         const selfId = useAuthStore.getState().advisor?.id;
         const isAdmin = useAuthStore.getState().advisor?.role === "admin";
-        if (selfId && event.source_advisor_id === selfId && !isAdmin) {
+        if (selfId && event.from_advisor?.id === selfId && !isAdmin) {
           navigate(ROUTES.BANDEJA);
         } else {
           loadConversation();
