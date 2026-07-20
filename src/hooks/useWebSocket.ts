@@ -2,6 +2,7 @@
 import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
+import { useToastStore } from '../store/toastStore'
 import { advisorsService } from '../services/advisors'
 import { getValidToken } from '../lib/axios'
 import type {
@@ -492,10 +493,17 @@ function connect(token: string): void {
         }
         if (advisor?.id === transferredData.to_advisor.id) {
           myAssignedConversationIds.add(transferredData.conversation_id)
-          // Sound rule: only the receiving advisor hears the chime — never the
+          // Sound + toast rule: only the receiving advisor is notified — never the
           // transferring advisor, never admins (audit-only role in Phase 1).
           if (advisor.role !== 'admin') {
             playNotificationSound()
+            const fromName = transferredData.from_advisor?.full_name
+            useToastStore.getState().showToast(
+              fromName
+                ? `${fromName} te transfirió una conversación.`
+                : 'Te transfirieron una conversación.',
+              'info',
+            )
           }
         }
 
