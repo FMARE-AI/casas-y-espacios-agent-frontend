@@ -746,6 +746,69 @@ msg_type = "document" → render download link using media_url
 
 ---
 
+### POST /api/v1/panel/conversations/{conversation_id}/transfer
+
+**Auth required:** Yes (assigned advisor or admin)
+
+**Description:** Transfers an active escalation directly to another advisor, without passing back through the bot. Reuses the same escalation record — only `advisor_id` (and, if provided, `transfer_reason`) are updated. Message history and `case_number` are untouched. If the target advisor's area differs from the conversation's current `channel`, the conversation's `channel` is updated to match.
+
+**Path params:**
+
+| Param             | Type            | Description                  |
+| ----------------- | --------------- | ---------------------------- |
+| `conversation_id` | `string` (UUID) | The conversation to transfer |
+
+**Request body:**
+
+| Field               | Type                  | Required | Description                                                                      |
+| ------------------- | --------------------- | -------- | -------------------------------------------------------------------------------- |
+| `target_advisor_id` | `string` (UUID)       | Yes      | The advisor who will receive the conversation                                    |
+| `reason`            | `string` (≤500 chars) | No       | Free-text reason for the transfer, stored as `transfer_reason` on the escalation |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "case_number": "CE-2026-000042",
+    "status": "activa",
+    "channel": "administrativa",
+    "escalation": {
+      "id": "550e8400-e29b-41d4-a716-446655440030",
+      "advisor_id": "550e8400-e29b-41d4-a716-446655440002",
+      "transfer_reason": "Cliente pregunta por tema comercial"
+    }
+  }
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode                 | When                                                                                                        |
+| ---- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 401  | `INVALID_TOKEN`           | Missing or invalid JWT                                                                                      |
+| 403  | `ADVISOR_INACTIVE`        | Advisor account is deactivated                                                                              |
+| 403  | `FORBIDDEN`               | Non-admin requester is not the advisor currently assigned to the escalation                                 |
+| 404  | `CONVERSATION_NOT_FOUND`  | No conversation with the given ID, or a non-admin requester's area doesn't match the conversation's channel |
+| 404  | `ADVISOR_NOT_FOUND`       | No advisor with the given `target_advisor_id`                                                               |
+| 409  | `CONVERSATION_NOT_ACTIVE` | Conversation `status` is already `cerrada`                                                                  |
+| 409  | `NO_ACTIVE_ESCALATION`    | Conversation has no unresolved escalation (`resolved_at IS NULL`) to transfer                               |
+| 409  | `ALREADY_ASSIGNED`        | `target_advisor_id` is the same advisor already assigned                                                    |
+| 409  | `INVALID_STATUS`          | Target advisor's `role` is not `asesor` (e.g. an admin), or is inactive / not `available`                   |
+| 409  | `TARGET_AT_CAPACITY`      | Target advisor already has `max_conversations` active escalations                                           |
+
+**Notes:**
+
+- Only an advisor with `role = "asesor"` can be a transfer target — admins are excluded even if `is_active` and `available`, since they don't take conversations from the tray. This is enforced explicitly (there is no implicit exclusion via `availability_status`, since the background availability checker updates that field for admins too).
+- Target capacity is checked via `count_active_for_advisor`, which only counts escalations belonging to conversations that are not closed.
+
+**WebSocket events emitted:**
+
+- `conversation.transferred` — targeted send to the source advisor, the target advisor, and all connected admins (not a full broadcast)
+
+---
+
 ### PATCH /api/v1/panel/conversations/{conversation_id}/seen
 
 **Auth required:** Yes (any active advisor)
@@ -1895,6 +1958,32 @@ Emitted to **all connected advisors** when an advisor returns a conversation to 
   }
 }
 ```
+
+#### conversation.transferred
+
+Emitted when an advisor transfers an active escalation to another advisor via `POST /conversations/{id}/transfer`. Unlike most conversation events, this is **not a broadcast** — it is sent only to: the source advisor (so the conversation disappears from their tray), the target advisor (so it appears as newly assigned), and any connected admins (for audit/monitoring).
+
+```json
+{
+  "event": "conversation.transferred",
+  "data": {
+    "type": "conversation.transferred",
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "case_number": "CE-2026-000042",
+    "from_advisor": {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "full_name": "Ana Gómez"
+    },
+    "to_advisor": {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "full_name": "Mariana Rojas"
+    },
+    "reason": "Cliente pregunta por tema comercial"
+  }
+}
+```
+
+`from_advisor` is `null` if the escalation had no assigned advisor before the transfer (e.g. an admin transferring an unassigned-but-escalated conversation). `reason` is `null` if none was provided in the request.
 
 #### conversation.closed
 
