@@ -487,10 +487,10 @@ function connect(token: string): void {
 
         // Keep the sound-gate set in sync regardless of which page is mounted,
         // same reasoning as escalation.assigned / conversation.returned above.
-        if (advisor?.id === transferredData.source_advisor_id) {
+        if (advisor?.id === transferredData.from_advisor?.id) {
           myAssignedConversationIds.delete(transferredData.conversation_id)
         }
-        if (advisor?.id === transferredData.target_advisor_id) {
+        if (advisor?.id === transferredData.to_advisor.id) {
           myAssignedConversationIds.add(transferredData.conversation_id)
           // Sound rule: only the receiving advisor hears the chime — never the
           // transferring advisor, never admins (audit-only role in Phase 1).
