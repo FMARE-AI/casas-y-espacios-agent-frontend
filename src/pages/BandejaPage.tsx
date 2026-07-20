@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
-import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew } from '../types'
+import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew, WSConversationPriorityUpdated } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
@@ -408,6 +408,15 @@ export default function BandejaPage() {
     loadConversations()
   }, [loadConversations])
 
+  // Priority only ever increases and never adds/removes a card from the current
+  // filtered view, so a targeted patch (like handleMessageNew) is enough — no
+  // need for a full reload.
+  const handleConversationPriorityUpdated = useCallback((data: WSConversationPriorityUpdated) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === data.conversation_id ? { ...c, priority: data.priority } : c))
+    )
+  }, [])
+
   const handleQueuePending = useCallback((data: WSQueuePending) => {
     useToastStore.getState().showToast(data.message, 'info')
     loadConversations()
@@ -421,6 +430,7 @@ export default function BandejaPage() {
     onConversationClosed: handleConversationClosed,
     onConversationReturned: handleConversationReturned,
     onConversationTransferred: handleConversationTransferred,
+    onConversationPriorityUpdated: handleConversationPriorityUpdated,
     onQueuePending: handleQueuePending,
   })
 

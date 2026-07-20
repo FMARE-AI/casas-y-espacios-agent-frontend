@@ -133,6 +133,12 @@
     border-left: 4px solid #FF5B5B !important;
   }
 
+  /* Same glow as critical-pulse-card, without the card border-left override —
+     for small elements like the priority corner badge. */
+  .critical-pulse-badge {
+    animation: criticalPulse 2s infinite ease-in-out;
+  }
+
   @keyframes wsPulse {
     0%   { transform: scale(0.9); opacity: 0.6; }
     50%  { transform: scale(1.25); opacity: 1; }

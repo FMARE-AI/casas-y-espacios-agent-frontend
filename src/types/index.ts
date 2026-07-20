@@ -8,6 +8,7 @@ export type AdvisorRole = 'asesor' | 'admin'
 export type AdvisorArea = 'administrativa' | 'comercial' | 'ambas'
 export type AvailabilityStatus = 'available' | 'break' | 'offline'
 export type ConversationStatus = 'activa' | 'escalada' | 'cerrada'
+export type ConversationPriority = 'baja' | 'media' | 'alta' | 'critica'
 export type MessageDirection = 'inbound' | 'outbound_bot' | 'outbound_advisor'
 export type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio'
 export type AlertSeverity = 'baja' | 'media' | 'alta'
@@ -108,6 +109,7 @@ export interface Conversation {
   closed_at: string | null
   last_message: ConversationLastMessage | null
   unread_count: number
+  priority: ConversationPriority | null
 }
 
 export interface BehaviorAlert {
@@ -258,4 +260,10 @@ export interface WSConversationTransferred {
   from_advisor: WSTransferAdvisorRef | null
   to_advisor: WSTransferAdvisorRef
   reason: string | null
+}
+
+export interface WSConversationPriorityUpdated {
+  conversation_id: string
+  priority: ConversationPriority
+  updated_by: 'bot'
 }
