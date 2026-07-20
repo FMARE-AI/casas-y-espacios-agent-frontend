@@ -46,7 +46,6 @@ VITE_WS_BASE_URL=ws://localhost:8000
 
 Ver [CONFIGURATION.md](docs/CONFIGURATION.md) para la referencia completa.
 
-
 ## Comandos
 
 ```bash
@@ -74,3 +73,5 @@ npm run preview    # Preview del build local
 ## Deployment
 
 El proyecto despliega automáticamente en **Vercel** al hacer push a `main`. Ver [CONFIGURATION.md](docs/CONFIGURATION.md) para detalles.
+
+Made with ❤️ by the team
