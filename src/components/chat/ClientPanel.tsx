@@ -235,19 +235,20 @@ export default function ClientPanel({
             >
               Cerrar conversación
             </button>
-            {showTransfer && (
-              <button
-                type="button"
-                onClick={onTransfer}
-                className="w-full h-12 border border-[#01A4E3]/20 hover:border-[#01A4E3]/40 hover:bg-[#01A4E3]/10 text-[#01A4E3] hover:text-white text-xs font-semibold rounded transition mt-2 flex items-center justify-center gap-2"
-              >
-                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
-                <span>Transferir</span>
-              </button>
-            )}
           </>
+        )}
+
+        {showTransfer && (
+          <button
+            type="button"
+            onClick={onTransfer}
+            className="w-full h-12 border border-[#01A4E3]/20 hover:border-[#01A4E3]/40 hover:bg-[#01A4E3]/10 text-[#01A4E3] hover:text-white text-xs font-semibold rounded transition mt-2 flex items-center justify-center gap-2"
+          >
+            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            <span>Transferir</span>
+          </button>
         )}
       </div>
     </aside>
