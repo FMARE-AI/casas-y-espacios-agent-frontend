@@ -136,6 +136,7 @@ export default function HistorialPage() {
 
   function exportCSV() {
     const headers = [
+      "N° de Caso",
       "Cliente",
       "Cédula",
       "Línea",
@@ -162,6 +163,7 @@ export default function HistorialPage() {
       if (conv.client_satisfied === "no") satisfaccion = "No";
 
       return [
+        conv.case_number ?? "—",
         conv.client.full_name ?? "Sin identificar",
         conv.client.document_id ?? "—",
         channelLabel(conv.channel),
@@ -283,8 +285,8 @@ export default function HistorialPage() {
           >
             <thead className="bg-[#2E2E2B]/60 border-b border-[#3A3A37] text-[#8B8FA8] uppercase tracking-wider font-semibold">
               <tr>
-                <th className="p-4 whitespace-nowrap">Cliente</th>
                 <th className="p-4 whitespace-nowrap">N° de Caso</th>
+                <th className="p-4 whitespace-nowrap">Cliente</th>
                 <th className="p-4 whitespace-nowrap">Línea</th>
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
                 <th className="p-4 whitespace-nowrap">Notas de resolución</th>
@@ -316,6 +318,9 @@ export default function HistorialPage() {
                     key={conv.id}
                     className="hover:bg-[#2E2E2B]/30 transition"
                   >
+                    <td className="p-4 whitespace-nowrap">
+                      <CaseNumberTag caseNumber={conv.case_number} className="text-xs" />
+                    </td>
                     <td
                       className="p-4 font-bold text-white whitespace-nowrap truncate max-w-[150px]"
                       title={conv.client.full_name ?? "Cliente no autenticado"}
@@ -325,9 +330,6 @@ export default function HistorialPage() {
                           Sin identificar
                         </span>
                       )}
-                    </td>
-                    <td className="p-4 whitespace-nowrap">
-                      <CaseNumberTag caseNumber={conv.case_number} className="text-xs" />
                     </td>
                     <td className="p-4">
                       <span
