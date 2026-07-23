@@ -9,6 +9,7 @@ import {
   subDays,
 } from "date-fns";
 import { conversationsService } from "../services/conversations";
+import { CaseNumberTag } from "../components/shared/CaseNumberTag";
 import type { Conversation } from "../types";
 
 // intent exists in the backend response but is not yet declared in types/index.ts
@@ -283,6 +284,7 @@ export default function HistorialPage() {
             <thead className="bg-[#2E2E2B]/60 border-b border-[#3A3A37] text-[#8B8FA8] uppercase tracking-wider font-semibold">
               <tr>
                 <th className="p-4 whitespace-nowrap">Cliente</th>
+                <th className="p-4 whitespace-nowrap">N° de Caso</th>
                 <th className="p-4 whitespace-nowrap">Línea</th>
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
                 <th className="p-4 whitespace-nowrap">Notas de resolución</th>
@@ -299,7 +301,7 @@ export default function HistorialPage() {
             >
               {filteredConversations.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={8}>
                     <div className="text-center py-12">
                       <p className="text-[#8B8FA8] text-sm">
                         No se encontraron conversaciones cerradas
@@ -323,6 +325,9 @@ export default function HistorialPage() {
                           Sin identificar
                         </span>
                       )}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <CaseNumberTag caseNumber={conv.case_number} className="text-xs" />
                     </td>
                     <td className="p-4">
                       <span
