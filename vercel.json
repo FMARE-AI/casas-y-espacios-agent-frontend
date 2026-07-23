@@ -1,6 +1,6 @@
 {
+  "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
+  "framework": "vite",
+  "nodeVersion": "20.x"
 }
