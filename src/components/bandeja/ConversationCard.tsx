@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, memo } from 'react'
 import type { Conversation, ConversationLastMessage, ConversationPriority } from '../../types'
+import { CaseNumberTag } from '../shared/CaseNumberTag'
 
 interface ConversationCardProps {
   conversation: Conversation
@@ -196,6 +197,7 @@ export const ConversationCard = memo(function ConversationCard({
         </div>
         <div>
           <h3 className="text-sm font-bold text-white truncate" title={clientName}>{clientName}</h3>
+          <CaseNumberTag caseNumber={conversation.case_number} className="text-[10px]" />
           {(variant === 'A' || variant === 'A2') && (
             <p className="text-xs text-[#8B8FA8] mt-1">Motivo: <span className="font-mono text-[#F0F0F5] font-bold">{ESCALATION_REASON_LABELS[conversation.escalation?.reason ?? ''] ?? conversation.escalation?.reason ?? 'Sin motivo'}</span></p>
           )}

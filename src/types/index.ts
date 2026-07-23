@@ -110,6 +110,8 @@ export interface Conversation {
   last_message: ConversationLastMessage | null
   unread_count: number
   priority: ConversationPriority | null
+  // null for conversations created before this field was deployed
+  case_number: string | null
 }
 
 export interface BehaviorAlert {
