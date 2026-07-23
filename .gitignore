@@ -37,3 +37,5 @@ mockup.html
 *.njsproj
 *.sln
 *.sw?
+.vercel
+.env*
