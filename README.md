@@ -74,4 +74,4 @@ npm run preview    # Preview del build local
 
 El proyecto despliega automáticamente en **Vercel** al hacer push a `main`. Ver [CONFIGURATION.md](docs/CONFIGURATION.md) para detalles.
 
-Made with ❤️ by the team
+Made with ❤️ by the all the team
