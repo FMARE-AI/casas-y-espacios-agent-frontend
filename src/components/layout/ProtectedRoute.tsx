@@ -18,8 +18,9 @@ export default function ProtectedRoute({ requiredRole }: Props) {
   const { token, role, isFirstLogin, sessionExpired } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { reconnect } = useWebSocket()
+  const location = useLocation()
 
-  if (!token) return <Navigate to={ROUTES.LOGIN} replace />
+  if (!token) return <Navigate to={ROUTES.LOGIN} state={{ from: location.pathname }} replace />
   if (isFirstLogin) return <Navigate to={ROUTES.FIRST_LOGIN} replace />
   if (requiredRole && role !== null && role !== requiredRole) {
     return <Navigate to={ROUTES.BANDEJA} replace />

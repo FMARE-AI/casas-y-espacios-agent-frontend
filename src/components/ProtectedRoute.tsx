@@ -1,5 +1,5 @@
 import React from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 
 interface ProtectedRouteProps {
@@ -12,6 +12,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
 }) => {
   const { token, role, isLoading } = useAuthStore()
+  const location = useLocation()
 
   if (isLoading) {
     return (
@@ -22,7 +23,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (!token) {
-    return <Navigate to="/login" replace />
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />
   }
 
   // Only apply role check when the advisor is loaded from the backend
