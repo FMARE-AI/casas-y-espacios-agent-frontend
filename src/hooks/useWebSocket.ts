@@ -196,6 +196,11 @@ function closeSocket(): void {
   if (socket) socket.close()
   socket = null
   isConnecting = false
+
+  // Clear module-level state to prevent multi-user data leaks on logout
+  myAssignedConversationIds.clear()
+  pendingTransferReasons.clear()
+  currentSubscribedConversationId = null
 }
 
 // Single scheduling path for automatic reconnection. Keeps the retry chain
