@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore, getStoredSession } from '../store/authStore'
 import { advisorsService } from '../services/advisors'
 import { ROUTES } from '../constants/routes'
@@ -15,9 +15,14 @@ function isAdvisorInactiveError(error: unknown): boolean {
   return getBackendErrorCode(error) === 'ADVISOR_INACTIVE'
 }
 
+interface LocationState {
+  from?: string
+}
+
 export function useAuth() {
   const store = useAuthStore()
   const navigate = useNavigate()
+  const location = useLocation()
 
   useEffect(() => {
     const stored = getStoredSession()
@@ -92,7 +97,9 @@ export function useAuth() {
         useAuthStore.getState().setFirstLogin(true)
         navigate('/first-login')
       } else {
-        navigate('/')
+        const state = location.state as LocationState | null
+        const from = state?.from || '/'
+        navigate(from, { replace: true })
       }
       return true
     } catch (err) {

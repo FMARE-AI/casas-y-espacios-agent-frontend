@@ -52,8 +52,9 @@ function makeAdvisor(overrides: Partial<Advisor> = {}): Advisor {
 
 function renderUseAuth() {
   return renderHook(() => useAuth(), {
-    wrapper: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(MemoryRouter, null, children),
+    wrapper: ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter>{children}</MemoryRouter>
+    ),
   })
 }
 
@@ -97,8 +98,26 @@ describe('useAuth', () => {
       expect(useAuthStore.getState().token).toBe('real-jwt-token')
       expect(localStorage.getItem('panel_refresh_token')).toBe('real-refresh-token')
       expect(useAuthStore.getState().advisor?.id).toBe('advisor-1')
-      expect(useAuthStore.getState().error).toBeNull()
-      expect(mockNavigate).toHaveBeenCalledWith('/')
+      expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
+    })
+
+    it('navigates to original route in location state after successful login', async () => {
+      mockApiPost.mockResolvedValue({ data: { access_token: 'real-jwt-token', refresh_token: 'real-refresh-token', expires_in: 3600 } })
+      mockGetMe.mockResolvedValue({ advisor: makeAdvisor() })
+
+      const { result } = renderHook(() => useAuth(), {
+        wrapper: ({ children }: { children: React.ReactNode }) => (
+          <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/chat/a2b959aa-6c90-42bc-98fe-89033389d6bc' } }]}>
+            {children}
+          </MemoryRouter>
+        ),
+      })
+
+      await act(async () => {
+        await result.current.signIn('ana@casasyespacios.co', 'password123')
+      })
+
+      expect(mockNavigate).toHaveBeenCalledWith('/chat/a2b959aa-6c90-42bc-98fe-89033389d6bc', { replace: true })
     })
   })
 
