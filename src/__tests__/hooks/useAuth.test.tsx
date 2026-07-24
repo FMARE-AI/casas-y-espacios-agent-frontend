@@ -52,8 +52,9 @@ function makeAdvisor(overrides: Partial<Advisor> = {}): Advisor {
 
 function renderUseAuth() {
   return renderHook(() => useAuth(), {
-    wrapper: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(MemoryRouter, null, children),
+    wrapper: ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter>{children}</MemoryRouter>
+    ),
   })
 }
 
@@ -105,12 +106,11 @@ describe('useAuth', () => {
       mockGetMe.mockResolvedValue({ advisor: makeAdvisor() })
 
       const { result } = renderHook(() => useAuth(), {
-        wrapper: ({ children }: { children: React.ReactNode }) =>
-          React.createElement(
-            MemoryRouter,
-            { initialEntries: [{ pathname: '/login', state: { from: '/chat/a2b959aa-6c90-42bc-98fe-89033389d6bc' } }] },
-            children
-          ),
+        wrapper: ({ children }: { children: React.ReactNode }) => (
+          <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/chat/a2b959aa-6c90-42bc-98fe-89033389d6bc' } }]}>
+            {children}
+          </MemoryRouter>
+        ),
       })
 
       await act(async () => {

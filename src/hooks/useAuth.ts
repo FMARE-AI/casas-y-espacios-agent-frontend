@@ -15,6 +15,10 @@ function isAdvisorInactiveError(error: unknown): boolean {
   return getBackendErrorCode(error) === 'ADVISOR_INACTIVE'
 }
 
+interface LocationState {
+  from?: string
+}
+
 export function useAuth() {
   const store = useAuthStore()
   const navigate = useNavigate()
@@ -93,7 +97,8 @@ export function useAuth() {
         useAuthStore.getState().setFirstLogin(true)
         navigate('/first-login')
       } else {
-        const from = (location.state as any)?.from || '/'
+        const state = location.state as LocationState | null
+        const from = state?.from || '/'
         navigate(from, { replace: true })
       }
       return true
