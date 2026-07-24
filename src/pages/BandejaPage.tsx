@@ -214,7 +214,9 @@ export default function BandejaPage() {
         const res = await advisorsService.getMe()
         useAuthStore.getState().setAdvisor(res.advisor)
       } catch (err) {
-        console.error('Error fetching advisor profile:', err)
+        console.error('Error fetching advisor profile:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
       }
     }
     fetchProfile()
@@ -248,7 +250,9 @@ export default function BandejaPage() {
         mine: all.filter(c => c.status !== 'cerrada' && c.escalation?.advisor?.id === currentAdvisorId).length,
       })
     } catch (err) {
-      console.error('Error fetching counts', err)
+      console.error('Error fetching counts:', {
+        message: err instanceof Error ? err.message : 'unknown',
+      })
     }
   }
 
@@ -277,7 +281,9 @@ export default function BandejaPage() {
         .map(c => c.id)
       setMyAssignedConversations(myIds)
     } catch (err) {
-      console.error('Error loading conversations', err)
+      console.error('Error loading conversations:', {
+        message: err instanceof Error ? err.message : 'unknown',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -288,7 +294,9 @@ export default function BandejaPage() {
         const res = await metricsService.getMetrics()
         setDashboardMetrics(res)
       } catch (err) {
-        console.error('Error loading metrics:', err)
+        console.error('Error loading metrics:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
       }
     }
   }, [statusFilter, channelFilter, role])
@@ -327,7 +335,9 @@ export default function BandejaPage() {
         const res = await advisorsService.getMe()
         useAuthStore.getState().setAdvisor(res.advisor)
       } catch (profileErr) {
-        console.error('Error refreshing advisor profile after take:', profileErr)
+        console.error('Error refreshing advisor profile after take:', {
+          message: profileErr instanceof Error ? profileErr.message : 'unknown',
+        })
       }
       await loadConversations()
       navigate(`/chat/${takeTarget.id}`)

@@ -475,7 +475,10 @@ export default function PerfilPage() {
       setStoreAdvisor(updated);
       useToastStore.getState().showToast("Foto de perfil actualizada", 'success');
     } catch (err) {
-      console.error(`Avatar upload failed at stage "${stage}":`, err);
+      console.error(`Avatar upload failed at stage "${stage}":`, {
+        message: err instanceof Error ? err.message : 'unknown',
+        stage,
+      });
       const message =
         stage === 'session'
           ? "Tu sesión no está activa. Recarga la página e intenta de nuevo."

@@ -645,7 +645,10 @@ export function playNotificationSound() {
       scheduleChimes()
     }
   } catch (e) {
-    console.error('Failed to play notification sound', e)
+    console.error('Failed to play notification sound:', {
+      message: e instanceof Error ? e.message : 'unknown',
+      type: e instanceof Error ? e.name : typeof e,
+    })
   }
 }
 

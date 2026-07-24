@@ -98,7 +98,10 @@ export function useAuth() {
     } catch (err) {
       const backendCode = getBackendErrorCode(err)
       // M-04: log the backend code for debugging but never expose raw backend messages to the UI.
-      console.error('[useAuth] signIn failed, code:', backendCode)
+      console.error('[useAuth] signIn failed:', {
+        code: backendCode,
+        hasResponse: !!(err as AxiosLike)?.response,
+      })
 
       useAuthStore.getState().clearSession()
 

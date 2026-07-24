@@ -85,7 +85,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     supabase.auth.setSession({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
-    }).catch((err) => console.error('Supabase session sync failed:', err?.message ?? 'unknown'))
+    }).catch((err) => console.error('Supabase session sync failed:', {
+      message: err?.message ?? 'unknown',
+      code: err?.code ?? 'unknown',
+    }))
 
     set({ token: data.access_token, refresh_token: data.refresh_token, expires_at })
   },

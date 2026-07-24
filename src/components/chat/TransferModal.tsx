@@ -50,7 +50,9 @@ export default function TransferModal({
         setLoading(false)
       })
       .catch((err) => {
-        console.error('Failed to load advisors', err)
+        console.error('Failed to load advisors:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
         setError('Error al cargar la lista de asesores. Por favor, reintenta.')
         setLoading(false)
       })
@@ -87,7 +89,9 @@ export default function TransferModal({
     try {
       await onConfirm(selectedAdvisorId, reason.trim() || null)
     } catch (err: unknown) {
-      console.error('Transfer failed', err)
+      console.error('Transfer failed:', {
+        message: err instanceof Error ? err.message : 'unknown',
+      })
       const errResponse = err as { response?: { data?: { detail?: { code?: string } } } }
       const errCode = errResponse.response?.data?.detail?.code
       let errMsg = 'No se pudo transferir la conversación. Intenta nuevamente.'
