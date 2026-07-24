@@ -1,6 +1,6 @@
-// Cliente singleton de Supabase.
-// Importar desde aquí en toda la aplicación.
-// Nunca instanciar createClient fuera de este archivo.
+// Supabase singleton client.
+// Import from here throughout the application.
+// Never instantiate createClient outside of this file.
 
 import { createClient } from '@supabase/supabase-js'
 
@@ -9,8 +9,8 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY son requeridas. ' +
-    'Verifica tu archivo .env'
+    'VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are required. ' +
+    'Check your .env file'
   )
 }
 

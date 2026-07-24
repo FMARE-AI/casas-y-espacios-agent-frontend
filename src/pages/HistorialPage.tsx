@@ -17,8 +17,8 @@ type ConvRow = Conversation & { intent?: string };
 
 // ── Helpers ───────────────────────────────────────────────
 
-// TODO: El backend tiene un bug conocido donde closed_at puede retornar null
-// incluso si la conversación está cerrada. Se usa last_activity como el fallback.
+// TODO: The backend has a known bug where closed_at can return null
+// even if the conversation is closed. last_activity is used as the fallback.
 function formatClosedDate(iso: string): string {
   const date = parseISO(iso);
   if (isToday(date)) return `Hoy, ${format(date, "hh:mm aa")}`;

@@ -18,12 +18,12 @@ export const metricsService = {
       const response = await apiClient.get('/api/v1/panel/metrics')
       return response.data.data.metrics
     } catch (error) {
-      // 403 FORBIDDEN: Devolver null silenciosamente
+      // 403 FORBIDDEN: Return null silently
       if (axios.isAxiosError(error) && error.response?.status === 403) {
         return null
       }
 
-      // 500 SUPABASE_ERROR u otros fallos: Devolver métricas en cero sin romper el panel
+      // 500 SUPABASE_ERROR or other failures: Return zero metrics without breaking the panel
       return ZERO_METRICS
     }
   },

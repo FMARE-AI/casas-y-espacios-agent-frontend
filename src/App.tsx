@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useAuthStore } from './store/authStore'
@@ -20,13 +21,15 @@ if (import.meta.env.MODE !== 'production') {
   }
 }
 import ProtectedRoute from './components/layout/ProtectedRoute'
-import { GestionPage } from './pages/GestionPage'
 import { LoginPage } from './pages/LoginPage'
 import { FirstLoginPage } from './pages/FirstLoginPage'
-import BandejaPage from './pages/BandejaPage'
-import ChatPage from './pages/ChatPage'
-import HistorialPage from './pages/HistorialPage'
-import PerfilPage from './pages/PerfilPage'
+
+// Lazy-loaded pages for code splitting
+const GestionPage = lazy(() => import('./pages/GestionPage'))
+const BandejaPage = lazy(() => import('./pages/BandejaPage'))
+const ChatPage = lazy(() => import('./pages/ChatPage'))
+const HistorialPage = lazy(() => import('./pages/HistorialPage'))
+const PerfilPage = lazy(() => import('./pages/PerfilPage'))
 
 function AuthInit() {
   useAuth()
@@ -48,6 +51,14 @@ function FirstLoginRoute() {
   return <FirstLoginPage />
 }
 
+function PageLoadingFallback() {
+  return (
+    <div className="min-h-screen bg-[#1D1D1B] flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+}
+
 export default function App() {
   const { isLoading } = useAuthStore()
 
@@ -60,30 +71,32 @@ export default function App() {
           <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <Routes>
-          {/* Public routes */}
-          <Route
-            path={ROUTES.LOGIN}
-            element={<PublicRoute><LoginPage /></PublicRoute>}
-          />
-          <Route path={ROUTES.FIRST_LOGIN} element={<FirstLoginRoute />} />
+        <Suspense fallback={<PageLoadingFallback />}>
+          <Routes>
+            {/* Public routes */}
+            <Route
+              path={ROUTES.LOGIN}
+              element={<PublicRoute><LoginPage /></PublicRoute>}
+            />
+            <Route path={ROUTES.FIRST_LOGIN} element={<FirstLoginRoute />} />
 
-          {/* Protected routes — any role */}
-          <Route element={<ProtectedRoute />}>
-            <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
-            <Route path={ROUTES.CHAT} element={<ChatPage />} />
-            <Route path="/historial" element={<HistorialPage />} />
-            <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
-          </Route>
+            {/* Protected routes — any role */}
+            <Route element={<ProtectedRoute />}>
+              <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
+              <Route path={ROUTES.CHAT} element={<ChatPage />} />
+              <Route path="/historial" element={<HistorialPage />} />
+              <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
+            </Route>
 
-          {/* Protected routes — admin only */}
-          <Route element={<ProtectedRoute requiredRole="admin" />}>
-            <Route path={ROUTES.GESTION} element={<GestionPage />} />
-          </Route>
+            {/* Protected routes — admin only */}
+            <Route element={<ProtectedRoute requiredRole="admin" />}>
+              <Route path={ROUTES.GESTION} element={<GestionPage />} />
+            </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to={ROUTES.BANDEJA} replace />} />
-        </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to={ROUTES.BANDEJA} replace />} />
+          </Routes>
+        </Suspense>
       )}
 
     </BrowserRouter>

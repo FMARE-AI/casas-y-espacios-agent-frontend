@@ -128,9 +128,10 @@ function DocxPreview({ file }: DocxPreviewProps) {
       }
       try {
         if (!containerRef.current) return
-        containerRef.current.innerHTML = ''
+        // H-03: Replace innerHTML with replaceChildren to prevent XSS
+        containerRef.current.replaceChildren()
         const { renderAsync } = await import('docx-preview')
-        
+
         if (active && containerRef.current) {
           await renderAsync(file, containerRef.current, undefined, {
             className: 'docx-rendered',
@@ -142,7 +143,9 @@ function DocxPreview({ file }: DocxPreviewProps) {
           setLoading(false)
         }
       } catch (err) {
-        console.error(err)
+        console.error('Failed to render DOCX preview:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
         if (active) {
           setError('No se pudo renderizar la vista previa de Word.')
           setLoading(false)
@@ -293,7 +296,9 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
           renderSheet(workbook, firstSheet)
         }
       } catch (err) {
-        console.error(err)
+        console.error('Failed to render Excel preview:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
         if (active) {
           setError('No se pudo renderizar la vista previa de Excel.')
           setLoading(false)
@@ -323,7 +328,9 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
       setSheetHtml(html)
       setLoading(false)
     } catch (err) {
-      console.error(err)
+      console.error('Failed to render sheet:', {
+        message: err instanceof Error ? err.message : 'unknown',
+      })
       setError('Error al cambiar de hoja.')
       setLoading(false)
     }
@@ -495,9 +502,10 @@ export default function ChatInput({
       }, 100)
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [conversationId, variant, recorderState])
 
-  // Liberar el preview URL al desmontar
+  // Release the preview URL when unmounting
   useEffect(() => {
     return () => {
       if (previewUrl) {
@@ -558,7 +566,7 @@ export default function ChatInput({
   }
 
   function processFile(file: File) {
-    // Detectar el tipo según el mime
+    // Detect media type based on MIME
     const type = getFileType(file.type)
     if (!type) {
       showError('Tipo de archivo no permitido')
@@ -569,7 +577,7 @@ export default function ChatInput({
       showError('Solo se permiten imágenes JPEG o PNG. WhatsApp no soporta WebP.')
       return
     }
-    // Validar tamaño
+    // Validate file size
     const maxBytes = FILE_TYPES[type].maxMB * 1024 * 1024
     if (file.size > maxBytes) {
       showError(

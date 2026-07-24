@@ -85,7 +85,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     supabase.auth.setSession({
       access_token: data.access_token,
       refresh_token: data.refresh_token,
-    }).catch((err) => console.error('Supabase session sync failed:', err?.message ?? 'unknown'))
+    }).catch((err) => console.error('Supabase session sync failed:', {
+      message: err?.message ?? 'unknown',
+      code: err?.code ?? 'unknown',
+    }))
 
     set({ token: data.access_token, refresh_token: data.refresh_token, expires_at })
   },
@@ -191,6 +194,17 @@ export const getStoredSession = (): StoredSession | null => {
   const expires_at_str =
     localStorage.getItem(EXPIRES_AT_KEY) ||
     sessionStorage.getItem(EXPIRES_AT_KEY)
+
+  // H-01: Validate expires_at to prevent NaN and infinite login loops
+  if (expires_at_str && isNaN(Number(expires_at_str))) {
+    console.warn('Invalid expires_at in localStorage, clearing session')
+    localStorage.removeItem(REFRESH_TOKEN_KEY)
+    localStorage.removeItem(EXPIRES_AT_KEY)
+    localStorage.removeItem(REMEMBER_KEY)
+    sessionStorage.removeItem(REFRESH_TOKEN_KEY)
+    sessionStorage.removeItem(EXPIRES_AT_KEY)
+    return null
+  }
 
   return {
     access_token: null, // intentional — never persisted
