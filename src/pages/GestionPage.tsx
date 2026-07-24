@@ -63,8 +63,8 @@ export const GestionPage: React.FC = () => {
     try {
       const { advisors: fetched } = await advisorsService.list()
 
-      // El admin no se ve a sí mismo en la tabla
-      // — debe editar su perfil desde /perfil
+      // The admin does not see themselves in the table
+      // — they must edit their profile from /perfil
       const authStore = useAuthStore.getState()
       const filtered = fetched.filter(
         (a) => a.id !== authStore.advisor?.id

@@ -18,14 +18,14 @@ function formatTime(iso: string): string {
 function getFileTypeLabel(mimeType: string | null): string {
   if (!mimeType) return 'Archivo'
   const MIME_LABELS: Record<string, string> = {
-    // Imágenes
+    // Images
     'image/jpeg':                'Imagen JPEG',
     'image/png':                 'Imagen PNG',
     'image/webp':                'Imagen WebP',
     // Videos
     'video/mp4':                 'Video MP4',
     'video/3gpp':                'Video 3GP',
-    // Documentos
+    // Documents
     'application/pdf':           'Documento PDF',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
                                  'Documento Word',
@@ -96,13 +96,13 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     const name = last.split('?')[0]
     const decodedName = decodeURIComponent(name) || 'Archivo'
 
-    // Separar nombre base y extensión (buscando un punto seguido de 1-5 caracteres alfanuméricos al final)
+    // Split base name and extension (looking for a dot followed by 1-5 alphanumeric chars at the end)
     const matchExt = decodedName.match(/\.[a-zA-Z0-9]{1,5}$/)
     const extIndex = matchExt ? matchExt.index : -1
     const baseName = extIndex !== -1 ? decodedName.slice(0, extIndex) : decodedName
     let ext = extIndex !== -1 ? decodedName.slice(extIndex).toLowerCase() : ''
 
-    // Si no tiene extensión en la URL pero tenemos mimeType, intentar deducir la extensión
+    // If no extension in URL but we have mimeType, try to infer the extension
     if (!ext && mimeType) {
       const mimeExtensions: Record<string, string> = {
         'application/pdf': '.pdf',
@@ -126,16 +126,16 @@ function getFileName(url: string | null, mimeType: string | null = null): string
 
     let cleanBase = baseName
 
-    // Quitar prefijo de timestamp (ej: 1719543592_ o 1719543592-)
+    // Remove timestamp prefix (e.g.: 1719543592_ or 1719543592-)
     cleanBase = cleanBase.replace(/^\d{10,15}[_-]/, '')
 
-    // Quitar prefijo de UUID (ej: f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd_ o f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd-)
+    // Remove UUID prefix (e.g.: f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd_ or f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd-)
     cleanBase = cleanBase.replace(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[_-]/, '')
 
-    // Quitar sufijo de timestamp (ej: _1719543592 o -1719543592)
+    // Remove timestamp suffix (e.g.: _1719543592 or -1719543592)
     cleanBase = cleanBase.replace(/[_-]\d{10,15}$/, '')
 
-    // Identificar si es un wamid, un UUID, un hash hexadecimal o alfanumérico largo
+    // Identify if it is a wamid, UUID, hexadecimal hash, or long alphanumeric string
     const cleanLower = cleanBase.toLowerCase()
     const isWamid = cleanLower.includes('wamid')
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBase)

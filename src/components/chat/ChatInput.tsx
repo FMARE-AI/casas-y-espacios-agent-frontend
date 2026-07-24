@@ -566,7 +566,7 @@ export default function ChatInput({
   }
 
   function processFile(file: File) {
-    // Detectar el tipo según el mime
+    // Detect media type based on MIME
     const type = getFileType(file.type)
     if (!type) {
       showError('Tipo de archivo no permitido')
@@ -577,7 +577,7 @@ export default function ChatInput({
       showError('Solo se permiten imágenes JPEG o PNG. WhatsApp no soporta WebP.')
       return
     }
-    // Validar tamaño
+    // Validate file size
     const maxBytes = FILE_TYPES[type].maxMB * 1024 * 1024
     if (file.size > maxBytes) {
       showError(

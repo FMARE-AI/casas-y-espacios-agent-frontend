@@ -189,9 +189,9 @@ export default function BandejaPage() {
   const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0, mine: 0 })
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
 
-  // Filtros activos — se restauran de la sesión de navegador al volver de un chat,
-  // pero siempre inician en "mine" (asesor) / null (admin) en un login nuevo —
-  // authStore.clearSession() limpia BANDEJA_STATUS_FILTER_KEY.
+  // Active filters — restored from browser session when returning from a chat,
+  // but always initialize to "mine" (advisor) / null (admin) on a new login —
+  // authStore.clearSession() clears BANDEJA_STATUS_FILTER_KEY.
   const [statusFilter, setStatusFilter] = useState<string | null>(() => {
     const stored = sessionStorage.getItem(BANDEJA_STATUS_FILTER_KEY)
     if (stored !== null) return stored === 'null' ? null : stored
@@ -203,11 +203,11 @@ export default function BandejaPage() {
     sessionStorage.setItem(BANDEJA_STATUS_FILTER_KEY, statusFilter ?? 'null')
   }, [statusFilter])
 
-  // Modal tomar conversación
+  // Modal to take conversation
   const [takeTarget, setTakeTarget] = useState<Conversation | null>(null)
   const [isTaking, setIsTaking] = useState(false)
 
-  // Cargar perfil al montar la página
+  // Load advisor profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -222,7 +222,7 @@ export default function BandejaPage() {
     fetchProfile()
   }, [])
 
-  // Cargar indicador de asesores en línea al montar (disponible para todos los roles)
+  // Load online advisors indicator on mount (available to all roles)
   useEffect(() => {
     const loadOnlineAdvisors = async () => {
       try {

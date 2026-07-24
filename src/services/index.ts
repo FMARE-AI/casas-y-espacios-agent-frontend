@@ -1,5 +1,5 @@
-// Punto de entrada único para todos los servicios.
-// Importar desde aquí en hooks y componentes.
+// Single entry point for all services.
+// Import from here in hooks and components.
 
 export { conversationsService } from './conversations'
 export { advisorsService } from './advisors'
