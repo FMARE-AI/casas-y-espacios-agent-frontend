@@ -53,8 +53,8 @@ function FirstLoginRoute() {
 
 function PageLoadingFallback() {
   return (
-    <div className="min-h-screen bg-[#1D1D1B] flex items-center justify-center">
-      <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+    <div className="min-h-screen bg-bg-main flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
     </div>
   )
 }
@@ -67,8 +67,8 @@ export default function App() {
       <AuthInit />
 
       {isLoading ? (
-        <div className="min-h-screen bg-[#1D1D1B] flex items-center justify-center">
-          <div className="w-6 h-6 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+        <div className="min-h-screen bg-bg-main flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
         <Suspense fallback={<PageLoadingFallback />}>

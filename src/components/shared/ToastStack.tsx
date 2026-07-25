@@ -58,18 +58,18 @@ function ToastItem({ toast }: { toast: Toast }) {
 
   return (
     <div
-      className={`bg-[#252522] border-l-4 ${style.border} border border-[#3A3A37] rounded-r-lg shadow-2xl p-3.5 w-80 flex items-start gap-3 pointer-events-auto animate-in slide-in-from-right duration-300`}
+      className={`bg-bg-secondary border-l-4 ${style.border} border border-border-default rounded-r-lg shadow-2xl p-3.5 w-80 flex items-start gap-3 pointer-events-auto animate-in slide-in-from-right duration-300`}
     >
       <div className={`${style.bg} p-2 rounded-lg ${style.color} shrink-0`}>
         <ToastIcon type={toast.type} />
       </div>
       <div className="flex-1 text-xs min-w-0">
         <h5 className="font-bold text-white">{TITLES[toast.type]}</h5>
-        <p className="text-[11px] text-[#8B8FA8] mt-1 break-words">{toast.message}</p>
+        <p className="text-[11px] text-text-secondary mt-1 break-words">{toast.message}</p>
       </div>
       <button
         onClick={() => removeToast(toast.id)}
-        className="text-[#8B8FA8] hover:text-white shrink-0 mt-0.5"
+        className="text-text-secondary hover:text-white shrink-0 mt-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
         aria-label="Cerrar notificación"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -45,26 +45,26 @@ function getFileTypeLabel(mimeType: string | null): string {
 
 function getFileIcon(mimeType: string | null): { icon: string; color: string } {
   if (!mimeType) {
-    return { icon: '📄', color: '#8B8FA8' }
+    return { icon: '📄', color: 'var(--color-text-secondary)' }
   }
   if (mimeType === 'application/pdf') {
-    return { icon: '📕', color: '#FF5B5B' }
+    return { icon: '📕', color: 'var(--color-error)' }
   }
   if (mimeType.includes('wordprocessingml') ||
       mimeType.includes('msword')) {
-    return { icon: '📘', color: '#01A4E3' }
+    return { icon: '📘', color: 'var(--color-brand-blue)' }
   }
   if (mimeType.includes('spreadsheetml') ||
       mimeType.includes('ms-excel')) {
-    return { icon: '📗', color: '#00D4AA' }
+    return { icon: '📗', color: 'var(--color-success)' }
   }
   if (mimeType.startsWith('video/')) {
-    return { icon: '🎥', color: '#FFB84D' }
+    return { icon: '🎥', color: 'var(--color-warning)' }
   }
   if (mimeType.startsWith('audio/')) {
-    return { icon: '🎤', color: '#01A4E3' }
+    return { icon: '🎤', color: 'var(--color-brand-blue)' }
   }
-  return { icon: '📄', color: '#8B8FA8' }
+  return { icon: '📄', color: 'var(--color-text-secondary)' }
 }
 
 // ── Optimistic UI status indicator ────────────────────────
@@ -73,14 +73,14 @@ const MessageStatus = memo(function MessageStatus({ status }: { status?: 'sendin
   if (status === 'sending') {
     return (
       <span
-        className="inline-block w-2.5 h-2.5 border-[1.5px] border-[#8B8FA8] border-t-transparent rounded-full animate-spin"
+        className="inline-block w-2.5 h-2.5 border-[1.5px] border-text-secondary border-t-transparent rounded-full animate-spin"
         title="Enviando..."
       />
     )
   }
   if (status === 'failed') {
     return (
-      <span className="text-[#FF5B5B] font-bold" title="No se pudo enviar">
+      <span className="text-error font-bold" title="No se pudo enviar">
         ⚠ No enviado •
       </span>
     )
@@ -208,11 +208,11 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
           src={msg.media_url}
           alt={msg.content ?? 'Imagen'}
           loading="lazy"
-          className="rounded-lg w-full h-auto max-h-[300px] object-cover cursor-pointer hover:opacity-90 hover:scale-[1.01] active:scale-95 transition-all duration-200"
+          className="rounded-lg w-full h-auto max-h-[300px] object-cover cursor-pointer hover:opacity-90 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
           onClick={() => setIsExpanded(true)}
         />
         {msg.content && (
-          <p className="text-sm text-[#F0F0F5] px-1 whitespace-pre-wrap">
+          <p className="text-sm text-text-primary px-1 whitespace-pre-wrap">
             {msg.content}
           </p>
         )}
@@ -225,7 +225,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
             {/* Botón Cerrar */}
             <button
               type="button"
-              className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 z-50"
+              className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               onClick={() => setIsExpanded(false)}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -244,7 +244,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
 
             {/* Caption */}
             {msg.content && (
-              <p className="mt-4 text-sm text-[#F0F0F5] bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
+              <p className="mt-4 text-sm text-text-primary bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
                 {msg.content}
               </p>
             )}
@@ -255,15 +255,15 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
   }
   return (
     <div className="flex flex-col gap-1.5 max-w-[240px]">
-      <div className="rounded overflow-hidden border border-[#3A3A37]">
-        <div className="w-48 h-32 bg-[#3A3A37] flex items-center justify-center">
-          <svg className="w-8 h-8 text-[#8B8FA8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="rounded overflow-hidden border border-border-default">
+        <div className="w-48 h-32 bg-border-default flex items-center justify-center">
+          <svg className="w-8 h-8 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </div>
       </div>
       {msg.content && (
-        <p className="text-sm text-[#F0F0F5] px-1 whitespace-pre-wrap">
+        <p className="text-sm text-text-primary px-1 whitespace-pre-wrap">
           {msg.content}
         </p>
       )}
@@ -295,12 +295,12 @@ const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-semibold truncate transition ${
-            isAdvisor ? 'text-white group-hover:text-white' : 'text-[#F0F0F5] group-hover:text-white'
+            isAdvisor ? 'text-white group-hover:text-white' : 'text-text-primary group-hover:text-white'
           }`}>
             {msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type)}
           </p>
           <p className={`text-[10px] mt-0.5 font-medium ${
-            isAdvisor ? 'text-white/70' : 'text-[#8B8FA8]'
+            isAdvisor ? 'text-white/70' : 'text-text-secondary'
           }`}>
             {getFileTypeLabel(msg.media_mime_type)}
             {msg.media_size_bytes && ` • ${formatFileSize(msg.media_size_bytes)}`}
@@ -309,7 +309,7 @@ const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
         <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition duration-200 flex-shrink-0 shadow-sm animate-fade-in ${
           isAdvisor 
             ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30' 
-            : 'bg-white/5 border-white/5 text-[#8B8FA8] group-hover:text-[#F0F0F5] group-hover:border-white/10'
+            : 'bg-white/5 border-white/5 text-text-secondary group-hover:text-text-primary group-hover:border-white/10'
         }`}>
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -318,7 +318,7 @@ const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
       </a>
       {msg.content && (
         <p className={`mt-2 px-1 text-sm whitespace-pre-wrap leading-relaxed ${
-          isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-[#F0F0F5]'
+          isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-text-primary'
         }`}>
           {msg.content}
         </p>
@@ -336,17 +336,17 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
           controls
           preload="none"
           className="h-8 w-full max-w-[240px] shadow-sm rounded-lg"
-          style={{ accentColor: '#01A4E3' }}
+          style={{ accentColor: 'var(--color-brand-blue)' }}
         />
         {msg.transcription && (
-          <details className="text-[10px] text-[#8B8FA8] cursor-pointer select-none">
+          <details className="text-[10px] text-text-secondary cursor-pointer select-none">
             <summary className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition outline-none font-bold">
-              <svg className="w-3.5 h-3.5 text-[#01A4E3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
               </svg>
               <span>Ver transcripción</span>
             </summary>
-            <div className="mt-2 p-2.5 bg-black/15 border-l-2 border-[#01A4E3] rounded-r-lg whitespace-pre-wrap leading-relaxed text-[11px] text-[#F0F0F5]/85 cursor-text select-text shadow-inner">
+            <div className="mt-2 p-2.5 bg-black/15 border-l-2 border-brand-blue rounded-r-lg whitespace-pre-wrap leading-relaxed text-[11px] text-text-primary/85 cursor-text select-text shadow-inner">
               {msg.transcription}
             </div>
           </details>
@@ -355,7 +355,7 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
     )
   }
   return (
-    <div className="flex items-center gap-2 px-3 py-2 text-[#8B8FA8]">
+    <div className="flex items-center gap-2 px-3 py-2 text-text-secondary">
       <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 016 0v6a3 3 0 01-3 3z" />
       </svg>
@@ -371,7 +371,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   if (msg.media_url) {
     return (
       <div className="flex flex-col gap-1.5 max-w-[240px]">
-        <div className="rounded-xl overflow-hidden border border-[#3A3A37]/60 shadow-md bg-black w-full max-h-[320px] flex items-center justify-center relative group/video">
+        <div className="rounded-xl overflow-hidden border border-border-default/60 shadow-md bg-black w-full max-h-[320px] flex items-center justify-center relative group/video">
           <video
             controls
             preload="none"
@@ -386,7 +386,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
-            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-lg text-white/95 opacity-0 group-hover/video:opacity-100 transition duration-200 shadow-lg border border-white/10 z-10 flex items-center justify-center cursor-pointer"
+            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-control text-white/95 opacity-0 group-hover/video:opacity-100 transition duration-200 shadow-lg border border-white/10 z-10 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             title="Ver en grande"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -397,16 +397,16 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
         
         {/* Enlace de descarga de respaldo siempre visible */}
         <div className={`flex items-center justify-between px-1 text-[10px] border-b pb-1 ${
-          isAdvisor ? 'text-white/70 border-white/20' : 'text-[#8B8FA8] border-white/5'
+          isAdvisor ? 'text-white/70 border-white/20' : 'text-text-secondary border-white/5'
         }`}>
-          <span className="font-semibold uppercase tracking-wider text-[9px]">Video</span>
+          <span className="text-label uppercase">Video</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsExpanded(true)}
               className={`font-bold flex items-center transition cursor-pointer ${
-                isAdvisor ? 'text-white hover:text-white/80' : 'text-[#01A4E3] hover:text-[#01B4F3]'
-              }`}
+                isAdvisor ? 'text-white hover:text-white/80' : 'text-brand-blue hover:text-brand-blue-light'
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90`}
             >
               <span>Ver en grande</span>
             </button>
@@ -416,7 +416,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
               target="_blank"
               rel="noopener noreferrer"
               className={`font-bold flex items-center gap-1 transition ${
-                isAdvisor ? 'text-white hover:text-white/80' : 'text-[#01A4E3] hover:text-[#01B4F3]'
+                isAdvisor ? 'text-white hover:text-white/80' : 'text-brand-blue hover:text-brand-blue-light'
               }`}
             >
               <span>Descargar</span>
@@ -429,7 +429,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
 
         {msg.content && (
           <p className={`mt-2.5 px-1 text-sm whitespace-pre-wrap leading-relaxed ${
-            isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-[#F0F0F5]'
+            isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-text-primary'
           }`}>
             {msg.content}
           </p>
@@ -443,7 +443,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
             {/* Botón Cerrar */}
             <button
               type="button"
-              className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 z-50 cursor-pointer"
+              className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 z-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               onClick={() => setIsExpanded(false)}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -464,7 +464,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
 
             {/* Caption */}
             {msg.content && (
-              <p className="mt-4 text-sm text-[#F0F0F5] bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
+              <p className="mt-4 text-sm text-text-primary bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
                 {msg.content}
               </p>
             )}
@@ -475,14 +475,14 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   }
   return (
     <div className="flex flex-col gap-1.5 max-w-[240px]">
-      <div className="w-48 h-32 bg-[#3A3A37] rounded-xl flex items-center justify-center border border-[#3A3A37]/60 shadow-md">
-        <svg className="w-10 h-10 text-[#8B8FA8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="w-48 h-32 bg-border-default rounded-xl flex items-center justify-center border border-border-default/60 shadow-md">
+        <svg className="w-10 h-10 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       </div>
       {msg.content && (
-        <p className="text-sm text-[#F0F0F5] px-1 whitespace-pre-wrap leading-relaxed">
+        <p className="text-sm text-text-primary px-1 whitespace-pre-wrap leading-relaxed">
           {msg.content}
         </p>
       )}
@@ -513,10 +513,10 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
   if (message.direction === 'inbound') {
     return (
       <div className="flex flex-col items-start max-w-[75%] space-y-0.5 shrink-0">
-        <div className={`bg-[#2E2E2B] text-[#F0F0F5] rounded-xl rounded-tl-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-sm border border-white/5`}>
+        <div className={`bg-bg-tertiary text-text-primary rounded-xl rounded-tl-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-sm border border-white/5`}>
           <BubbleContent msg={message} isDocument={isDocument} />
         </div>
-        <span className="text-[9px] text-[#8B8FA8] ml-1">{time} • Cliente</span>
+        <span className="text-[9px] text-text-secondary ml-1">{time} • Cliente</span>
       </div>
     )
   }
@@ -524,8 +524,8 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
   if (message.direction === 'outbound_bot') {
     return (
       <div className="flex flex-col items-end max-w-[75%] ml-auto space-y-0.5 shrink-0">
-        <div className={`bg-[#1F2937] text-[#F0F0F5] rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed border border-[#3A3A37]/60 shadow-sm`}>
-          <div className="flex items-center space-x-1 text-[#00D4AA] font-medium text-[10px] uppercase tracking-wider opacity-80 mb-1 px-3 pt-3">
+        <div className={`bg-bg-secondary text-text-primary rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed border border-border-default/60 shadow-sm`}>
+          <div className="flex items-center space-x-1 text-success text-label uppercase opacity-80 mb-1 px-3 pt-3">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
@@ -535,7 +535,7 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
             <BubbleContent msg={message} isDocument={isDocument} />
           </div>
         </div>
-        <span className="text-[9px] text-[#8B8FA8] mr-1">{time}</span>
+        <span className="text-[9px] text-text-secondary mr-1">{time}</span>
       </div>
     )
   }
@@ -544,13 +544,13 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
   return (
     <div className="flex flex-col items-end max-w-[75%] ml-auto space-y-0.5 shrink-0">
       <div
-        className={`bg-gradient-to-br from-[#01B4F3] to-[#01A4E3] text-white rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-md border ${
-          message._status === 'failed' ? 'border-[#FF5B5B]/60' : 'border-[#01A4E3]/10'
+        className={`bg-gradient-to-br from-brand-blue-light to-brand-blue text-white rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-md border ${
+          message._status === 'failed' ? 'border-error/60' : 'border-brand-blue/10'
         } ${message._status === 'sending' ? 'opacity-70' : ''}`}
       >
         <BubbleContent msg={message} isDocument={isDocument} />
       </div>
-      <span className="text-[9px] text-[#8B8FA8] mr-1 inline-flex items-center gap-1">
+      <span className="text-[9px] text-text-secondary mr-1 inline-flex items-center gap-1">
         <MessageStatus status={message._status} />
         {time}{advisorName ? ` • ${advisorName}` : ''}
       </span>

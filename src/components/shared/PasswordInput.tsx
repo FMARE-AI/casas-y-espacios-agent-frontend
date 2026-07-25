@@ -26,10 +26,10 @@ export function PasswordInput({
   const strength = usePasswordStrength(value)
 
   const STRENGTH_COLORS = {
-    empty: 'bg-[#3A3A37]',
-    weak: 'bg-[#FF5B5B]',
-    fair: 'bg-[#FFB84D]',
-    strong: 'bg-[#00D4AA]',
+    empty: 'bg-border-default',
+    weak: 'bg-error',
+    fair: 'bg-warning',
+    strong: 'bg-success',
   }
 
   const STRENGTH_TEXT = {
@@ -40,31 +40,31 @@ export function PasswordInput({
   }
 
   const STRENGTH_TEXT_COLORS = {
-    empty: 'text-[#8B8FA8]',
-    weak: 'text-[#FF5B5B]',
-    fair: 'text-[#FFB84D]',
-    strong: 'text-[#00D4AA]',
+    empty: 'text-text-secondary',
+    weak: 'text-error',
+    fair: 'text-warning',
+    strong: 'text-success',
   }
 
   const borderColor =
     error
-      ? 'border-[#FF5B5B]'
+      ? 'border-error'
       : value && !strength.isValid
-      ? 'border-[#FFB84D]'
+      ? 'border-warning'
       : value && strength.isValid
-      ? 'border-[#00D4AA]'
-      : 'border-[#3A3A37] focus-within:border-[#01A4E3]'
+      ? 'border-success'
+      : 'border-border-default focus-within:border-brand-blue'
 
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-xs font-medium text-[#8B8FA8] uppercase tracking-wider">
+        <label className="block text-label text-text-secondary uppercase">
           {label}
         </label>
       )}
 
       <div
-        className={`relative flex items-center bg-[#2E2E2B] border rounded-lg transition ${borderColor}`}
+        className={`relative flex items-center bg-bg-tertiary border rounded-lg transition focus-within:ring-2 focus-within:ring-brand-blue/90 ${borderColor}`}
       >
         <input
           type={showPassword ? 'text' : 'password'}
@@ -73,14 +73,14 @@ export function PasswordInput({
           placeholder={placeholder}
           disabled={disabled}
           autoComplete={autoComplete}
-          className="w-full bg-transparent px-3 py-2.5 text-sm text-[#F0F0F5] outline-none pr-10 placeholder-[#8B8FA8]/50 disabled:opacity-50"
+          className="w-full bg-transparent px-3 py-2.5 text-sm text-text-primary outline-none pr-10 placeholder-text-secondary/50 disabled:opacity-50"
         />
 
         <button
           type="button"
           onClick={() => setShowPassword((prev) => !prev)}
           tabIndex={-1}
-          className="absolute right-3 text-[#8B8FA8] hover:text-[#F0F0F5] transition"
+          className="absolute right-3 text-text-secondary hover:text-text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
         >
           {showPassword ? (
@@ -103,7 +103,7 @@ export function PasswordInput({
               <div
                 key={i}
                 className={`h-1 flex-1 rounded-full transition-all duration-300 ${
-                  strength.score >= i ? STRENGTH_COLORS[strength.level] : 'bg-[#3A3A37]'
+                  strength.score >= i ? STRENGTH_COLORS[strength.level] : 'bg-border-default'
                 }`}
               />
             ))}
@@ -124,25 +124,25 @@ export function PasswordInput({
               { ok: strength.checks.maxLength, label: 'Máx. 72 caracteres' },
             ].map(({ ok, label: checkLabel }) => (
               <div key={checkLabel} className="flex items-center gap-1.5">
+                {/* Shape carries the met/unmet signal, not colour alone (WCAG 1.4.1):
+                    check vs cross, both at AA contrast in either state. */}
                 <span
+                  role="img"
+                  aria-label={ok ? 'Cumplido' : 'No cumplido'}
                   className={`text-[10px] font-bold leading-none ${
-                    ok ? 'text-[#00D4AA]' : 'text-[#3A3A37]'
+                    ok ? 'text-success' : 'text-text-secondary'
                   }`}
                 >
-                  {ok ? '✓' : '○'}
+                  {ok ? '✓' : '✕'}
                 </span>
-                <span
-                  className={`text-[10px] ${ok ? 'text-[#8B8FA8]' : 'text-[#5A5A57]'}`}
-                >
-                  {checkLabel}
-                </span>
+                <span className="text-[10px] text-text-secondary">{checkLabel}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {error && <p className="text-[11px] text-[#FF5B5B]">{error}</p>}
+      {error && <p className="text-[11px] text-error">{error}</p>}
     </div>
   )
 }

@@ -27,8 +27,8 @@ function formatClosedDate(iso: string): string {
 }
 
 const CHANNEL_CHIP: Record<string, string> = {
-  comercial: "bg-[#01A4E3]/10 text-[#01A4E3]",
-  administrativa: "bg-[#00D4AA]/10 text-[#00D4AA]",
+  comercial: "bg-brand-blue/10 text-brand-blue",
+  administrativa: "bg-success/10 text-success",
 };
 
 function channelLabel(channel: string): string {
@@ -49,19 +49,19 @@ function resolutorLabel(conv: Conversation): string | null {
 
 function TableSkeleton() {
   return (
-    <div className="w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-hidden animate-pulse">
-      <div className="h-10 bg-[#2E2E2B]/60 border-b border-[#3A3A37]" />
+    <div className="w-full bg-bg-secondary border border-border-default rounded-xl overflow-hidden animate-pulse">
+      <div className="h-10 bg-bg-tertiary/60 border-b border-border-default" />
       {[0, 1, 2].map((i) => (
         <div
           key={i}
-          className="flex gap-4 p-4 border-b border-[#3A3A37] last:border-0"
+          className="flex gap-4 p-4 border-b border-border-default last:border-0"
         >
-          <div className="h-3 bg-[#2E2E2B] rounded w-32" />
-          <div className="h-3 bg-[#2E2E2B] rounded w-20" />
-          <div className="h-3 bg-[#2E2E2B] rounded w-24" />
-          <div className="h-3 bg-[#2E2E2B] rounded flex-1" />
-          <div className="h-3 bg-[#2E2E2B] rounded w-24" />
-          <div className="h-3 bg-[#2E2E2B] rounded w-14" />
+          <div className="h-3 bg-bg-tertiary rounded w-32" />
+          <div className="h-3 bg-bg-tertiary rounded w-20" />
+          <div className="h-3 bg-bg-tertiary rounded w-24" />
+          <div className="h-3 bg-bg-tertiary rounded flex-1" />
+          <div className="h-3 bg-bg-tertiary rounded w-24" />
+          <div className="h-3 bg-bg-tertiary rounded w-14" />
         </div>
       ))}
     </div>
@@ -193,12 +193,12 @@ export default function HistorialPage() {
       className="flex-1 flex flex-col p-4 md:p-6 space-y-4"
     >
       {/* ── Header ── */}
-      <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#3A3A37] pb-4">
+      <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border-default pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-h2 text-text-primary">
             Historial de Conversaciones Cerradas
           </h2>
-          <p className="text-xs text-[#8B8FA8]">
+          <p className="text-xs text-text-secondary">
             Busca, audita y analiza transcripciones de requerimientos
             finalizados
           </p>
@@ -206,10 +206,10 @@ export default function HistorialPage() {
         <button
           type="button"
           onClick={exportCSV}
-          className="bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] text-[#F0F0F5] px-4 py-2.5 h-11 rounded text-xs font-semibold flex items-center gap-2 transition active:scale-95"
+          className="bg-bg-tertiary hover:bg-border-default border border-border-default text-text-primary px-4 py-2.5 h-11 rounded-control text-xs font-semibold flex items-center gap-2 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
         >
           <svg
-            className="w-4 h-4 text-[#00D4AA]"
+            className="w-4 h-4 text-success"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -226,7 +226,7 @@ export default function HistorialPage() {
       </div>
 
       {/* ── Filter panel ── */}
-      <div className="w-full bg-[#252522] p-4 border border-[#3A3A37] rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
+      <div className="w-full bg-bg-secondary p-4 border border-border-default rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
         <div className="relative sm:col-span-2">
           <input
             id="history-search-input"
@@ -234,10 +234,10 @@ export default function HistorialPage() {
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Buscar por cliente, cédula..."
-            className="w-full bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded-lg pl-8 pr-3 py-2 outline-none focus:border-[#01A4E3] transition"
+            className="w-full bg-bg-tertiary border border-border-default text-text-primary text-xs rounded-lg pl-8 pr-3 py-2 outline-none focus:border-brand-blue transition"
           />
           <svg
-            className="w-4 h-4 text-[#8B8FA8] absolute left-2.5 top-2.5 pointer-events-none"
+            className="w-4 h-4 text-text-secondary absolute left-2.5 top-2.5 pointer-events-none"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -255,7 +255,7 @@ export default function HistorialPage() {
           id="history-filter-line"
           value={lineFilter}
           onChange={(e) => setLineFilter(e.target.value)}
-          className="w-full bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded-lg p-2 outline-none focus:border-[#01A4E3] transition"
+          className="w-full bg-bg-tertiary border border-border-default text-text-primary text-xs rounded-lg p-2 outline-none focus:border-brand-blue transition"
         >
           <option value="todos">Todas las Líneas</option>
           <option value="Comercial">Comercial</option>
@@ -266,7 +266,7 @@ export default function HistorialPage() {
           id="history-filter-date"
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
-          className="w-full bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded-lg p-2 outline-none focus:border-[#01A4E3] transition"
+          className="w-full bg-bg-tertiary border border-border-default text-text-primary text-xs rounded-lg p-2 outline-none focus:border-brand-blue transition"
         >
           <option value="todos">Cualquier Fecha</option>
           <option value="hoy">Hoy</option>
@@ -278,12 +278,12 @@ export default function HistorialPage() {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <div className="w-full bg-[#252522] border border-[#3A3A37] rounded-xl overflow-x-auto">
+        <div className="w-full bg-bg-secondary border border-border-default rounded-xl overflow-x-auto">
           <table
             id="history-table"
-            className="w-full text-left text-xs text-[#F0F0F5]"
+            className="w-full text-left text-xs text-text-primary"
           >
-            <thead className="bg-[#2E2E2B]/60 border-b border-[#3A3A37] text-[#8B8FA8] uppercase tracking-wider font-semibold">
+            <thead className="bg-bg-tertiary/60 border-b border-border-default text-text-secondary text-label uppercase">
               <tr>
                 <th className="p-4 whitespace-nowrap">N° de Caso</th>
                 <th className="p-4 whitespace-nowrap">Cliente</th>
@@ -299,13 +299,13 @@ export default function HistorialPage() {
             </thead>
             <tbody
               id="history-table-body"
-              className="divide-y divide-[#3A3A37]"
+              className="divide-y divide-border-default"
             >
               {filteredConversations.length === 0 ? (
                 <tr>
                   <td colSpan={8}>
                     <div className="text-center py-12">
-                      <p className="text-[#8B8FA8] text-sm">
+                      <p className="text-text-secondary text-sm">
                         No se encontraron conversaciones cerradas
                         {searchText && ` para "${searchText}"`}
                       </p>
@@ -316,7 +316,7 @@ export default function HistorialPage() {
                 filteredConversations.map((conv) => (
                   <tr
                     key={conv.id}
-                    className="hover:bg-[#2E2E2B]/30 transition"
+                    className="hover:bg-bg-tertiary/30 transition"
                   >
                     <td className="p-4 whitespace-nowrap">
                       <CaseNumberTag caseNumber={conv.case_number} className="text-xs" />
@@ -326,7 +326,7 @@ export default function HistorialPage() {
                       title={conv.client.full_name ?? "Cliente no autenticado"}
                     >
                       {conv.client.full_name ?? (
-                        <span className="text-[#8B8FA8] font-medium italic">
+                        <span className="text-text-secondary font-medium italic">
                           Sin identificar
                         </span>
                       )}
@@ -336,19 +336,19 @@ export default function HistorialPage() {
                         className={[
                           "text-[9px] px-2 py-0.5 rounded font-black uppercase",
                           CHANNEL_CHIP[conv.channel] ??
-                            "bg-[#3A3A37] text-[#8B8FA8]",
+                            "bg-border-default text-text-secondary",
                         ].join(" ")}
                       >
                         {channelLabel(conv.channel)}
                       </span>
                     </td>
-                    <td className="p-4 text-[#8B8FA8] whitespace-nowrap">
+                    <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatClosedDate(conv.closed_at ?? conv.last_activity)}
                     </td>
                     <td className="p-4 max-w-[250px] min-w-[200px]">
                       {conv.resolution_notes ? (
                         <div
-                          className="cursor-pointer text-xs text-[#F0F0F5] hover:underline break-words"
+                          className="cursor-pointer text-xs text-text-primary hover:underline break-words"
                           title={conv.resolution_notes}
                           onClick={() => toggleNote(conv.id)}
                         >
@@ -359,38 +359,38 @@ export default function HistorialPage() {
                               : conv.resolution_notes}
                         </div>
                       ) : (
-                        <span className="text-xs text-[#8B8FA8] italic">
+                        <span className="text-xs text-text-secondary italic">
                           Sin notas
                         </span>
                       )}
                     </td>
                     <td className="p-4 font-bold whitespace-nowrap">
                       {conv.closed_by === "bot" ? (
-                        <span className="text-[#00D4AA] text-xs font-semibold">
+                        <span className="text-success text-xs font-semibold">
                           Bot
                         </span>
                       ) : conv.closed_by === "asesor" ? (
                         <span
-                          className="text-[#F0F0F5] text-xs font-semibold truncate max-w-[140px] inline-block align-bottom"
+                          className="text-text-primary text-xs font-semibold truncate max-w-[140px] inline-block align-bottom"
                           title={resolutorLabel(conv) ?? undefined}
                         >
                           {resolutorLabel(conv)}
                         </span>
                       ) : (
-                        <span className="text-[#8B8FA8] text-xs">—</span>
+                        <span className="text-text-secondary text-xs">—</span>
                       )}
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
                       {conv.client_satisfied === "si" ? (
-                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#00D4AA]/15 text-[#00D4AA]">
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-success/15 text-success">
                           Sí
                         </span>
                       ) : conv.client_satisfied === "no" ? (
-                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#FF5C5C]/15 text-[#FF5C5C]">
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-error/15 text-error">
                           No
                         </span>
                       ) : (
-                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-[#3A3A37] text-[#8B8FA8]">
+                        <span className="inline-block text-[10px] px-2.5 py-1 rounded-full font-bold uppercase bg-border-default text-text-secondary">
                           Sin confirmar
                         </span>
                       )}
@@ -403,7 +403,7 @@ export default function HistorialPage() {
                             state: { readonly: true },
                           })
                         }
-                        className="text-[#01A4E3] hover:underline font-bold px-2 py-1"
+                        className="text-brand-blue hover:underline font-bold px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
                       >
                         Auditar
                       </button>

@@ -10,7 +10,7 @@ export function CaseNumberTag({ caseNumber, className = '' }: CaseNumberTagProps
   const [copied, setCopied] = useState(false)
 
   if (!caseNumber) {
-    return <span className={`font-mono text-[#8B8FA8] ${className}`}>—</span>
+    return <span className={`font-mono text-text-secondary ${className}`}>—</span>
   }
 
   const handleCopy = async () => {
@@ -29,12 +29,12 @@ export function CaseNumberTag({ caseNumber, className = '' }: CaseNumberTagProps
         type="button"
         onClick={handleCopy}
         title="Copiar número de caso"
-        className={`font-mono text-[#8B8FA8] hover:text-[#F0F0F5] transition cursor-pointer ${className}`}
+        className={`font-mono text-text-secondary hover:text-text-primary transition cursor-pointer ${className} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90`}
       >
         {caseNumber}
       </button>
       {copied && (
-        <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-[#1D1D1B] border border-[#3A3A37] text-[#00D4AA] text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap z-50 shadow-md pointer-events-none">
+        <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-bg-main border border-border-default text-success text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap z-50 shadow-md pointer-events-none">
           Copiado
         </span>
       )}

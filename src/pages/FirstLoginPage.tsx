@@ -102,7 +102,7 @@ export function FirstLoginPage() {
   return (
     <div
       className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4 relative overflow-hidden"
-      style={{ background: 'radial-gradient(ellipse at 50% -10%, #1e3a4a 0%, #1a1a18 40%, #111110 100%)' }}
+      style={{ background: 'radial-gradient(ellipse at 50% -10%, var(--color-brand-glow) 0%, var(--color-bg-overlay) 40%, var(--color-bg-deep) 100%)' }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
@@ -116,15 +116,15 @@ export function FirstLoginPage() {
         style={{ background: 'radial-gradient(ellipse at 50% 0%, rgba(1,164,227,0.12) 0%, transparent 70%)' }}
       />
 
-      <div className="max-w-md w-full relative z-10 bg-[#252522] border border-[#3A3A37] rounded-xl p-6 sm:p-8 shadow-2xl">
+      <div className="max-w-md w-full relative z-10 bg-bg-secondary border border-border-default rounded-panel p-6 sm:p-8 shadow-md">
         <div className="mb-6">
-          <h2 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            <svg className="w-5 h-5 shrink-0 text-[#FFB84D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <h2 className="text-h2 text-text-primary tracking-tight flex items-center gap-2">
+            <svg className="w-5 h-5 shrink-0 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             Establecer nueva contraseña
           </h2>
-          <p className="text-xs text-[#8B8FA8] mt-1.5">
+          <p className="text-xs text-text-secondary mt-1.5">
             Por motivos de seguridad, debés configurar una contraseña definitiva en tu primer login.
           </p>
         </div>
@@ -165,7 +165,7 @@ export function FirstLoginPage() {
 
           {rootError && (
             <div
-              className="rounded-lg p-3 border text-xs text-[#FF5B5B]"
+              className="rounded-lg p-3 border text-xs text-error"
               style={{ background: 'rgba(255,91,91,0.08)', borderColor: 'rgba(255,91,91,0.4)' }}
             >
               {rootError}
@@ -175,7 +175,7 @@ export function FirstLoginPage() {
           <button
             type="submit"
             disabled={isSubmitting || !isFormValid}
-            className="w-full h-12 bg-gradient-to-r from-[#01A4E3] to-[#008BBF] hover:from-[#0190C8] hover:to-[#007ba8] text-white rounded-md font-bold text-xs transition duration-150 flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            className="w-full h-12 bg-gradient-to-r from-brand-blue to-brand-blue-hover hover:from-brand-blue-hover hover:to-brand-blue-hover text-white rounded-control font-bold text-xs transition duration-150 flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <span>Establecer contraseña y continuar</span>
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
