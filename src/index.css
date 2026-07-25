@@ -255,11 +255,16 @@
   }
 
   /* Shared scroll-fluidity utility for every scrollable pane in the panel:
-     smooth wheel/anchor scrolling, no scroll-chaining into the parent once
-     a nested pane hits its edge, and a slim themed scrollbar instead of the
-     bulky OS default (Firefox via scrollbar-*, Chromium/Safari via ::-webkit-*). */
+     no scroll-chaining into the parent once a nested pane hits its edge,
+     and a slim themed scrollbar instead of the bulky OS default (Firefox
+     via scrollbar-*, Chromium/Safari via ::-webkit-*).
+     Deliberately NOT `scroll-behavior: smooth` — that property re-animates
+     every individual wheel tick with easing, so continuous mouse-wheel
+     scrolling stacks overlapping animations and reads as laggy/stuttery.
+     Native (default) scrolling is already immediate and fluid; `smooth` is
+     only appropriate for occasional programmatic jumps (scrollIntoView,
+     anchor links), which none of these panes need. */
   .app-scroll {
-    scroll-behavior: smooth;
     overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--color-border-default) transparent;
