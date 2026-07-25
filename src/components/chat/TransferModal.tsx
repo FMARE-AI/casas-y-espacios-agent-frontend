@@ -140,7 +140,7 @@ export default function TransferModal({
         )}
 
         {/* Content area */}
-        <div className="flex-1 overflow-y-auto space-y-4 pr-1 min-h-[150px]">
+        <div className="app-scroll flex-1 overflow-y-auto space-y-4 pr-1 min-h-[150px]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-8 space-y-2">
               <div className="w-6 h-6 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
@@ -157,7 +157,7 @@ export default function TransferModal({
               <label className="text-label text-text-secondary uppercase">
                 Selecciona el asesor destino
               </label>
-              <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
+              <div className="app-scroll space-y-1.5 max-h-[220px] overflow-y-auto">
                 {availableAdvisors.map((adv) => {
                   const isSelected = selectedAdvisorId === adv.id
                   return (

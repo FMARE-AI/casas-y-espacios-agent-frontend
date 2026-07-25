@@ -98,7 +98,7 @@ export default function CloseConversationModal({
           <p className="text-label text-text-secondary uppercase">
             ¿Cómo se resolvió?
           </p>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div className="app-scroll space-y-1.5 max-h-48 overflow-y-auto pr-1">
             {RESOLUTION_OPTIONS.map((option) => (
               <button
                 key={option.value}

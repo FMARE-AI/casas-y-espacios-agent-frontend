@@ -60,7 +60,7 @@ export default function ClientPanel({
   return (
     <aside
       id="chat-right-aside"
-      className="flex fixed lg:relative top-0 bottom-0 right-0 w-80 lg:w-[320px] bg-bg-secondary border-l border-border-default p-4 space-y-4 overflow-y-auto shrink-0 flex-col justify-between h-full lg:h-auto z-40"
+      className="app-scroll flex fixed lg:relative top-0 bottom-0 right-0 w-80 lg:w-[320px] bg-bg-secondary border-l border-border-default p-4 space-y-4 overflow-y-auto shrink-0 flex-col justify-between h-full lg:h-auto z-40"
     >
       <div className="space-y-4">
         {/* Mobile close */}
