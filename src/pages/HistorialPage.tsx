@@ -289,7 +289,7 @@ export default function HistorialPage() {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <div className="w-full bg-bg-secondary border border-border-default rounded-xl overflow-x-auto">
+        <div className="app-scroll w-full bg-bg-secondary border border-border-default rounded-xl overflow-x-auto">
           <table
             id="history-table"
             className="w-full text-left text-xs text-text-primary"

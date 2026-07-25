@@ -146,7 +146,7 @@ export default memo(function MessageFeed({
       ref={feedRef}
       id="chat-message-feed"
       onScroll={handleScroll}
-      className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col min-h-0 bg-bg-main"
+      className="app-scroll flex-1 p-4 overflow-y-auto space-y-4 flex flex-col min-h-0 bg-bg-main"
       style={{
         backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 0)',
         backgroundSize: '24px 24px'

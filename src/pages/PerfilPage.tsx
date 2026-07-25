@@ -638,7 +638,7 @@ export default function PerfilPage() {
   return (
     <section
       id="screen-perfil"
-      className="flex-1 flex flex-col p-4 space-y-4 w-full overflow-y-auto"
+      className="app-scroll flex-1 flex flex-col p-4 space-y-4 w-full overflow-y-auto"
     >
       <div className="max-w-5xl w-full space-y-4 mx-auto">
         {/* Page header */}

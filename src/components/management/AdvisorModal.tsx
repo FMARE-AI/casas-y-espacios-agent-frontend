@@ -137,23 +137,24 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
       {/* Modal card */}
       <div
         id={isEdit ? 'modal-edit-advisor' : 'modal-new-advisor'}
-        className="relative z-10 w-full max-w-lg overflow-hidden rounded-panel border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors will-change-transform"
+        className="relative z-10 flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-panel border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors will-change-transform"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-border-default px-6 py-4">
-          <h3 className="text-h2 text-text-primary">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-default px-4 py-3 sm:px-6 sm:py-4">
+          <h3 className="text-h2 text-text-primary pr-2">
             {isEdit ? 'Editar Perfil del Asesor' : 'Crear Nuevo Asesor Operativo'}
           </h3>
           <button
             onClick={onClose}
-            className="rounded-control p-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="shrink-0 rounded-control p-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 p-6">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="flex min-h-0 flex-1 flex-col">
+        <div className="app-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
           {error && (
             <div className="flex items-start gap-2.5 rounded-lg border border-error/50 bg-error/10 p-3 text-sm text-error">
               <AlertTriangle className="h-5 w-5 shrink-0" />
@@ -236,7 +237,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
           )}
 
           {/* Grid Rol + Área */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 xs:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-label text-text-secondary uppercase">
                 Rol en el panel
@@ -325,9 +326,10 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               </p>
             </div>
           )}
+        </div>
 
           {/* Acciones */}
-          <div className="flex items-center justify-end gap-3 border-t border-border-default pt-4">
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-border-default px-4 py-3 sm:px-6 sm:py-4">
             <button
               type="button"
               onClick={onClose}

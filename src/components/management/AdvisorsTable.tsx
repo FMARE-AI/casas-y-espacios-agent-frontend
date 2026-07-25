@@ -46,7 +46,7 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
   }
 
   return (
-    <div className="w-full overflow-x-auto rounded-lg border border-border-default bg-bg-secondary/60 backdrop-blur-md">
+    <div className="app-scroll w-full overflow-x-auto rounded-lg border border-border-default bg-bg-secondary/60 backdrop-blur-md">
       <table id="advisors-table" className="w-full min-w-[700px] border-collapse text-left text-sm text-text-primary">
         <thead>
           <tr className="border-b border-border-default bg-bg-tertiary/50 text-label text-text-secondary uppercase">
