@@ -107,6 +107,8 @@ export interface Conversation {
   // null for bot closures and for historical closures that could not be backfilled
   closed_by_advisor: ClosedByAdvisor | null
   closed_at: string | null
+  // seconds between the conversation's start and closed_at; null while the conversation is still open
+  duration_seconds: number | null
   last_message: ConversationLastMessage | null
   unread_count: number
   priority: ConversationPriority | null

@@ -26,6 +26,17 @@ function formatClosedDate(iso: string): string {
   return format(date, "dd/MM/yyyy");
 }
 
+function formatDuration(seconds: number | null): string {
+  if (seconds == null) return "—";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours < 24) return `${hours} h ${remainingMinutes} min`;
+  const days = Math.floor(hours / 24);
+  return `${days} día${days === 1 ? "" : "s"}`;
+}
+
 const CHANNEL_CHIP: Record<string, string> = {
   comercial: "bg-brand-blue/10 text-brand-blue",
   administrativa: "bg-success/10 text-success",
@@ -289,6 +300,7 @@ export default function HistorialPage() {
                 <th className="p-4 whitespace-nowrap">Cliente</th>
                 <th className="p-4 whitespace-nowrap">Línea</th>
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
+                <th className="p-4 whitespace-nowrap">Duración</th>
                 <th className="p-4 whitespace-nowrap">Notas de resolución</th>
                 <th className="p-4 whitespace-nowrap">Resolutor</th>
                 <th className="p-4 whitespace-nowrap text-center">
@@ -303,7 +315,7 @@ export default function HistorialPage() {
             >
               {filteredConversations.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="text-center py-12">
                       <p className="text-text-secondary text-sm">
                         No se encontraron conversaciones cerradas
@@ -344,6 +356,9 @@ export default function HistorialPage() {
                     </td>
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatClosedDate(conv.closed_at ?? conv.last_activity)}
+                    </td>
+                    <td className="p-4 text-text-secondary whitespace-nowrap">
+                      {formatDuration(conv.duration_seconds)}
                     </td>
                     <td className="p-4 max-w-[250px] min-w-[200px]">
                       {conv.resolution_notes ? (

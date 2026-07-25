@@ -167,6 +167,7 @@ No request body required.
         "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
+        "duration_seconds": null,
         "case_number": "CE-2026-000043",
         "priority": "alta",
         "client": {
@@ -219,6 +220,7 @@ No request body required.
 - **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
 - **`case_number`** is a human-readable, unique case reference in the format `CE-YYYY-NNNNNN` (e.g. `CE-2026-000043`), generated atomically in Postgres when the conversation is created. It is `null` for conversations created before this feature was deployed — render `—` (or similar) in that case. It never changes for the lifetime of the conversation, including when a closed conversation is transparently reused within the grace window (see `CLAUDE.md` §3.6.1) — the reused conversation keeps its original `case_number`.
 - **`priority`** is one of `baja`, `media`, `alta`, `critica` — always present, defaults to `baja` for every conversation. Set **exclusively** by the bot's `evaluate_priority` node based on the client's tone/urgency each turn; there is no endpoint or panel control to set it manually. It is **monotonic**: it only ever increases within a conversation, never decreases. Use it to sort/highlight the inbox (e.g. badge color, default sort by priority then `last_activity`). Real-time updates also arrive via the `conversation.priority_updated` WebSocket event (see below) — no need to re-fetch the list to keep badges current.
+- **`duration_seconds`** is the number of seconds between the conversation's start and `closed_at`, computed server-side. It is `null` while the conversation is still open (not `cerrada`). The frontend renders it as a human-readable duration (e.g. `"4 min"`, `"1 h 23 min"`, `"3 días"`) and shows `—` when `null`.
 
 ---
 
