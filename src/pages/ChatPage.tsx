@@ -36,10 +36,10 @@ function getInitials(name: string): string {
 // ── Header status dot color ───────────────────────────────
 
 const STATUS_DOT: Record<ChatVariant, string> = {
-  assigned: "bg-[#FFB84D]",
-  unassigned: "bg-[#FF5B5B]",
-  bot: "bg-[#00D4AA]",
-  monitoring: "bg-[#FFB84D]",
+  assigned: "bg-warning",
+  unassigned: "bg-error",
+  bot: "bg-success",
+  monitoring: "bg-warning",
 };
 
 // ── Page ──────────────────────────────────────────────────
@@ -523,14 +523,14 @@ export default function ChatPage() {
       className="flex-1 flex flex-col lg:flex-row relative min-h-0"
     >
       {/* ── Central column ── */}
-      <div className="flex-1 flex flex-col bg-[#1D1D1B] border-r border-[#3A3A37] min-w-0 min-h-0">
+      <div className="flex-1 flex flex-col bg-bg-main border-r border-border-default min-w-0 min-h-0">
         {/* Header */}
-        <div className="bg-[#252522] px-4 py-3 border-b border-[#3A3A37] flex justify-between items-center shrink-0">
+        <div className="bg-bg-secondary px-4 py-3 border-b border-border-default flex justify-between items-center shrink-0">
           <div className="flex items-center space-x-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] rounded-lg text-xs font-semibold text-[#8B8FA8] hover:text-white transition active:scale-95 shrink-0"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-lg text-xs font-semibold text-text-secondary hover:text-white transition active:scale-[0.98] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
                 className="w-3.5 h-3.5"
@@ -549,7 +549,7 @@ export default function ChatPage() {
             </button>
 
             {/* Avatar del Cliente con Iniciales */}
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#01A4E3] to-[#00D4AA] flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-lg border border-[#3A3A37]/35 select-none">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-blue to-success flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-lg border border-border-default/35 select-none">
               {getInitials(clientName)}
             </div>
 
@@ -558,11 +558,11 @@ export default function ChatPage() {
                 {clientName}
                 <span
                   id="chat-header-status-dot"
-                  className={`w-2 h-2 rounded-full inline-block ${STATUS_DOT[variant]} ring-2 ring-[#252522]`}
+                  className={`w-2 h-2 rounded-full inline-block ${STATUS_DOT[variant]} ring-2 ring-bg-secondary`}
                   title={`Estado: ${variant}`}
                 />
               </h3>
-              <p className="text-[9px] text-[#8B8FA8] flex items-center gap-1">
+              <p className="text-[9px] text-text-secondary flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500/20 border border-green-500/40 inline-block" />
                 WhatsApp: {channel || "—"}
               </p>
@@ -574,7 +574,7 @@ export default function ChatPage() {
             {variant === "monitoring" && (
               <div
                 id="monitoring-mode-pill"
-                className="bg-[#FFB84D]/15 text-[#FFB84D] text-[10px] px-2.5 py-1 rounded font-black border border-[#FFB84D]/30 flex items-center gap-1 animate-pulse"
+                className="bg-warning/15 text-warning text-[10px] px-2.5 py-1 rounded font-black border border-warning/30 flex items-center gap-1 animate-pulse"
               >
                 <svg
                   className="w-4 h-4"
@@ -603,10 +603,10 @@ export default function ChatPage() {
             <button
               type="button"
               onClick={() => setRightPanelOpen(true)}
-              className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] rounded text-xs font-semibold text-[#8B8FA8] hover:text-white transition"
+              className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded text-xs font-semibold text-text-secondary hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
-                className="w-4 h-4 text-[#01A4E3]"
+                className="w-4 h-4 text-brand-blue"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -648,11 +648,11 @@ export default function ChatPage() {
             onMessageFailed={failOptimisticMessage}
           />
         ) : (
-          <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">
+          <div className="p-3 bg-bg-secondary border-t border-border-default shrink-0">
             {variant === "unassigned" && (
               <div
                 id="chat-banner-readonly"
-                className="p-2.5 bg-[#2E2E2B] text-center border border-[#3A3A37] rounded text-xs text-[#FFB84D] font-semibold"
+                className="p-2.5 bg-bg-tertiary text-center border border-border-default rounded text-xs text-warning font-semibold"
               >
                 ⚠️ Modo de Solo Lectura • Debes tomar la conversación para
                 responder.
@@ -661,7 +661,7 @@ export default function ChatPage() {
             {variant === "monitoring" && (
               <div
                 id="chat-banner-monitoring"
-                className="p-2.5 bg-[#FFB84D]/5 text-center border border-[#FFB84D]/20 rounded text-xs text-[#FFB84D] font-semibold"
+                className="p-2.5 bg-warning/5 text-center border border-warning/20 rounded text-xs text-warning font-semibold"
               >
                 👁️ Modo Monitoreo • Vista de solo lectura para administradores.
               </div>
@@ -669,7 +669,7 @@ export default function ChatPage() {
             {variant === "bot" && (
               <div
                 id="chat-banner-bot"
-                className="p-2.5 bg-[#00D4AA]/10 text-center border border-[#00D4AA]/30 rounded text-xs text-[#00D4AA] font-semibold"
+                className="p-2.5 bg-success/10 text-center border border-success/30 rounded text-xs text-success font-semibold"
               >
                 {conversation?.has_escalation_history
                   ? "🤖 El bot retomó esta conversación."

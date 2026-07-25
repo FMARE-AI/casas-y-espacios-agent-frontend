@@ -30,26 +30,26 @@ const FILE_TYPES = {
     label: 'Imagen',
     accept: 'image/jpeg,image/png',
     maxMB: 5,
-    iconColor: '#01A4E3',
+    iconColor: 'var(--color-brand-blue)',
   },
   document: {
     label: 'Documento',
     accept: 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     maxMB: 50,
-    iconColor: '#FFB84D',
+    iconColor: 'var(--color-warning)',
   },
   video: {
     label: 'Video',
     accept: 'video/mp4,video/3gpp',
     maxMB: 16,
-    iconColor: '#00D4AA',
+    iconColor: 'var(--color-success)',
   },
 }
 
 const FILE_ICON_COLORS: Record<keyof typeof FILE_TYPES, string> = {
-  image:    'bg-[#01A4E3]/15 border-[#01A4E3]/30 text-[#01A4E3]',
-  document: 'bg-[#FFB84D]/15 border-[#FFB84D]/30 text-[#FFB84D]',
-  video:    'bg-[#00D4AA]/15 border-[#00D4AA]/30 text-[#00D4AA]',
+  image:    'bg-brand-blue/15 border-brand-blue/30 text-brand-blue',
+  document: 'bg-warning/15 border-warning/30 text-warning',
+  video:    'bg-success/15 border-success/30 text-success',
 }
 
 function formatFileSize(bytes: number): string {
@@ -80,15 +80,15 @@ function getFileType(mimeType: string): keyof typeof FILE_TYPES | null {
 
 function getDocIconInfo(mimeType: string) {
   if (mimeType === 'application/pdf') {
-    return { icon: '📕', color: '#FF5B5B', label: 'documento PDF' }
+    return { icon: '📕', color: 'var(--color-error)', label: 'documento PDF' }
   }
   if (mimeType.includes('wordprocessingml') || mimeType.includes('msword')) {
-    return { icon: '📘', color: '#01A4E3', label: 'documento Word' }
+    return { icon: '📘', color: 'var(--color-brand-blue)', label: 'documento Word' }
   }
   if (mimeType.includes('spreadsheetml') || mimeType.includes('ms-excel')) {
-    return { icon: '📗', color: '#00D4AA', label: 'hoja de cálculo Excel' }
+    return { icon: '📗', color: 'var(--color-success)', label: 'hoja de cálculo Excel' }
   }
-  return { icon: '📄', color: '#8B8FA8', label: 'documento' }
+  return { icon: '📄', color: 'var(--color-text-secondary)', label: 'documento' }
 }
 
 function FileIcon({ category }: { category: keyof typeof FILE_TYPES }) {
@@ -161,7 +161,7 @@ function DocxPreview({ file }: DocxPreviewProps) {
   }, [file])
 
   return (
-    <div className="w-full h-full min-h-[420px] max-h-[58vh] overflow-auto rounded-lg border border-[#3A3A37]/30 bg-[#F8F9FA] p-4 sm:p-6 relative docx-preview-scroll">
+    <div className="w-full h-full min-h-[420px] max-h-[58vh] overflow-auto rounded-lg border border-border-default/30 bg-doc-surface p-4 sm:p-6 relative docx-preview-scroll">
       <style>{`
         /* Scrollbars inside the preview */
         .docx-preview-scroll::-webkit-scrollbar {
@@ -169,14 +169,14 @@ function DocxPreview({ file }: DocxPreviewProps) {
           height: 8px;
         }
         .docx-preview-scroll::-webkit-scrollbar-track {
-          background: #F8F9FA;
+          background: var(--color-doc-surface);
         }
         .docx-preview-scroll::-webkit-scrollbar-thumb {
-          background: #CBD5E0;
+          background: var(--color-doc-scroll-thumb);
           border-radius: 4px;
         }
         .docx-preview-scroll::-webkit-scrollbar-thumb:hover {
-          background: #A0AEC0;
+          background: var(--color-doc-scroll-thumb-hover);
         }
 
         .docx-container {
@@ -189,7 +189,7 @@ function DocxPreview({ file }: DocxPreviewProps) {
         }
         .docx-container section.docx {
           background: white !important;
-          color: #2D3748 !important;
+          color: var(--color-doc-text) !important;
           box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
           border-radius: 8px !important;
           padding: 24px !important;
@@ -215,7 +215,7 @@ function DocxPreview({ file }: DocxPreviewProps) {
         .docx-container section.docx td,
         .docx-container section.docx th {
           font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-          color: #1A202C !important;
+          color: var(--color-doc-text) !important;
         }
         
         .docx-container section.docx img {
@@ -232,22 +232,22 @@ function DocxPreview({ file }: DocxPreviewProps) {
 
         .docx-container section.docx td,
         .docx-container section.docx th {
-          border: 1px solid #E2E8F0 !important;
+          border: 1px solid var(--color-doc-border) !important;
           padding: 8px !important;
         }
       `}</style>
 
       {loading && (
-        <div className="absolute inset-0 bg-[#2E2E2B]/95 flex flex-col items-center justify-center gap-3 z-20">
-          <div className="w-8 h-8 border-4 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+        <div className="absolute inset-0 bg-bg-tertiary/95 flex flex-col items-center justify-center gap-3 z-20">
+          <div className="w-8 h-8 border-4 border-brand-blue border-t-transparent rounded-full animate-spin" />
           <span className="text-xs text-white/90">Procesando y mejorando vista de Word...</span>
         </div>
       )}
       {error && (
-        <div className="absolute inset-0 bg-[#252522] flex flex-col items-center justify-center text-center p-4 z-20">
+        <div className="absolute inset-0 bg-bg-secondary flex flex-col items-center justify-center text-center p-4 z-20">
           <span className="text-3xl">📘</span>
           <p className="text-sm font-semibold text-white mt-3">{file.name}</p>
-          <p className="text-xs text-[#FF5B5B] mt-1">{error}</p>
+          <p className="text-xs text-error mt-1">{error}</p>
         </div>
       )}
       <div ref={containerRef} className="docx-container" />
@@ -344,7 +344,7 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
   }
 
   return (
-    <div className="w-full h-full min-h-[420px] max-h-[58vh] flex flex-col rounded-lg border border-[#3A3A37]/30 bg-[#F8F9FA] relative text-black overflow-hidden">
+    <div className="w-full h-full min-h-[420px] max-h-[58vh] flex flex-col rounded-lg border border-border-default/30 bg-doc-surface relative text-black overflow-hidden">
       <style>{`
         /* Excel Table styling */
         .excel-table-container table {
@@ -352,17 +352,17 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
           width: 100% !important;
           font-size: 11px !important;
           font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-          color: #2D3748 !important;
+          color: var(--color-doc-text) !important;
           background-color: white !important;
         }
         .excel-table-container tr:nth-child(even) {
-          background-color: #F7FAFC !important;
+          background-color: var(--color-doc-surface) !important;
         }
         .excel-table-container tr:hover {
-          background-color: #EDF2F7 !important;
+          background-color: var(--color-doc-surface-muted) !important;
         }
         .excel-table-container td {
-          border: 1px solid #E2E8F0 !important;
+          border: 1px solid var(--color-doc-border) !important;
           padding: 6px 12px !important;
           white-space: nowrap !important;
           min-width: 60px !important;
@@ -374,17 +374,17 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
           height: 4px;
         }
         .excel-tabs::-webkit-scrollbar-track {
-          background: #EDF2F7;
+          background: var(--color-doc-surface-muted);
         }
         .excel-tabs::-webkit-scrollbar-thumb {
-          background: #CBD5E0;
+          background: var(--color-doc-scroll-thumb);
           border-radius: 2px;
         }
       `}</style>
 
       {/* Sheets Navigation Bar */}
       {sheets.length > 1 && (
-        <div className="excel-tabs flex items-center gap-1.5 px-4 py-2 border-b border-[#E2E8F0] bg-white overflow-x-auto shrink-0 select-none">
+        <div className="excel-tabs flex items-center gap-1.5 px-4 py-2 border-b border-doc-border bg-white overflow-x-auto shrink-0 select-none">
           {sheets.map((sheet) => (
             <button
               key={sheet}
@@ -392,9 +392,9 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
               onClick={() => handleSheetChange(sheet)}
               className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-md border transition shrink-0 ${
                 activeSheet === sheet
-                  ? 'bg-[#00D4AA] border-[#00D4AA] text-white'
-                  : 'bg-[#EDF2F7] border-[#E2E8F0] text-[#4A5568] hover:bg-[#E2E8F0]'
-              }`}
+                  ? 'bg-success border-success text-white'
+                  : 'bg-doc-surface-muted border-doc-border text-doc-text-muted hover:bg-doc-border'
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90`}
             >
               {sheet}
             </button>
@@ -405,16 +405,16 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
       {/* Content Area */}
       <div className="flex-1 overflow-auto p-4 excel-table-container docx-preview-scroll">
         {loading && (
-          <div className="absolute inset-0 bg-[#2E2E2B]/95 flex flex-col items-center justify-center gap-3 z-20">
-            <div className="w-8 h-8 border-4 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 bg-bg-tertiary/95 flex flex-col items-center justify-center gap-3 z-20">
+            <div className="w-8 h-8 border-4 border-brand-blue border-t-transparent rounded-full animate-spin" />
             <span className="text-xs text-white/90">Cargando datos de Excel...</span>
           </div>
         )}
         {error && (
-          <div className="absolute inset-0 bg-[#252522] flex flex-col items-center justify-center text-center p-4 z-20">
+          <div className="absolute inset-0 bg-bg-secondary flex flex-col items-center justify-center text-center p-4 z-20">
             <span className="text-3xl">📗</span>
             <p className="text-sm font-semibold text-white mt-3">{file.name}</p>
-            <p className="text-xs text-[#FF5B5B] mt-1">{error}</p>
+            <p className="text-xs text-error mt-1">{error}</p>
           </div>
         )}
         {!loading && !error && (
@@ -767,22 +767,22 @@ export default function ChatInput({
   const activeCategory = selectedFile ? (getFileType(selectedFile.type) ?? 'document') : 'document'
 
   return (
-    <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0 space-y-2">
+    <div className="p-3 bg-bg-secondary border-t border-border-default shrink-0 space-y-2">
       {/* Context bar */}
       <div
         id="chat-context-restriction-bar"
-        className="bg-[#2E2E2B]/50 px-3.5 py-2 border border-[#3A3A37]/50 rounded-lg flex flex-wrap justify-between items-center text-[10px] sm:text-[11px] text-[#8B8FA8] shadow-sm"
+        className="bg-bg-tertiary/50 px-3.5 py-2 border border-border-default/50 rounded-lg flex flex-wrap justify-between items-center text-[10px] sm:text-[11px] text-text-secondary shadow-sm"
       >
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#01A4E3] animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse" />
           <span>
             Respondiendo a: <strong className="text-white">{clientName}</strong>
             {' • '}Línea {channel}
           </span>
         </div>
         {waitMinutes !== null && waitMinutes > 0 && (
-          <div className="text-[#FFB84D] flex items-center gap-1 font-semibold">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#FFB84D] animate-pulse" />
+          <div className="text-warning flex items-center gap-1 font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
             <span>⚠️ Esperando respuesta hace {waitMinutes} m</span>
           </div>
         )}
@@ -792,7 +792,7 @@ export default function ChatInput({
       {sendError && (
         <div
           id="chat-send-error-banner"
-          className="flex items-center justify-between p-3 bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 rounded-lg text-xs text-[#FF5B5B] shadow-md animate-pulse"
+          className="flex items-center justify-between p-3 bg-error/10 border border-error/30 rounded-lg text-xs text-error shadow-md animate-pulse"
         >
           <span className="flex items-center gap-2">
             <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -803,7 +803,7 @@ export default function ChatInput({
           <button
             type="button"
             onClick={() => { setSendError(null); handleSend() }}
-            className="shrink-0 ml-3 bg-[#FF5B5B]/20 hover:bg-[#FF5B5B]/40 text-[#FF5B5B] px-3 py-1.5 rounded font-bold text-[10px] uppercase border border-[#FF5B5B]/30 transition active:scale-95"
+            className="shrink-0 ml-3 bg-error/20 hover:bg-error/40 text-error px-3 py-1.5 rounded font-bold text-[10px] uppercase border border-error/30 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Reintentar
           </button>
@@ -814,7 +814,7 @@ export default function ChatInput({
       {selectedFile && (
         <div
           id="file-preview-bar"
-          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-[#2E2E2B]/95 border border-[#3A3A37] rounded-xl text-xs shadow-lg gap-3 animate-fade-in"
+          className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-3 bg-bg-tertiary/95 border border-border-default rounded-xl text-xs shadow-lg gap-3 animate-fade-in"
         >
           <div className="flex items-start sm:items-center gap-3 w-full sm:w-auto">
             {/* Contenedor del Preview más grande para Imagen/Video */}
@@ -846,7 +846,7 @@ export default function ChatInput({
               <p className="text-white font-bold truncate max-w-[200px] sm:max-w-[300px]" id="file-preview-name">
                 {selectedFile.name}
               </p>
-              <p className="text-[#8B8FA8] text-[10px] mt-0.5" id="file-preview-size">
+              <p className="text-text-secondary text-[10px] mt-0.5" id="file-preview-size">
                 {formatFileSize(selectedFile.size)} • {getFileLabel(selectedFile.type)}
               </p>
             </div>
@@ -854,7 +854,7 @@ export default function ChatInput({
           <button
             type="button"
             onClick={removeSelectedFile}
-            className="text-[#8B8FA8] hover:text-[#FF5B5B] hover:bg-[#FF5B5B]/10 p-2 rounded-lg transition active:scale-95 flex-shrink-0 self-end sm:self-center border border-transparent hover:border-[#FF5B5B]/20"
+            className="text-text-secondary hover:text-error hover:bg-error/10 p-2 rounded-lg transition active:scale-[0.98] flex-shrink-0 self-end sm:self-center border border-transparent hover:border-error/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             title="Quitar archivo"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -867,7 +867,7 @@ export default function ChatInput({
       {/* Typing area */}
       <div
         id="chat-input-typing-area"
-        className="relative flex items-start bg-[#2E2E2B]/85 border border-[#3A3A37] rounded-xl focus-within:border-[#01A4E3] focus-within:ring-1 focus-within:ring-[#01A4E3]/25 shadow-inner transition duration-200 p-2 gap-2"
+        className="relative flex items-start bg-bg-tertiary/85 border border-border-default rounded-xl focus-within:border-brand-blue focus-within:ring-1 focus-within:ring-brand-blue/25 shadow-inner transition duration-200 p-2 gap-2"
       >
         {/* Attach button + dropdown */}
         {recorderState === 'idle' && (
@@ -876,7 +876,7 @@ export default function ChatInput({
               type="button"
               onClick={toggleAttachMenu}
               disabled={variant !== 'assigned' || sending || selectedFile !== null}
-              className="p-2.5 text-[#8B8FA8] hover:text-white hover:bg-[#3A3A37] rounded-lg transition active:scale-95 disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed"
+              className="p-2.5 text-text-secondary hover:text-white hover:bg-border-default rounded-lg transition active:scale-[0.98] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               title="Adjuntar archivo"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -887,14 +887,14 @@ export default function ChatInput({
             {attachMenuOpen && (
               <div
                 id="attach-menu"
-                className="absolute bottom-full left-0 mb-2 bg-[#252522] border border-[#3A3A37] rounded-xl shadow-2xl z-50 w-36 overflow-hidden animate-fade-in"
+                className="absolute bottom-full left-0 mb-2 bg-bg-secondary border border-border-default rounded-xl shadow-sm z-50 w-36 overflow-hidden animate-fade-in"
               >
                 <button
                   type="button"
                   onClick={() => triggerFileInput('image')}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-text-primary hover:bg-bg-tertiary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                 >
-                  <svg className="w-4 h-4 text-[#01A4E3]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <span>Imagen</span>
@@ -902,9 +902,9 @@ export default function ChatInput({
                 <button
                   type="button"
                   onClick={() => triggerFileInput('document')}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition border-t border-[#3A3A37]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-text-primary hover:bg-bg-tertiary transition border-t border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                 >
-                  <svg className="w-4 h-4 text-[#FFB84D]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
                   <span>Documento</span>
@@ -912,9 +912,9 @@ export default function ChatInput({
                 <button
                   type="button"
                   onClick={() => triggerFileInput('video')}
-                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-[#F0F0F5] hover:bg-[#2E2E2B] transition border-t border-[#3A3A37]"
+                  className="w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-text-primary hover:bg-bg-tertiary transition border-t border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                 >
-                  <svg className="w-4 h-4 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   <span>Video</span>
@@ -970,17 +970,17 @@ export default function ChatInput({
                   ? 'Añade una descripción opcional...'
                   : 'Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)'
               }
-              className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-[#8B8FA8]/70 resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-text-secondary/70 resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             />
 
             {/* Counter + send */}
-            <div className="flex items-center space-x-2 pl-2 border-l border-[#3A3A37] shrink-0">
-              <span className="text-[10px] text-[#8B8FA8] font-mono">{text.length}/2000</span>
+            <div className="flex items-center space-x-2 pl-2 border-l border-border-default shrink-0">
+              <span className="text-[10px] text-text-secondary font-mono">{text.length}/2000</span>
               <button
                 type="button"
                 onClick={handleSend}
                 disabled={sending || variant !== 'assigned' || (!text.trim() && !selectedFile)}
-                className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white p-2.5 rounded-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                className="bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white p-2.5 rounded-lg transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               >
                 {sending ? (
                   <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1002,20 +1002,20 @@ export default function ChatInput({
       {previewModalOpen && selectedFile && previewUrl && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 animate-fade-in" onClick={removeSelectedFile}>
           <div 
-            className={`bg-[#252522] border border-[#3A3A37] rounded-2xl w-full overflow-hidden shadow-2xl flex flex-col max-h-[90vh] animate-scale-up transition-all duration-300 ${
+            className={`bg-bg-secondary border border-border-default rounded-2xl w-full overflow-hidden shadow-md flex flex-col max-h-[90vh] animate-scale-in transition-all duration-300 ${
               activeCategory === 'document' ? 'max-w-4xl' : 'max-w-xl'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-4 py-3 border-b border-[#3A3A37] flex items-center justify-between bg-[#2E2E2B]/60">
+            <div className="px-4 py-3 border-b border-border-default flex items-center justify-between bg-bg-tertiary/60">
               <h3 className="text-sm font-bold text-white uppercase tracking-wider">
                 Confirmar envío de {activeCategory === 'image' ? 'imagen' : activeCategory === 'video' ? 'video' : getDocIconInfo(selectedFile.type).label}
               </h3>
               <button
                 type="button"
                 onClick={removeSelectedFile}
-                className="text-[#8B8FA8] hover:text-white transition p-1.5 rounded-lg hover:bg-[#FF5B5B]/10 active:scale-95 cursor-pointer"
+                className="text-text-secondary hover:text-white transition p-1.5 rounded-lg hover:bg-error/10 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -1048,7 +1048,7 @@ export default function ChatInput({
                 <iframe
                   src={previewUrl}
                   title="PDF Preview"
-                  className="w-full h-full min-h-[420px] max-h-[58vh] rounded-lg border border-[#3A3A37]/20 bg-white shadow-md animate-fade-in"
+                  className="w-full h-full min-h-[420px] max-h-[58vh] rounded-lg border border-border-default/20 bg-white shadow-md animate-fade-in"
                 />
               ) : selectedFile.type.includes('word') || selectedFile.type.includes('msword') ? (
                 /* Word Preview using DocxPreview component */
@@ -1058,7 +1058,7 @@ export default function ChatInput({
                 <ExcelPreview file={selectedFile} />
               ) : (
                 /* Document Preview Card (Excel or others) */
-                <div className="flex flex-col items-center justify-center p-8 bg-[#252522]/90 border border-[#3A3A37] rounded-xl text-center gap-4 max-w-sm w-full shadow-2xl animate-scale-up">
+                <div className="flex flex-col items-center justify-center p-8 bg-bg-secondary/90 border border-border-default rounded-xl text-center gap-4 max-w-sm w-full shadow-md animate-scale-in">
                   <div
                     className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shadow-inner relative"
                     style={{
@@ -1074,10 +1074,10 @@ export default function ChatInput({
                     <span className="relative z-10">{getDocIconInfo(selectedFile.type).icon}</span>
                   </div>
                   <div className="space-y-1.5 w-full">
-                    <p className="text-sm font-semibold text-[#F0F0F5] break-all px-2 line-clamp-2">
+                    <p className="text-sm font-semibold text-text-primary break-all px-2 line-clamp-2">
                       {selectedFile.name}
                     </p>
-                    <p className="text-xs text-[#8B8FA8]">
+                    <p className="text-xs text-text-secondary">
                       {getDocIconInfo(selectedFile.type).label.charAt(0).toUpperCase() + getDocIconInfo(selectedFile.type).label.slice(1)} • {formatFileSize(selectedFile.size)}
                     </p>
                   </div>
@@ -1086,19 +1086,19 @@ export default function ChatInput({
             </div>
 
             {/* Info & Caption Input */}
-            <div className="p-4 border-t border-[#3A3A37] bg-[#2E2E2B]/40 space-y-3">
-              <div className="flex items-center justify-between text-[10px] text-[#8B8FA8]">
+            <div className="p-4 border-t border-border-default bg-bg-tertiary/40 space-y-3">
+              <div className="flex items-center justify-between text-[10px] text-text-secondary">
                 <span className="truncate max-w-[320px] font-semibold text-white/90">{selectedFile.name}</span>
                 <span>{formatFileSize(selectedFile.size)}</span>
               </div>
 
-              <div className="flex items-center gap-2 bg-[#252522] border border-[#3A3A37] rounded-xl px-3 py-2 focus-within:border-[#01A4E3] focus-within:ring-1 focus-within:ring-[#01A4E3]/25 transition duration-200 shadow-inner">
+              <div className="flex items-center gap-2 bg-bg-secondary border border-border-default rounded-xl px-3 py-2 focus-within:border-brand-blue focus-within:ring-2 focus-within:ring-brand-blue/90 transition duration-200 shadow-inner">
                 <input
                   type="text"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Añade un comentario o descripción (opcional)..."
-                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder-[#8B8FA8]/70"
+                  className="flex-1 bg-transparent text-xs text-white outline-none placeholder-text-secondary/70"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
@@ -1113,7 +1113,7 @@ export default function ChatInput({
                 <button
                   type="button"
                   onClick={removeSelectedFile}
-                  className="px-4 py-2 text-xs font-semibold text-[#8B8FA8] hover:text-white transition rounded-xl hover:bg-white/5 active:scale-95 cursor-pointer"
+                  className="px-4 py-2 text-xs font-semibold text-text-secondary hover:text-white transition rounded-xl hover:bg-white/5 active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                 >
                   Cancelar
                 </button>
@@ -1121,7 +1121,7 @@ export default function ChatInput({
                   type="button"
                   onClick={handleSend}
                   disabled={sending}
-                  className="bg-[#01A4E3] hover:bg-[#0190C8] active:scale-95 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
+                  className="bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                 >
                   {sending ? (
                     <>

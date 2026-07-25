@@ -147,12 +147,12 @@ function ScheduleFormModal({
   return (
     <div
       id="modal-add-schedule"
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-bg-secondary border border-border-default/80 rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
+      <div className="bg-bg-secondary border border-border-default/80 rounded-2xl w-full max-w-sm shadow-md overflow-hidden">
         {/* Modal header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border-default/60">
           <div className="flex items-center gap-3">
@@ -167,7 +167,7 @@ function ScheduleFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-white hover:bg-bg-tertiary/40 border border-transparent transition cursor-pointer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-white hover:bg-bg-tertiary/40 border border-transparent transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -248,14 +248,14 @@ function ScheduleFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 border border-border-default text-text-secondary hover:text-white hover:border-text-secondary rounded-xl text-xs font-semibold transition cursor-pointer"
+              className="flex-1 py-2.5 border border-border-default text-text-secondary hover:text-white hover:border-text-secondary rounded-xl text-xs font-semibold transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 py-2.5 bg-warning hover:bg-[#F0A83A] text-bg-main rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98]"
+              className="flex-1 py-2.5 bg-warning hover:bg-warning-hover text-bg-main rounded-xl text-xs font-bold transition disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               {isSubmitting ? (
                 <div className="w-3.5 h-3.5 border-2 border-bg-main border-t-transparent rounded-full animate-spin" />
@@ -284,12 +284,12 @@ function DeleteConfirmModal({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in"
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
     >
-      <div className="bg-bg-secondary border border-border-default/80 rounded-2xl p-5 max-w-xs w-full shadow-xl">
+      <div className="bg-bg-secondary border border-border-default/80 rounded-2xl p-5 max-w-xs w-full shadow-md">
         <div className="w-10 h-10 rounded-xl bg-error/5 border border-error/15 flex items-center justify-center mx-auto mb-3">
           <AlertTriangle className="w-5 h-5 text-error" />
         </div>
@@ -301,7 +301,7 @@ function DeleteConfirmModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2 text-xs border border-border-default text-text-secondary rounded-lg hover:border-text-secondary hover:text-white transition cursor-pointer"
+            className="flex-1 py-2 text-xs border border-border-default text-text-secondary rounded-lg hover:border-text-secondary hover:text-white transition cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Cancelar
           </button>
@@ -309,7 +309,7 @@ function DeleteConfirmModal({
             type="button"
             onClick={onConfirm}
             disabled={isDeleting}
-            className="flex-1 py-2 text-xs bg-error/10 border border-error/25 text-error rounded-lg hover:bg-error/20 transition disabled:opacity-50 flex items-center justify-center gap-1 font-bold cursor-pointer"
+            className="flex-1 py-2 text-xs bg-error/10 border border-error/25 text-error rounded-lg hover:bg-error/20 transition disabled:opacity-50 flex items-center justify-center gap-1 font-bold cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             {isDeleting ? (
               <div className="w-3 h-3 border-2 border-error border-t-transparent rounded-full animate-spin" />
@@ -395,7 +395,7 @@ export default function ScheduleManager() {
           <button
             type="button"
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-1 px-3 py-1.5 bg-warning/5 hover:bg-warning/10 border border-warning/15 hover:border-warning/30 text-warning rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95"
+            className="flex items-center gap-1 px-3 py-1.5 bg-warning/5 hover:bg-warning/10 border border-warning/15 hover:border-warning/30 text-warning rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Agregar</span>
@@ -498,7 +498,7 @@ export default function ScheduleManager() {
                   <button
                     type="button"
                     onClick={() => setDeletingId(schedule.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-error hover:bg-error/10 border border-transparent hover:border-error/15 transition-all cursor-pointer"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-text-secondary hover:text-error hover:bg-error/10 border border-transparent hover:border-error/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                     title="Eliminar intervalo"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

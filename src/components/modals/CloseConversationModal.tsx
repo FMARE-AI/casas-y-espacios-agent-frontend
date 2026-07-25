@@ -27,17 +27,17 @@ const SATISFACTION_OPTIONS: { value: string; label: string; active: string }[] =
   {
     value: 'si',
     label: '✓ Sí',
-    active: 'bg-[#00D4AA]/10 border-[#00D4AA] text-[#00D4AA]',
+    active: 'bg-success/10 border-success text-success',
   },
   {
     value: 'no',
     label: '✗ No',
-    active: 'bg-[#FF5B5B]/10 border-[#FF5B5B] text-[#FF5B5B]',
+    active: 'bg-error/10 border-error text-error',
   },
   {
     value: 'sin_confirmar',
     label: '— Sin confirmar',
-    active: 'bg-[#8B8FA8]/10 border-[#8B8FA8] text-[#8B8FA8]',
+    active: 'bg-text-secondary/10 border-text-secondary text-text-secondary',
   },
 ]
 
@@ -77,17 +77,17 @@ export default function CloseConversationModal({
 
   return (
     <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 max-w-sm w-full space-y-4">
+      <div className="bg-bg-secondary border border-border-default rounded-xl p-6 max-w-sm w-full space-y-4 shadow-md">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#FF5B5B]/10 flex items-center justify-center text-[#FF5B5B] text-lg">
+          <div className="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center text-error text-lg">
             ✕
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-[#F0F0F5]">
+            <h3 className="text-sm font-semibold text-text-primary">
               Cerrar conversación
             </h3>
-            <p className="text-xs text-[#8B8FA8]">
+            <p className="text-xs text-text-secondary">
               Clasifica cómo quedó esta atención
             </p>
           </div>
@@ -95,7 +95,7 @@ export default function CloseConversationModal({
 
         {/* ¿Cómo se resolvió? */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-[#8B8FA8] uppercase tracking-wider">
+          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
             ¿Cómo se resolvió?
           </p>
           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -105,10 +105,10 @@ export default function CloseConversationModal({
                 type="button"
                 onClick={() => setResolutionType(option.value)}
                 className={[
-                  'w-full text-left px-3 py-2 rounded text-xs transition border',
+                  'w-full text-left px-3 py-2 rounded text-xs transition border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90',
                   resolutionType === option.value
-                    ? 'bg-[#01A4E3]/10 border-[#01A4E3] text-[#01A4E3]'
-                    : 'border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]',
+                    ? 'bg-brand-blue/10 border-brand-blue text-brand-blue'
+                    : 'border-border-default text-text-secondary hover:border-text-secondary',
                 ].join(' ')}
               >
                 {option.label}
@@ -119,7 +119,7 @@ export default function CloseConversationModal({
 
         {/* Notas adicionales */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-[#8B8FA8] uppercase tracking-wider">
+          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
             Notas adicionales{' '}
             <span className="ml-1 normal-case font-normal">(opcional)</span>
           </p>
@@ -129,16 +129,16 @@ export default function CloseConversationModal({
             placeholder="Ej: Técnico visita el jueves 26"
             maxLength={500}
             rows={2}
-            className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition resize-none placeholder-[#8B8FA8]/50"
+            className="w-full bg-bg-tertiary border border-border-default rounded-md p-2.5 text-white text-xs outline-none focus:border-brand-blue transition resize-none placeholder-text-secondary/50"
           />
-          <p className="text-[10px] text-[#8B8FA8] text-right">
+          <p className="text-[10px] text-text-secondary text-right">
             {resolutionNotes.length}/500
           </p>
         </div>
 
         {/* ¿El cliente quedó satisfecho? */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-[#8B8FA8] uppercase tracking-wider">
+          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
             ¿El cliente quedó satisfecho?
           </p>
           <div className="flex gap-2">
@@ -148,10 +148,10 @@ export default function CloseConversationModal({
                 type="button"
                 onClick={() => setClientSatisfied(option.value)}
                 className={[
-                  'flex-1 px-2 py-2 rounded text-[10px] transition border',
+                  'flex-1 px-2 py-2 rounded text-[10px] transition border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90',
                   clientSatisfied === option.value
                     ? option.active
-                    : 'border-[#3A3A37] text-[#8B8FA8]',
+                    : 'border-border-default text-text-secondary',
                 ].join(' ')}
               >
                 {option.label}
@@ -165,7 +165,7 @@ export default function CloseConversationModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 text-xs border border-[#3A3A37] text-[#8B8FA8] rounded hover:border-[#F0F0F5] hover:text-[#F0F0F5] transition"
+            className="flex-1 py-2.5 text-xs border border-border-default text-text-secondary rounded hover:border-text-primary hover:text-text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Cancelar
           </button>
@@ -173,10 +173,10 @@ export default function CloseConversationModal({
             type="button"
             onClick={handleConfirm}
             disabled={isClosing}
-            className="flex-1 py-2.5 text-xs bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 text-[#FF5B5B] rounded hover:bg-[#FF5B5B]/20 transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 text-xs bg-error/10 border border-error/30 text-error rounded hover:bg-error/20 transition disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             {isClosing && (
-              <div className="w-3 h-3 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
+              <div className="w-3 h-3 border-2 border-error border-t-transparent rounded-full animate-spin" />
             )}
             Confirmar cierre
           </button>

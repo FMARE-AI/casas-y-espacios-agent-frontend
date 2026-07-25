@@ -112,21 +112,21 @@ const STATUS_OPTIONS: {
     label: "Disponible",
     sublabel: "En línea",
     id: "avail-btn-available",
-    color: "#00D4AA",
+    color: "var(--color-success)",
   },
   {
     value: "break",
     label: "En descanso",
     sublabel: "Pausa activa",
     id: "avail-btn-break",
-    color: "#FFB84D",
+    color: "var(--color-warning)",
   },
   {
     value: "offline",
     label: "No disponible",
     sublabel: "Fuera de línea",
     id: "avail-btn-offline",
-    color: "#FF5B5B",
+    color: "var(--color-error)",
   },
 ];
 
@@ -144,9 +144,9 @@ const STATUS_LABELS: Record<AvailabilityStatus, string> = {
 };
 
 const STATUS_COLORS: Record<AvailabilityStatus, string> = {
-  available: "#00D4AA",
-  break: "#FFB84D",
-  offline: "#FF5B5B",
+  available: "var(--color-success)",
+  break: "var(--color-warning)",
+  offline: "var(--color-error)",
 };
 
 function formatStatusUntil(statusUntil: string): string {
@@ -251,14 +251,14 @@ function LocalPasswordInput({
         <button
           type="button"
           onClick={() => setShow((v) => !v)}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white transition-colors cursor-pointer"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-text-secondary hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
         >
           {show ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
         </button>
       </div>
       {error && (
-        <p className="text-error text-[11px] mt-0.5 pl-1 flex items-center gap-1 animate-fadeIn">
+        <p className="text-error text-[11px] mt-0.5 pl-1 flex items-center gap-1 animate-fade-in">
           <span className="w-1 h-1 rounded-full bg-error" />
           {error}
         </p>
@@ -273,8 +273,8 @@ function PasswordStrengthBar({ strength }: { strength: PasswordStrength }) {
     strength.level === "weak"  ? 1 :
     strength.level === "fair"  ? 2 : 3;
   const color =
-    strength.level === "strong" ? "#00D4AA" :
-    strength.level === "fair"   ? "#FFB84D" : "#FF5B5B";
+    strength.level === "strong" ? "var(--color-success)" :
+    strength.level === "fair"   ? "var(--color-warning)" : "var(--color-error)";
   const text =
     strength.level === "empty"  ? "No ingresada" :
     strength.level === "weak"   ? "Débil" :
@@ -652,7 +652,7 @@ export default function PerfilPage() {
         {isLoading ? (
           <ProfileSkeleton />
         ) : (
-          <div className="space-y-4 w-full animate-fadeIn">
+          <div className="space-y-4 w-full animate-fade-in">
             {/* ── Hero card ── */}
             <div className="relative overflow-hidden rounded-2xl border border-border-default/60 bg-bg-secondary p-5 shadow-sm">
               <div className="flex flex-col sm:flex-row items-center gap-5">
@@ -678,7 +678,7 @@ export default function PerfilPage() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingAvatar}
-                    className="absolute inset-0 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[9px] font-semibold transition-opacity duration-200 cursor-pointer"
+                    className="absolute inset-0 rounded-full bg-black/70 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[9px] font-semibold transition-opacity duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                   >
                     {uploadingAvatar ? (
                       <div className="w-4 h-4 border border-brand-blue border-t-transparent rounded-full animate-spin" />
@@ -703,12 +703,12 @@ export default function PerfilPage() {
                         value={nameValue}
                         onChange={(e) => setNameValue(e.target.value)}
                         onKeyDown={handleNameKeyDown}
-                        className="bg-bg-tertiary/60 border border-brand-blue text-[15px] font-semibold text-white px-2.5 py-1 rounded-lg outline-none w-full"
+                        className="bg-bg-tertiary/60 border border-brand-blue text-[15px] font-semibold text-white px-2.5 py-1 rounded-lg outline-none w-full focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       />
                       <button
                         type="button"
                         onClick={handleNameBlur}
-                        className="p-1.5 bg-success/10 text-success rounded-lg border border-success/15 transition-all cursor-pointer"
+                        className="p-1.5 bg-success/10 text-success rounded-lg border border-success/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
@@ -718,7 +718,7 @@ export default function PerfilPage() {
                           setNameValue(advisor?.full_name ?? "");
                           setEditingName(false);
                         }}
-                        className="p-1.5 bg-error/10 text-error rounded-lg border border-error/15 transition-all cursor-pointer"
+                        className="p-1.5 bg-error/10 text-error rounded-lg border border-error/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -734,7 +734,7 @@ export default function PerfilPage() {
                       <button
                         type="button"
                         onClick={handleStartEdit}
-                        className="p-1 text-text-secondary hover:text-white rounded transition-colors cursor-pointer"
+                        className="p-1 text-text-secondary hover:text-white rounded transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                         title="Editar nombre"
                       >
                         <Edit2 className="w-3 h-3" />
@@ -755,7 +755,7 @@ export default function PerfilPage() {
                           useToastStore.getState().showToast("Correo copiado al portapapeles", 'success');
                         }
                       }}
-                      className="inline-flex items-center gap-2 bg-bg-tertiary/20 hover:bg-bg-tertiary/40 border border-border-default/60 rounded-xl px-2.5 py-1 text-xs text-text-secondary hover:text-white transition-colors cursor-pointer group active:scale-95"
+                      className="inline-flex items-center gap-2 bg-bg-tertiary/20 hover:bg-bg-tertiary/40 border border-border-default/60 rounded-xl px-2.5 py-1 text-xs text-text-secondary hover:text-white transition-colors cursor-pointer group active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       title="Copiar correo al portapapeles"
                     >
                       <Mail className="w-3 h-3 text-brand-blue group-hover:scale-105 transition-transform" />
@@ -855,7 +855,7 @@ export default function PerfilPage() {
                           }
                         }}
                         className={[
-                          "flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-colors text-center active:scale-[0.98] cursor-pointer",
+                          "flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-colors text-center active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90",
                           isSelected
                             ? "border-[--c]/40 bg-[--c]/5"
                             : "border-border-default bg-bg-tertiary/10 hover:border-[--c]/20 hover:bg-[--c]/5",
@@ -938,7 +938,7 @@ export default function PerfilPage() {
                             type="button"
                             onClick={() => setSelectedMinutes(option.value)}
                             className={[
-                              "text-xs py-2 rounded-lg border transition-colors font-medium cursor-pointer active:scale-95",
+                              "text-xs py-2 rounded-lg border transition-colors font-medium cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90",
                               selectedMinutes === option.value
                                 ? "bg-bg-tertiary border-brand-blue/50 text-white"
                                 : "border-border-default text-text-secondary hover:border-text-secondary",
@@ -954,7 +954,7 @@ export default function PerfilPage() {
                       type="button"
                       onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
                       disabled={isSavingStatus}
-                      className="w-full bg-brand-blue hover:bg-[#0190C8] text-white text-[13px] font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98]"
+                      className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white text-[13px] font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                     >
                       {isSavingStatus ? (
                         <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1025,7 +1025,7 @@ export default function PerfilPage() {
                 <button
                   type="submit"
                   disabled={!currentPassword || !strength.isValid || !!sameAsCurrentError || !!confirmError || !confirmPassword || isSavingPassword}
-                  className="w-full bg-brand-blue hover:bg-[#0190C8] text-white py-3 rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-5 cursor-pointer shadow active:scale-[0.98]"
+                  className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-3 rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                 >
                   {isSavingPassword ? (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
