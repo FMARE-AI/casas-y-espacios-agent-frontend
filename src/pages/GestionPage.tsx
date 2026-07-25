@@ -235,7 +235,7 @@ export const GestionPage: React.FC = () => {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-4 rounded-lg border border-border-default bg-bg-secondary/60 p-2.5 sm:p-4 backdrop-blur-md">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-4 rounded-lg border border-border-default bg-bg-secondary p-2.5 sm:p-4">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-secondary" />
           <input
@@ -330,7 +330,7 @@ interface DeactivateModalProps {
 const DeactivateModal: React.FC<DeactivateModalProps> = ({ advisor, onConfirm, onCancel, isSaving }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div
-      className="fixed inset-0 bg-bg-main/75 backdrop-blur-sm transition-opacity"
+      className="fixed inset-0 bg-bg-main/85 transition-opacity"
       onClick={onCancel}
     />
     <div

@@ -29,7 +29,7 @@ export default function SessionExpiredModal() {
   return (
     <div
       id="dialog-modal-overlay"
-      className="fixed inset-0 bg-bg-main/90 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+      className="fixed inset-0 bg-bg-main/90 flex items-center justify-center p-4 z-[9999]"
     >
       <div
         id="modal-expired-session"

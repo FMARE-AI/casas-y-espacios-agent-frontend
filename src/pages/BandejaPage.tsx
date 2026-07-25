@@ -135,7 +135,7 @@ function TakeModal({
   const waitMinutes = Math.floor(waitSeconds / 60)
 
   return (
-    <div id="dialog-modal-overlay" className="fixed inset-0 bg-bg-main/90 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
+    <div id="dialog-modal-overlay" className="fixed inset-0 bg-bg-main/90 flex items-center justify-center p-4 z-[9999]">
       <div id="modal-confirm-take" className="bg-bg-secondary border border-border-default rounded-panel shadow-md p-6 max-w-md w-full space-y-4">
         <div>
           <h3 className="text-h3 text-text-primary flex items-center gap-2">

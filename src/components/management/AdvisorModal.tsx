@@ -130,14 +130,14 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-bg-main/75 backdrop-blur-sm transition-opacity will-change-[opacity]"
+        className="fixed inset-0 bg-bg-main/85 transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal card */}
       <div
         id={isEdit ? 'modal-edit-advisor' : 'modal-new-advisor'}
-        className="relative z-10 flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-panel border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors will-change-transform"
+        className="relative z-10 flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-panel border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors"
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-border-default px-4 py-3 sm:px-6 sm:py-4">
