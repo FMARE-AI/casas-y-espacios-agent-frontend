@@ -65,7 +65,7 @@ export default function ClientPanel({
       <div className="space-y-4">
         {/* Mobile close */}
         <div className="lg:hidden flex justify-between items-center pb-2 border-b border-border-default">
-          <span className="text-xs font-bold text-white uppercase tracking-wider">
+          <span className="text-label text-text-primary uppercase">
             Ficha de Información
           </span>
           <button
@@ -85,11 +85,11 @@ export default function ClientPanel({
             <div className="w-16 h-16 rounded-full bg-brand-blue/15 border-2 border-brand-blue/40 text-brand-blue font-bold text-xl flex items-center justify-center shrink-0">
               {getInitials(client.full_name)}
             </div>
-            <h4 className="mt-3 text-sm font-bold text-white leading-tight max-w-full truncate">
+            <h4 className="mt-3 text-h3 text-text-primary leading-tight max-w-full truncate">
               {client.full_name ?? 'Sin identificar'}
             </h4>
             <span
-              className={`mt-2 text-[9px] px-2.5 py-1 rounded-full uppercase tracking-wider font-extrabold ${
+              className={`mt-2 text-label px-2.5 py-1 rounded-full uppercase ${
                 CHANNEL_STYLES[channel] ?? 'bg-border-default/60 text-text-secondary'
               }`}
             >
@@ -115,7 +115,7 @@ export default function ClientPanel({
                 </svg>
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] text-text-secondary uppercase tracking-wider font-bold">
+                <p className="text-label text-text-secondary uppercase">
                   Celular
                 </p>
                 <p className="text-white font-mono text-xs truncate">{client.phone_number}</p>
@@ -139,7 +139,7 @@ export default function ClientPanel({
                 </svg>
               </div>
               <div className="min-w-0">
-                <p className="text-[9px] text-text-secondary uppercase tracking-wider font-bold">
+                <p className="text-label text-text-secondary uppercase">
                   Cédula / NIT
                 </p>
                 <p className="text-white font-mono text-xs truncate">
@@ -153,7 +153,7 @@ export default function ClientPanel({
         {/* AI escalation summary */}
         {escalation && (
           <div className="bg-error/[0.06] border border-error/40 rounded-xl p-3.5 space-y-2.5 shadow-sm">
-            <div className="flex items-center gap-1.5 text-error font-black uppercase text-[10px] tracking-wider">
+            <div className="flex items-center gap-1.5 text-error text-label uppercase">
               <span className="w-1.5 h-1.5 rounded-full bg-error animate-pulse" />
               <span>Análisis de escalado IA</span>
             </div>
@@ -166,7 +166,7 @@ export default function ClientPanel({
 
             {escalation.transfer_reason && (
               <div className="bg-brand-blue/10 border border-brand-blue/30 rounded-lg p-2.5">
-                <p className="text-[9px] text-brand-blue uppercase font-bold tracking-wider mb-1">
+                <p className="text-label text-brand-blue uppercase mb-1">
                   Motivo de transferencia
                 </p>
                 <p className="text-white/80 text-[11px] leading-relaxed">
@@ -198,7 +198,7 @@ export default function ClientPanel({
             type="button"
             onClick={onTake}
             disabled={isTaking}
-            className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-3 px-3 h-12 rounded text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-3 px-3 h-12 rounded-control text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           >
             {isTaking ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -217,7 +217,7 @@ export default function ClientPanel({
               type="button"
               onClick={onReturnBot}
               disabled={isReturning}
-              className="w-full bg-error/10 hover:bg-error/20 border border-error/30 hover:border-error text-error py-3 px-3 h-12 rounded text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="w-full bg-error/10 hover:bg-error/20 border border-error/30 hover:border-error text-error py-3 px-3 h-12 rounded-control text-xs font-bold transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               {isReturning ? (
                 <div className="w-4 h-4 border-2 border-error border-t-transparent rounded-full animate-spin" />
@@ -231,7 +231,7 @@ export default function ClientPanel({
             <button
               type="button"
               onClick={onCloseConversation}
-              className="w-full h-12 border border-error/20 text-error/60 text-xs font-semibold rounded hover:border-error/40 hover:text-error transition mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="w-full h-12 border border-error/20 text-error/60 text-xs font-semibold rounded-control hover:border-error/40 hover:text-error transition mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               Cerrar conversación
             </button>
@@ -242,7 +242,7 @@ export default function ClientPanel({
           <button
             type="button"
             onClick={onTransfer}
-            className="w-full h-12 border border-brand-blue/20 hover:border-brand-blue/40 hover:bg-brand-blue/10 text-brand-blue hover:text-white text-xs font-semibold rounded transition mt-2 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="w-full h-12 border border-brand-blue/20 hover:border-brand-blue/40 hover:bg-brand-blue/10 text-brand-blue hover:text-white text-xs font-semibold rounded-control transition mt-2 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           >
             <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />

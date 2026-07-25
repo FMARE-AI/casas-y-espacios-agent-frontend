@@ -137,16 +137,16 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
       {/* Modal card */}
       <div
         id={isEdit ? 'modal-edit-advisor' : 'modal-new-advisor'}
-        className="relative z-10 w-full max-w-lg overflow-hidden rounded-lg border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors will-change-transform"
+        className="relative z-10 w-full max-w-lg overflow-hidden rounded-panel border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors will-change-transform"
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border-default px-6 py-4">
-          <h3 className="text-lg font-bold text-text-primary">
+          <h3 className="text-h2 text-text-primary">
             {isEdit ? 'Editar Perfil del Asesor' : 'Crear Nuevo Asesor Operativo'}
           </h3>
           <button
             onClick={onClose}
-            className="rounded p-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="rounded-control p-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <X className="h-5 w-5" />
           </button>
@@ -170,7 +170,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Nombre completo */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Nombre completo
             </label>
             <input
@@ -188,7 +188,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Correo institucional */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Correo institucional
             </label>
             <div className="relative">
@@ -238,7 +238,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
           {/* Grid Rol + Área */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+              <label className="mb-1.5 block text-label text-text-secondary uppercase">
                 Rol en el panel
               </label>
               <select
@@ -251,7 +251,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+              <label className="mb-1.5 block text-label text-text-secondary uppercase">
                 Área operativa
               </label>
               <select
@@ -267,7 +267,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Especialidad */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Especialidad <span className="font-normal normal-case text-text-secondary/60">(opcional)</span>
             </label>
             <select
@@ -296,7 +296,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Límite de conversaciones */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-text-secondary">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Límite de conversaciones activas
             </label>
             <select
@@ -332,14 +332,14 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="rounded-md border border-border-default bg-transparent px-4 py-2 text-sm font-semibold text-text-primary hover:bg-bg-tertiary transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="rounded-control border border-border-default bg-transparent px-4 py-2 text-sm font-semibold text-text-primary hover:bg-bg-tertiary transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSaving || (!isEdit && !passwordStrength.isValid)}
-              className="rounded-md bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/95 active:bg-brand-blue/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="rounded-control bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/95 active:bg-brand-blue/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
             >
               {isSaving && (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

@@ -185,7 +185,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="text-xs font-bold text-white group-hover:text-brand-blue truncate tracking-wide transition duration-300">
+              <h4 className="text-label text-text-primary group-hover:text-brand-blue truncate transition duration-300">
                 {advisor?.full_name ?? 'Asesor'}
               </h4>
               <p className="text-[11px] font-medium text-text-secondary truncate mt-0.5" title={advisor?.email}>
@@ -294,7 +294,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           {/* Sign out */}
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 border border-error/30 hover:border-error text-error hover:bg-error/10 rounded-md text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="w-full flex items-center justify-center space-x-2 px-3 py-2.5 border border-error/30 hover:border-error text-error hover:bg-error/10 rounded-control text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

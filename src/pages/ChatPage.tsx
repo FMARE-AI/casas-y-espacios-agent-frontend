@@ -530,7 +530,7 @@ export default function ChatPage() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-lg text-xs font-semibold text-text-secondary hover:text-white transition active:scale-[0.98] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-control text-xs font-semibold text-text-secondary hover:text-white transition active:scale-[0.98] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
                 className="w-3.5 h-3.5"
@@ -554,7 +554,7 @@ export default function ChatPage() {
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+              <h3 className="text-h3 text-text-primary flex items-center gap-1.5">
                 {clientName}
                 <span
                   id="chat-header-status-dot"
@@ -603,7 +603,7 @@ export default function ChatPage() {
             <button
               type="button"
               onClick={() => setRightPanelOpen(true)}
-              className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded text-xs font-semibold text-text-secondary hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-control text-xs font-semibold text-text-secondary hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
                 className="w-4 h-4 text-brand-blue"

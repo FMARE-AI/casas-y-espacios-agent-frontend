@@ -116,14 +116,14 @@ export default function TransferModal({
 
   return (
     <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-      <div className="bg-bg-secondary border border-border-default rounded-xl p-6 max-w-md w-full space-y-4 flex flex-col max-h-[90vh] shadow-md">
+      <div className="bg-bg-secondary border border-border-default rounded-panel p-6 max-w-md w-full space-y-4 flex flex-col max-h-[90vh] shadow-md">
         {/* Header */}
         <div className="flex items-center gap-3 pb-2 border-b border-border-default">
           <div className="w-10 h-10 rounded-full bg-brand-blue/10 flex items-center justify-center text-brand-blue text-lg">
             ⇄
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">
+            <h3 className="text-h3 text-text-primary">
               Transferir conversación
             </h3>
             <p className="text-xs text-text-secondary">
@@ -154,7 +154,7 @@ export default function TransferModal({
             </div>
           ) : (
             <div className="space-y-2">
-              <label className="text-[10px] text-text-secondary uppercase font-bold tracking-wider">
+              <label className="text-label text-text-secondary uppercase">
                 Selecciona el asesor destino
               </label>
               <div className="space-y-1.5 max-h-[220px] overflow-y-auto">
@@ -165,11 +165,11 @@ export default function TransferModal({
                       key={adv.id}
                       type="button"
                       onClick={() => setSelectedAdvisorId(adv.id)}
-                      className={`w-full text-left p-3 rounded-lg border text-xs transition flex items-center justify-between ${
+                      className={`w-full text-left p-3 rounded-control border text-xs transition flex items-center justify-between ${
                         isSelected
                           ? 'bg-brand-blue/15 border-brand-blue text-white'
                           : 'bg-bg-tertiary/50 border-border-default text-text-secondary hover:border-text-secondary/40 hover:text-white'
-                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90`}
+                      } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90`}
                     >
                       <div className="min-w-0 flex-1">
                         <p className="font-bold truncate">{adv.full_name}</p>
@@ -183,7 +183,7 @@ export default function TransferModal({
                             {adv.active_conversations} / {adv.max_conversations}
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded bg-success/10 text-success text-[9px] font-bold uppercase tracking-wider">
+                          <span className="px-2 py-0.5 rounded bg-success/10 text-success text-label uppercase">
                             Disponible
                           </span>
                         )}
@@ -199,7 +199,7 @@ export default function TransferModal({
           {!loading && availableAdvisors.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border-default/50">
               <div className="flex justify-between items-center">
-                <label className="text-[10px] text-text-secondary uppercase font-bold tracking-wider">
+                <label className="text-label text-text-secondary uppercase">
                   Motivo de la transferencia (opcional)
                 </label>
                 <span className="text-[9px] text-text-secondary font-mono">
@@ -222,7 +222,7 @@ export default function TransferModal({
             type="button"
             onClick={onCancel}
             disabled={submitting}
-            className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded font-semibold transition active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded-control font-semibold transition active:scale-[0.98] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Cancelar
           </button>
@@ -231,7 +231,7 @@ export default function TransferModal({
               type="button"
               onClick={handleConfirm}
               disabled={!selectedAdvisorId || submitting}
-              className="px-4 py-2.5 bg-brand-blue hover:bg-brand-blue-hover disabled:bg-brand-blue/40 text-white rounded font-bold transition active:scale-[0.98] flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="px-4 py-2.5 bg-brand-blue hover:bg-brand-blue-hover disabled:bg-brand-blue/40 text-white rounded-control font-bold transition active:scale-[0.98] flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
             >
               {submitting && (
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />

@@ -214,7 +214,7 @@ export default function AudioRecorder({
         type="button"
         onClick={startRecording}
         disabled={disabled}
-        className="p-2 text-text-secondary hover:text-white hover:bg-border-default rounded transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+        className="p-2 text-text-secondary hover:text-white hover:bg-border-default rounded-control transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
         title="Grabar audio"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,7 +252,7 @@ export default function AudioRecorder({
         <button
           type="button"
           onClick={stopRecording}
-          className="p-1.5 bg-error/10 hover:bg-error/20 border border-error/30 rounded text-error transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          className="p-1.5 bg-error/10 hover:bg-error/20 border border-error/30 rounded-control text-error transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           title="Detener grabación"
         >
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -275,7 +275,7 @@ export default function AudioRecorder({
         <button
           type="button"
           onClick={sendAudio}
-          className="p-2 bg-brand-blue hover:bg-brand-blue-hover text-white rounded transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          className="p-2 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           title="Enviar audio"
         >
           <svg className="w-3.5 h-3.5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,7 +285,7 @@ export default function AudioRecorder({
         <button
           type="button"
           onClick={cancelRecording}
-          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-control transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           title="Cancelar"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -33,6 +33,12 @@ export const FilterBar = memo(function FilterBar({
   const btnBase = 'px-3 py-1.5 rounded transition flex items-center gap-1.5 text-xs font-semibold border'
   const btnActive = 'bg-brand-blue border-brand-blue text-white'
   const btnInactive = 'border-border-default text-text-secondary hover:text-white'
+  // Active tabs fill solid brand-blue: a brand-blue ring on that same hue reads
+  // as almost no ring at all (verified empirically — ratio 1.00 against its own
+  // face). text-primary reads clearly against blue while still clearing 3:1
+  // against every page surface for the inactive (neutral-background) case.
+  const focusRingActive = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90'
+  const focusRingInactive = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90'
 
   return (
     <div
@@ -43,7 +49,7 @@ export const FilterBar = memo(function FilterBar({
         {/* Tab "Mis conversaciones" — asesor only */}
         {advisorRole === 'asesor' && (
           <button
-            className={`${btnBase} ${activeStatus === 'mine' ? btnActive : btnInactive} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition`}
+            className={`${btnBase} transition ${activeStatus === 'mine' ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
             onClick={() => onStatusChange('mine')}
           >
             Mis conversaciones
@@ -61,13 +67,13 @@ export const FilterBar = memo(function FilterBar({
         )}
 
         <button
-          className={`${btnBase} ${activeStatus === null ? btnActive : btnInactive} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition`}
+          className={`${btnBase} transition ${activeStatus === null ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
           onClick={() => onStatusChange(null)}
         >
           Todas ({totals.all})
         </button>
         <button
-          className={`${btnBase} ${activeStatus === 'escalada' ? btnActive : btnInactive} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition`}
+          className={`${btnBase} transition ${activeStatus === 'escalada' ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
           onClick={() => onStatusChange('escalada')}
         >
           Escaladas
@@ -76,7 +82,7 @@ export const FilterBar = memo(function FilterBar({
           </span>
         </button>
         <button
-          className={`${btnBase} ${activeStatus === 'activa' ? btnActive : btnInactive} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition`}
+          className={`${btnBase} transition ${activeStatus === 'activa' ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
           onClick={() => onStatusChange('activa')}
         >
           Activas ({totals.activas})
@@ -95,7 +101,7 @@ export const FilterBar = memo(function FilterBar({
         </select>
         <button
           onClick={onRefresh}
-          className="bg-bg-tertiary hover:bg-border-default p-1.5 rounded border border-border-default text-text-secondary hover:text-white shrink-0 active:scale-[0.98] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          className="bg-bg-tertiary hover:bg-border-default p-1.5 rounded-control border border-border-default text-text-secondary hover:text-white shrink-0 active:scale-[0.98] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           title="Recargar"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

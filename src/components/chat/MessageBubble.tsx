@@ -386,7 +386,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
           <button
             type="button"
             onClick={() => setIsExpanded(true)}
-            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-lg text-white/95 opacity-0 group-hover/video:opacity-100 transition duration-200 shadow-lg border border-white/10 z-10 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-control text-white/95 opacity-0 group-hover/video:opacity-100 transition duration-200 shadow-lg border border-white/10 z-10 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             title="Ver en grande"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -399,7 +399,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
         <div className={`flex items-center justify-between px-1 text-[10px] border-b pb-1 ${
           isAdvisor ? 'text-white/70 border-white/20' : 'text-text-secondary border-white/5'
         }`}>
-          <span className="font-semibold uppercase tracking-wider text-[9px]">Video</span>
+          <span className="text-label uppercase">Video</span>
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -525,7 +525,7 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
     return (
       <div className="flex flex-col items-end max-w-[75%] ml-auto space-y-0.5 shrink-0">
         <div className={`bg-bg-secondary text-text-primary rounded-xl rounded-tr-none ${isDocument ? '' : 'p-3'} leading-relaxed border border-border-default/60 shadow-sm`}>
-          <div className="flex items-center space-x-1 text-success font-medium text-[10px] uppercase tracking-wider opacity-80 mb-1 px-3 pt-3">
+          <div className="flex items-center space-x-1 text-success text-label uppercase opacity-80 mb-1 px-3 pt-3">
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>

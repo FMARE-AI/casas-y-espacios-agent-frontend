@@ -172,7 +172,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
       {/* Header */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-sm font-semibold text-text-primary">Alertas de Comportamiento</h2>
+          <h2 className="text-h3 text-text-primary">Alertas de Comportamiento</h2>
           {filteredAlerts.length > 0 && (
             <span className="bg-error text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
               {filteredAlerts.length}
@@ -304,7 +304,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
                           },
                         }
                       )}
-                      className="flex items-center gap-1.5 text-xs font-semibold text-brand-blue border border-brand-blue/40 hover:border-brand-blue hover:bg-brand-blue/10 px-2.5 py-1 rounded transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                      className="flex items-center gap-1.5 text-xs font-semibold text-brand-blue border border-brand-blue/40 hover:border-brand-blue hover:bg-brand-blue/10 px-2.5 py-1 rounded-control transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
                     >
                       Ver conversación
                       <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -315,7 +315,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
                       type="button"
                       disabled={reviewingIds.has(alert.id)}
                       onClick={() => handleMarkReviewed(alert.id)}
-                      className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border border-border-default text-text-secondary hover:border-success hover:text-success rounded transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                      className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 border border-border-default text-text-secondary hover:border-success hover:text-success rounded-control transition disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                     >
                       {reviewingIds.has(alert.id) ? (
                         <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin" />

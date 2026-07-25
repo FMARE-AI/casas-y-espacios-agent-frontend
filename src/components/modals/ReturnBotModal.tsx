@@ -26,10 +26,10 @@ export default function ReturnBotModal({
     <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
       <div
         id="modal-confirm-release"
-        className="bg-bg-secondary border border-border-default rounded-xl shadow-md p-6 max-w-md w-full space-y-4"
+        className="bg-bg-secondary border border-border-default rounded-panel shadow-md p-6 max-w-md w-full space-y-4"
       >
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <h3 className="text-h3 text-text-primary flex items-center gap-2">
             <svg
               className="w-5 h-5 text-success"
               fill="none"
@@ -57,7 +57,7 @@ export default function ReturnBotModal({
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded-control font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Cancelar
           </button>
@@ -65,7 +65,7 @@ export default function ReturnBotModal({
             type="button"
             onClick={onConfirm}
             disabled={isReturning}
-            className="px-4 py-2.5 bg-transparent hover:bg-success/10 border border-success text-success rounded font-bold transition active:scale-[0.98] disabled:opacity-60 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="px-4 py-2.5 bg-transparent hover:bg-success/10 border border-success text-success rounded-control font-bold transition active:scale-[0.98] disabled:opacity-60 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             {isReturning && (
               <div className="w-3.5 h-3.5 border-2 border-success border-t-transparent rounded-full animate-spin" />

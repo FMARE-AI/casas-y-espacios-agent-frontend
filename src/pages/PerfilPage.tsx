@@ -226,7 +226,7 @@ function LocalPasswordInput({
     <div className="space-y-1">
       <label
         htmlFor={id}
-        className="text-[11px] text-text-secondary uppercase font-bold tracking-wider block"
+        className="text-label text-text-secondary uppercase block"
       >
         {label}
       </label>
@@ -284,7 +284,7 @@ function PasswordStrengthBar({ strength }: { strength: PasswordStrength }) {
     <div className="space-y-1.5 mt-1.5">
       <div className="flex justify-between items-center text-[11px]">
         <span className="text-text-secondary font-medium">Seguridad de la contraseña:</span>
-        <span style={{ color }} className="font-semibold uppercase tracking-wider">
+        <span style={{ color }} className="text-label uppercase">
           {text}
         </span>
       </div>
@@ -644,7 +644,7 @@ export default function PerfilPage() {
         {/* Page header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-white tracking-tight">Mi Perfil</h2>
+            <h2 className="text-h2 text-text-primary">Mi Perfil</h2>
             <p className="text-xs text-text-secondary">Configuración personal y de estado.</p>
           </div>
         </div>
@@ -708,7 +708,7 @@ export default function PerfilPage() {
                       <button
                         type="button"
                         onClick={handleNameBlur}
-                        className="p-1.5 bg-success/10 text-success rounded-lg border border-success/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                        className="p-1.5 bg-success/10 text-success rounded-control border border-success/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
@@ -718,7 +718,7 @@ export default function PerfilPage() {
                           setNameValue(advisor?.full_name ?? "");
                           setEditingName(false);
                         }}
-                        className="p-1.5 bg-error/10 text-error rounded-lg border border-error/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                        className="p-1.5 bg-error/10 text-error rounded-control border border-error/15 transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -727,14 +727,14 @@ export default function PerfilPage() {
                     <div className="flex items-center gap-1.5 group justify-center sm:justify-start">
                       <h1
                         id="perfil-name-display"
-                        className="text-lg font-bold text-white tracking-tight"
+                        className="text-h1 text-text-primary"
                       >
                         {advisor?.full_name}
                       </h1>
                       <button
                         type="button"
                         onClick={handleStartEdit}
-                        className="p-1 text-text-secondary hover:text-white rounded transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                        className="p-1 text-text-secondary hover:text-white rounded-control transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                         title="Editar nombre"
                       >
                         <Edit2 className="w-3 h-3" />
@@ -755,7 +755,7 @@ export default function PerfilPage() {
                           useToastStore.getState().showToast("Correo copiado al portapapeles", 'success');
                         }
                       }}
-                      className="inline-flex items-center gap-2 bg-bg-tertiary/20 hover:bg-bg-tertiary/40 border border-border-default/60 rounded-xl px-2.5 py-1 text-xs text-text-secondary hover:text-white transition-colors cursor-pointer group active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                      className="inline-flex items-center gap-2 bg-bg-tertiary/20 hover:bg-bg-tertiary/40 border border-border-default/60 rounded-control px-2.5 py-1 text-xs text-text-secondary hover:text-white transition-colors cursor-pointer group active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                       title="Copiar correo al portapapeles"
                     >
                       <Mail className="w-3 h-3 text-brand-blue group-hover:scale-105 transition-transform" />
@@ -770,7 +770,7 @@ export default function PerfilPage() {
                     <span
                       id="perfil-role-badge"
                       className={[
-                        "text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border",
+                        "text-label px-2 py-0.5 rounded uppercase border",
                         advisor?.role ? ROLE_BADGE_STYLES[advisor.role] : ROLE_BADGE_STYLES.asesor,
                       ].join(" ")}
                     >
@@ -779,7 +779,7 @@ export default function PerfilPage() {
 
                     <span
                       id="perfil-area-badge"
-                      className="text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-border-default/50 text-text-secondary bg-bg-tertiary/20 cursor-help flex items-center gap-1"
+                      className="text-label px-2 py-0.5 rounded uppercase border border-border-default/50 text-text-secondary bg-bg-tertiary/20 cursor-help flex items-center gap-1"
                       title="Solo el administrador puede cambiar tu área asignada"
                     >
                       <Briefcase className="w-2.5 h-2.5" />
@@ -788,7 +788,7 @@ export default function PerfilPage() {
 
                     <div
                       id="availability-status-display"
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-wider"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border text-label uppercase"
                       style={{
                         borderColor: `${STATUS_COLORS[currentStatus]}25`,
                         backgroundColor: `${STATUS_COLORS[currentStatus]}05`,
@@ -826,7 +826,7 @@ export default function PerfilPage() {
                     <Clock className="w-4 h-4 text-brand-blue" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white tracking-tight">Disponibilidad</h3>
+                    <h3 className="text-h3 text-text-primary tracking-tight">Disponibilidad</h3>
                     <p className="text-[11px] text-text-secondary">
                       Estado en el panel de distribución.
                     </p>
@@ -855,7 +855,7 @@ export default function PerfilPage() {
                           }
                         }}
                         className={[
-                          "flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border transition-colors text-center active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90",
+                          "flex flex-col items-center justify-center py-2.5 px-2 rounded-control border transition-colors text-center active:scale-[0.98] cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90",
                           isSelected
                             ? "border-[--c]/40 bg-[--c]/5"
                             : "border-border-default bg-bg-tertiary/10 hover:border-[--c]/20 hover:bg-[--c]/5",
@@ -884,7 +884,7 @@ export default function PerfilPage() {
                   <div className="flex items-start gap-3 p-4 rounded-xl border border-success/15 bg-success/5">
                     <Activity className="w-4 h-4 text-success shrink-0 mt-0.5" />
                     <div>
-                      <p className="text-[11px] font-bold text-success uppercase tracking-wider mb-0.5">
+                      <p className="text-label text-success uppercase mb-0.5">
                         En Línea
                       </p>
                       <p className="text-[13px] text-text-secondary leading-normal">
@@ -914,7 +914,7 @@ export default function PerfilPage() {
                       )}
                       <div>
                         <p
-                          className="text-[11px] font-bold uppercase tracking-wider mb-0.5"
+                          className="text-label uppercase mb-0.5"
                           style={{ color: STATUS_COLORS[selectedStatus] }}
                         >
                           {selectedStatus === "break" ? "Pausa Activa" : "Pausa Indefinida"}
@@ -928,7 +928,7 @@ export default function PerfilPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <p className="text-[11px] text-text-secondary uppercase font-bold tracking-wider">
+                      <p className="text-label text-text-secondary uppercase">
                         Duración del descanso
                       </p>
                       <div className="grid grid-cols-4 gap-1.5">
@@ -938,7 +938,7 @@ export default function PerfilPage() {
                             type="button"
                             onClick={() => setSelectedMinutes(option.value)}
                             className={[
-                              "text-xs py-2 rounded-lg border transition-colors font-medium cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90",
+                              "text-xs py-2 rounded-control border transition-colors font-medium cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90",
                               selectedMinutes === option.value
                                 ? "bg-bg-tertiary border-brand-blue/50 text-white"
                                 : "border-border-default text-text-secondary hover:border-text-secondary",
@@ -954,7 +954,7 @@ export default function PerfilPage() {
                       type="button"
                       onClick={() => handleApplyStatusDirectly(selectedStatus, selectedMinutes)}
                       disabled={isSavingStatus}
-                      className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white text-[13px] font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                      className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white text-[13px] font-bold py-3 rounded-control transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
                     >
                       {isSavingStatus ? (
                         <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -979,7 +979,7 @@ export default function PerfilPage() {
                       <Shield className="w-4 h-4 text-brand-blue" />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white tracking-tight">Contraseña</h3>
+                      <h3 className="text-h3 text-text-primary tracking-tight">Contraseña</h3>
                       <p className="text-[11px] text-text-secondary">
                         Actualiza tu clave de acceso.
                       </p>
@@ -1025,7 +1025,7 @@ export default function PerfilPage() {
                 <button
                   type="submit"
                   disabled={!currentPassword || !strength.isValid || !!sameAsCurrentError || !!confirmError || !confirmPassword || isSavingPassword}
-                  className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-3 rounded-xl text-[13px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                  className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-3 rounded-control text-[13px] font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 mt-5 cursor-pointer shadow active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
                 >
                   {isSavingPassword ? (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />

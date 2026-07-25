@@ -97,7 +97,7 @@ function EmptyState() {
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <h4 className="text-sm font-bold text-white">No hay conversaciones</h4>
+        <h4 className="text-h3 text-text-primary">No hay conversaciones</h4>
         <p className="text-xs text-text-secondary mt-1 leading-relaxed">
           No se encontraron chats que coincidan con este filtro.
         </p>
@@ -136,9 +136,9 @@ function TakeModal({
 
   return (
     <div id="dialog-modal-overlay" className="fixed inset-0 bg-bg-main/90 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
-      <div id="modal-confirm-take" className="bg-bg-secondary border border-border-default rounded-xl shadow-md p-6 max-w-md w-full space-y-4">
+      <div id="modal-confirm-take" className="bg-bg-secondary border border-border-default rounded-panel shadow-md p-6 max-w-md w-full space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <h3 className="text-h3 text-text-primary flex items-center gap-2">
             <svg className="w-5 h-5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             ¿Tomar esta conversación?
           </h3>
@@ -163,10 +163,10 @@ function TakeModal({
         <p className="text-[11px] text-text-secondary italic leading-relaxed">Nota: Tus compañeros de área verán que este chat está siendo atendido y se desactivarán las respuestas automáticas del bot.</p>
 
         <div className="pt-2 flex justify-end gap-2.5 text-xs">
-          <button onClick={onCancel} className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90" disabled={isTaking}>
+          <button onClick={onCancel} className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded-control font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90" disabled={isTaking}>
             Cancelar
           </button>
-          <button onClick={onConfirm} className="px-4 py-2.5 bg-brand-blue text-white rounded font-bold hover:bg-brand-blue-hover transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90" disabled={isTaking}>
+          <button onClick={onConfirm} className="px-4 py-2.5 bg-brand-blue text-white rounded-control font-bold hover:bg-brand-blue-hover transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90" disabled={isTaking}>
             {isTaking ? 'Confirmando...' : 'Confirmar'}
           </button>
         </div>
@@ -459,7 +459,7 @@ export default function BandejaPage() {
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-default pb-4">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-h2 text-text-primary flex items-center gap-2">
             Bandeja de Entrada
             <span className="bg-brand-blue/15 text-brand-blue text-xs px-2.5 py-0.5 rounded-full font-bold" id="bandeja-total-counter">
               {total} Totales

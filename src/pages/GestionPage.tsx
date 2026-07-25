@@ -210,7 +210,7 @@ export const GestionPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border-default pb-3 sm:pb-5">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-text-primary">Gestión de Asesores Operativos</h1>
+          <h1 className="text-h1 text-text-primary">Gestión de Asesores Operativos</h1>
           <p className="text-xs sm:text-sm text-text-secondary mt-0.5 sm:mt-1">Configura accesos, permisos y áreas del panel interno.</p>
         </div>
         <div className="flex items-center gap-3">
@@ -226,7 +226,7 @@ export const GestionPage: React.FC = () => {
               setModalError(undefined)
               setModal({ type: 'create' })
             }}
-            className="inline-flex items-center gap-1.5 sm:gap-2 rounded-md bg-brand-blue px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-brand-blue/90 active:bg-brand-blue/95 transition-all shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="inline-flex items-center gap-1.5 sm:gap-2 rounded-control bg-brand-blue px-3 py-2 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-brand-blue/90 active:bg-brand-blue/95 transition-all shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           >
             <Plus className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
             Crear Nuevo
@@ -335,13 +335,13 @@ const DeactivateModal: React.FC<DeactivateModalProps> = ({ advisor, onConfirm, o
     />
     <div
       id="modal-deactivate-warning"
-      className="relative z-10 w-full max-w-md overflow-hidden rounded-lg border border-border-default bg-bg-secondary p-6 text-text-primary shadow-md transition-all"
+      className="relative z-10 w-full max-w-md overflow-hidden rounded-panel border border-border-default bg-bg-secondary p-6 text-text-primary shadow-md transition-all"
     >
       <div className="flex flex-col items-center text-center">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning/15 text-warning border border-warning/25 mb-4 animate-pulse">
           <AlertTriangle className="h-6 w-6" />
         </div>
-        <h3 className="text-lg font-bold text-text-primary mb-2">
+        <h3 className="text-h2 text-text-primary mb-2">
           ¿Desactivar a {advisor.full_name}?
         </h3>
         <p className="text-sm text-text-secondary leading-relaxed mb-6">
@@ -351,7 +351,7 @@ const DeactivateModal: React.FC<DeactivateModalProps> = ({ advisor, onConfirm, o
           <button
             onClick={onConfirm}
             disabled={isSaving}
-            className="w-full rounded-md bg-error py-2.5 text-sm font-semibold text-white hover:bg-error/90 active:bg-error/95 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="w-full rounded-control bg-error py-2.5 text-sm font-semibold text-white hover:bg-error/90 active:bg-error/95 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             {isSaving && (
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -361,7 +361,7 @@ const DeactivateModal: React.FC<DeactivateModalProps> = ({ advisor, onConfirm, o
           <button
             onClick={onCancel}
             disabled={isSaving}
-            className="w-full rounded-md border border-border-default bg-transparent py-2.5 text-sm font-semibold text-text-primary hover:bg-bg-tertiary transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="w-full rounded-control border border-border-default bg-transparent py-2.5 text-sm font-semibold text-text-primary hover:bg-bg-tertiary transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Cancelar
           </button>

@@ -86,13 +86,13 @@ export default function EscalationToast() {
           <div className="mt-2.5 flex justify-end gap-2 text-[10px]">
             <button
               onClick={clearPendingEscalation}
-              className="px-2 py-1 hover:bg-bg-tertiary text-text-secondary rounded font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
+              className="px-2 py-1 hover:bg-bg-tertiary text-text-secondary rounded-control font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
             >
               {showTakeButton ? 'Ignorar' : 'Cerrar'}
             </button>
             <button
               onClick={handleAttend}
-              className="bg-brand-blue text-white px-2.5 py-1 rounded font-bold hover:bg-brand-blue-hover transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="bg-brand-blue text-white px-2.5 py-1 rounded-control font-bold hover:bg-brand-blue-hover transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
             >
               {showTakeButton ? 'Atender ya' : 'Ver conversación'}
             </button>

@@ -77,14 +77,14 @@ export default function CloseConversationModal({
 
   return (
     <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-      <div className="bg-bg-secondary border border-border-default rounded-xl p-6 max-w-sm w-full space-y-4 shadow-md">
+      <div className="bg-bg-secondary border border-border-default rounded-panel p-6 max-w-sm w-full space-y-4 shadow-md">
         {/* Header */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-error/10 flex items-center justify-center text-error text-lg">
             ✕
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-text-primary">
+            <h3 className="text-h3 text-text-primary">
               Cerrar conversación
             </h3>
             <p className="text-xs text-text-secondary">
@@ -95,7 +95,7 @@ export default function CloseConversationModal({
 
         {/* ¿Cómo se resolvió? */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+          <p className="text-label text-text-secondary uppercase">
             ¿Cómo se resolvió?
           </p>
           <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -105,7 +105,7 @@ export default function CloseConversationModal({
                 type="button"
                 onClick={() => setResolutionType(option.value)}
                 className={[
-                  'w-full text-left px-3 py-2 rounded text-xs transition border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90',
+                  'w-full text-left px-3 py-2 rounded-control text-xs transition border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90',
                   resolutionType === option.value
                     ? 'bg-brand-blue/10 border-brand-blue text-brand-blue'
                     : 'border-border-default text-text-secondary hover:border-text-secondary',
@@ -119,7 +119,7 @@ export default function CloseConversationModal({
 
         {/* Notas adicionales */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+          <p className="text-label text-text-secondary uppercase">
             Notas adicionales{' '}
             <span className="ml-1 normal-case font-normal">(opcional)</span>
           </p>
@@ -138,7 +138,7 @@ export default function CloseConversationModal({
 
         {/* ¿El cliente quedó satisfecho? */}
         <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+          <p className="text-label text-text-secondary uppercase">
             ¿El cliente quedó satisfecho?
           </p>
           <div className="flex gap-2">
@@ -148,7 +148,7 @@ export default function CloseConversationModal({
                 type="button"
                 onClick={() => setClientSatisfied(option.value)}
                 className={[
-                  'flex-1 px-2 py-2 rounded text-[10px] transition border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90',
+                  'flex-1 px-2 py-2 rounded-control text-[10px] transition border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90',
                   clientSatisfied === option.value
                     ? option.active
                     : 'border-border-default text-text-secondary',
@@ -165,7 +165,7 @@ export default function CloseConversationModal({
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 text-xs border border-border-default text-text-secondary rounded hover:border-text-primary hover:text-text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="flex-1 py-2.5 text-xs border border-border-default text-text-secondary rounded-control hover:border-text-primary hover:text-text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             Cancelar
           </button>
@@ -173,7 +173,7 @@ export default function CloseConversationModal({
             type="button"
             onClick={handleConfirm}
             disabled={isClosing}
-            className="flex-1 py-2.5 text-xs bg-error/10 border border-error/30 text-error rounded hover:bg-error/20 transition disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="flex-1 py-2.5 text-xs bg-error/10 border border-error/30 text-error rounded-control hover:bg-error/20 transition disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             {isClosing && (
               <div className="w-3 h-3 border-2 border-error border-t-transparent rounded-full animate-spin" />

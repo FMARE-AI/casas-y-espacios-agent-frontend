@@ -58,7 +58,7 @@ export function PasswordInput({
   return (
     <div className="space-y-2">
       {label && (
-        <label className="block text-xs font-medium text-text-secondary uppercase tracking-wider">
+        <label className="block text-label text-text-secondary uppercase">
           {label}
         </label>
       )}

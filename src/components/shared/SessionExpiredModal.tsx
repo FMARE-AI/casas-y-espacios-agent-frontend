@@ -33,7 +33,7 @@ export default function SessionExpiredModal() {
     >
       <div
         id="modal-expired-session"
-        className="bg-bg-secondary border border-border-default rounded-xl shadow-md p-6 max-w-sm w-full space-y-4"
+        className="bg-bg-secondary border border-border-default rounded-panel shadow-md p-6 max-w-sm w-full space-y-4"
       >
         <div className="text-center">
           <div className="bg-red-950/40 text-error w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-error/30">
@@ -46,14 +46,14 @@ export default function SessionExpiredModal() {
               />
             </svg>
           </div>
-          <h3 className="text-sm font-bold text-white">{title}</h3>
+          <h3 className="text-h3 text-text-primary">{title}</h3>
           <p className="text-xs text-text-secondary mt-2 leading-relaxed">{message}</p>
         </div>
 
         <div className="pt-2 text-xs">
           <button
             onClick={handleGoToLogin}
-            className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-2.5 rounded font-bold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-2.5 rounded-control font-bold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           >
             Ir al login
           </button>

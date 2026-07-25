@@ -163,7 +163,7 @@ export const ConversationCard = memo(function ConversationCard({
     <div className={`relative bg-bg-secondary border border-border-default rounded-r-lg p-4 flex flex-col justify-between transition animate-fade-in ${containerStyles[variant]}`}>
       {(conversation.priority === 'alta' || conversation.priority === 'critica') && (
         <span
-          className={`absolute -top-2 -right-2 z-10 ${PRIORITY_BADGE_STYLES[conversation.priority]} text-[9px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-md border border-bg-secondary ${
+          className={`absolute -top-2 -right-2 z-10 ${PRIORITY_BADGE_STYLES[conversation.priority]} text-label px-2 py-1 rounded uppercase shadow-md border border-bg-secondary ${
             conversation.priority === 'critica' ? 'critical-pulse-badge' : ''
           }`}
         >
@@ -173,7 +173,7 @@ export const ConversationCard = memo(function ConversationCard({
       <div className="space-y-2.5">
         <div className="flex justify-between items-start gap-2">
           <div className="flex flex-wrap gap-1.5 min-w-0">
-            <span className={`${statusChipStyles[variant]} text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider`}>
+            <span className={`${statusChipStyles[variant]} text-label px-1.5 py-0.5 rounded uppercase`}>
               {statusChipText[variant]}
             </span>
             {conversation.client?.client_type && conversation.client.client_type !== 'desconocido' && (
@@ -196,7 +196,7 @@ export const ConversationCard = memo(function ConversationCard({
           </div>
         </div>
         <div>
-          <h3 className="text-sm font-bold text-white truncate" title={clientName}>{clientName}</h3>
+          <h3 className="text-h3 text-text-primary truncate" title={clientName}>{clientName}</h3>
           <CaseNumberTag caseNumber={conversation.case_number} className="text-[10px]" />
           {(variant === 'A' || variant === 'A2') && (
             <p className="text-xs text-text-secondary mt-1">Motivo: <span className="font-mono text-text-primary font-bold">{ESCALATION_REASON_LABELS[conversation.escalation?.reason ?? ''] ?? conversation.escalation?.reason ?? 'Sin motivo'}</span></p>
@@ -220,15 +220,15 @@ export const ConversationCard = memo(function ConversationCard({
               Sin asignar
             </span>
             {isAdmin ? (
-              <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-primary px-2.5 py-1 rounded text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
+              <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-primary px-2.5 py-1 rounded-control text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
             ) : variant === 'A' ? (
-              <button onClick={() => onTake(conversation)} className="bg-brand-blue hover:bg-brand-blue-hover text-white px-3 py-1 rounded text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Atender ya</button>
+              <button onClick={() => onTake(conversation)} className="bg-brand-blue hover:bg-brand-blue-hover text-white px-3 py-1 rounded-control text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90">Atender ya</button>
             ) : (
               <div className="relative group">
                 <button
                   disabled={isAtLimit}
                   onClick={() => !isAtLimit && onTake(conversation)}
-                  className={`${isAtLimit ? 'bg-bg-tertiary text-text-secondary cursor-not-allowed border border-border-default' : 'bg-brand-blue hover:bg-brand-blue-hover text-white'} px-3 py-1 rounded text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90`}
+                  className={`${isAtLimit ? 'bg-bg-tertiary text-text-secondary cursor-not-allowed border border-border-default' : 'bg-brand-blue hover:bg-brand-blue-hover text-white'} px-3 py-1 rounded-control text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90`}
                 >
                   Atender ya
                 </button>
@@ -248,7 +248,7 @@ export const ConversationCard = memo(function ConversationCard({
               <div className="w-[18px] h-[18px] rounded-full bg-bg-tertiary text-[9px] font-bold flex items-center justify-center text-white">{(conversation.escalation?.advisor?.full_name?.[0] || 'A').toUpperCase()}</div>
               <span className="text-text-secondary text-[11px] truncate">Asignado: <strong className="text-white font-semibold">{conversation.escalation?.advisor?.full_name?.split(' ')[0] || 'Asesor'}</strong></span>
             </div>
-            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-primary px-2.5 py-1 rounded text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
+            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-primary px-2.5 py-1 rounded-control text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
           </>
         )}
 
@@ -258,7 +258,7 @@ export const ConversationCard = memo(function ConversationCard({
               <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
               El bot está resolviendo
             </span>
-            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-primary px-2.5 py-1 rounded text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
+            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-primary px-2.5 py-1 rounded-control text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
           </>
         )}
 
@@ -268,7 +268,7 @@ export const ConversationCard = memo(function ConversationCard({
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/></svg>
               Resuelta
             </span>
-            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-text-primary px-2.5 py-1 rounded text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
+            <button onClick={() => onView(conversation.id)} className="bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-text-primary px-2.5 py-1 rounded-control text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90">Ver</button>
           </>
         )}
       </div>

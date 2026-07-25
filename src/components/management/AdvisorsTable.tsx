@@ -49,7 +49,7 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
     <div className="w-full overflow-x-auto rounded-lg border border-border-default bg-bg-secondary/60 backdrop-blur-md">
       <table id="advisors-table" className="w-full min-w-[700px] border-collapse text-left text-sm text-text-primary">
         <thead>
-          <tr className="border-b border-border-default bg-bg-tertiary/50 text-xs font-semibold uppercase tracking-wider text-text-secondary">
+          <tr className="border-b border-border-default bg-bg-tertiary/50 text-label text-text-secondary uppercase">
             <th className="px-6 py-4">Nombre</th>
             <th className="px-6 py-4">Rol</th>
             <th className="px-6 py-4">Área</th>
@@ -125,7 +125,7 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
                 {/* Rol */}
                 <td className="px-6 py-4 align-middle">
                   <span
-                    className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${
+                    className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-label uppercase ${
                       roleChipStyles[advisor.role] || ''
                     }`}
                   >
@@ -136,7 +136,7 @@ export const AdvisorsTable: React.FC<AdvisorsTableProps> = ({
                 {/* Área */}
                 <td className="px-6 py-4 align-middle">
                   <span
-                    className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide ${
+                    className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-label uppercase ${
                       areaChipStyles[advisor.area] || ''
                     }`}
                   >

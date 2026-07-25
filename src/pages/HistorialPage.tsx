@@ -195,7 +195,7 @@ export default function HistorialPage() {
       {/* ── Header ── */}
       <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border-default pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-h2 text-text-primary">
             Historial de Conversaciones Cerradas
           </h2>
           <p className="text-xs text-text-secondary">
@@ -206,7 +206,7 @@ export default function HistorialPage() {
         <button
           type="button"
           onClick={exportCSV}
-          className="bg-bg-tertiary hover:bg-border-default border border-border-default text-text-primary px-4 py-2.5 h-11 rounded text-xs font-semibold flex items-center gap-2 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          className="bg-bg-tertiary hover:bg-border-default border border-border-default text-text-primary px-4 py-2.5 h-11 rounded-control text-xs font-semibold flex items-center gap-2 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
         >
           <svg
             className="w-4 h-4 text-success"
@@ -283,7 +283,7 @@ export default function HistorialPage() {
             id="history-table"
             className="w-full text-left text-xs text-text-primary"
           >
-            <thead className="bg-bg-tertiary/60 border-b border-border-default text-text-secondary uppercase tracking-wider font-semibold">
+            <thead className="bg-bg-tertiary/60 border-b border-border-default text-text-secondary text-label uppercase">
               <tr>
                 <th className="p-4 whitespace-nowrap">N° de Caso</th>
                 <th className="p-4 whitespace-nowrap">Cliente</th>

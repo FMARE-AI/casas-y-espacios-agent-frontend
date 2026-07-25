@@ -256,7 +256,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting || lockoutSeconds > 0}
-              className="btn-primary w-full h-12 text-white rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              className="btn-primary w-full h-12 text-white rounded-control font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               style={{
                 background: 'linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-blue-hover) 100%)',
                 boxShadow: '0 4px 14px rgba(1,164,227,0.25)',
@@ -283,7 +283,7 @@ export function LoginPage() {
 
           {/* Footer */}
           <div className="mt-7 pt-5 border-t border-border-default/50 flex items-center justify-between">
-            <span className="text-[10px] text-text-secondary uppercase tracking-widest font-semibold">
+            <span className="text-label text-text-secondary uppercase">
               © 2026 Casas y Espacios S.A.S.
             </span>
             <span className="flex items-center gap-1.5 text-[10px] text-text-secondary font-medium">

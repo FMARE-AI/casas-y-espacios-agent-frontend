@@ -84,7 +84,7 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <span className="text-xs font-bold text-white uppercase tracking-wider">
+        <span className="text-label text-text-primary uppercase">
           {getTitle()}
         </span>
       </div>
