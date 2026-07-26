@@ -8,6 +8,7 @@ export type AdvisorRole = 'asesor' | 'admin'
 export type AdvisorArea = 'administrativa' | 'comercial' | 'ambas'
 export type AvailabilityStatus = 'available' | 'break' | 'offline'
 export type ConversationStatus = 'activa' | 'escalada' | 'cerrada'
+export type ConversationPriority = 'baja' | 'media' | 'alta' | 'critica'
 export type MessageDirection = 'inbound' | 'outbound_bot' | 'outbound_advisor'
 export type MessageType = 'text' | 'image' | 'video' | 'document' | 'audio'
 export type AlertSeverity = 'baja' | 'media' | 'alta'
@@ -77,6 +78,7 @@ export interface Escalation {
   escalated_at: string
   advisor: Advisor | null
   wait_seconds?: number | null
+  transfer_reason?: string | null
 }
 
 export interface ClosedByAdvisor {
@@ -105,8 +107,13 @@ export interface Conversation {
   // null for bot closures and for historical closures that could not be backfilled
   closed_by_advisor: ClosedByAdvisor | null
   closed_at: string | null
+  // seconds between the conversation's start and closed_at; null while the conversation is still open
+  duration_seconds: number | null
   last_message: ConversationLastMessage | null
   unread_count: number
+  priority: ConversationPriority | null
+  // null for conversations created before this field was deployed
+  case_number: string | null
 }
 
 export interface BehaviorAlert {
@@ -244,4 +251,23 @@ export interface WSQueuePending {
 
 export interface WSBehaviorAlertEvent {
   alert_id: string
+}
+
+export interface WSTransferAdvisorRef {
+  id: string
+  full_name: string
+}
+
+export interface WSConversationTransferred {
+  conversation_id: string
+  case_number: string
+  from_advisor: WSTransferAdvisorRef | null
+  to_advisor: WSTransferAdvisorRef
+  reason: string | null
+}
+
+export interface WSConversationPriorityUpdated {
+  conversation_id: string
+  priority: ConversationPriority
+  updated_by: 'bot'
 }

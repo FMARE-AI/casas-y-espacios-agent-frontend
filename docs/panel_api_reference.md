@@ -167,6 +167,9 @@ No request body required.
         "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
+        "duration_seconds": null,
+        "case_number": "CE-2026-000043",
+        "priority": "alta",
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
@@ -215,6 +218,9 @@ No request body required.
 - Advisors with `area = "ambas"` see conversations from both channels.
 - **`status=mine`** is a special filter that returns only the conversations with an active escalation assigned to the authenticated advisor (i.e., the "My conversations" tab). It can be combined freely with `channel`. Admins using `mine` see only conversations assigned to themselves — not all conversations.
 - **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
+- **`case_number`** is a human-readable, unique case reference in the format `CE-YYYY-NNNNNN` (e.g. `CE-2026-000043`), generated atomically in Postgres when the conversation is created. It is `null` for conversations created before this feature was deployed — render `—` (or similar) in that case. It never changes for the lifetime of the conversation, including when a closed conversation is transparently reused within the grace window (see `CLAUDE.md` §3.6.1) — the reused conversation keeps its original `case_number`.
+- **`priority`** is one of `baja`, `media`, `alta`, `critica` — always present, defaults to `baja` for every conversation. Set **exclusively** by the bot's `evaluate_priority` node based on the client's tone/urgency each turn; there is no endpoint or panel control to set it manually. It is **monotonic**: it only ever increases within a conversation, never decreases. Use it to sort/highlight the inbox (e.g. badge color, default sort by priority then `last_activity`). Real-time updates also arrive via the `conversation.priority_updated` WebSocket event (see below) — no need to re-fetch the list to keep badges current.
+- **`duration_seconds`** is the number of seconds between the conversation's start and `closed_at`, computed server-side. It is `null` while the conversation is still open (not `cerrada`). The frontend renders it as a human-readable duration (e.g. `"4 min"`, `"1 h 23 min"`, `"3 días"`) and shows `—` when `null`.
 
 ---
 
@@ -263,6 +269,8 @@ No request body required.
       "closed_by": null,
       "closed_by_advisor": null,
       "closed_at": null,
+      "case_number": "CE-2026-000043",
+      "priority": "alta",
       "client": {
         "id": "550e8400-e29b-41d4-a716-446655440020",
         "full_name": "Carlos Rodríguez",
@@ -737,6 +745,69 @@ msg_type = "document" → render download link using media_url
 **WebSocket events emitted:**
 
 - `conversation.returned` — broadcast to all connected advisors
+
+---
+
+### POST /api/v1/panel/conversations/{conversation_id}/transfer
+
+**Auth required:** Yes (assigned advisor or admin)
+
+**Description:** Transfers an active escalation directly to another advisor, without passing back through the bot. Reuses the same escalation record — only `advisor_id` (and, if provided, `transfer_reason`) are updated. Message history and `case_number` are untouched. If the target advisor's area differs from the conversation's current `channel`, the conversation's `channel` is updated to match.
+
+**Path params:**
+
+| Param             | Type            | Description                  |
+| ----------------- | --------------- | ---------------------------- |
+| `conversation_id` | `string` (UUID) | The conversation to transfer |
+
+**Request body:**
+
+| Field               | Type                  | Required | Description                                                                      |
+| ------------------- | --------------------- | -------- | -------------------------------------------------------------------------------- |
+| `target_advisor_id` | `string` (UUID)       | Yes      | The advisor who will receive the conversation                                    |
+| `reason`            | `string` (≤500 chars) | No       | Free-text reason for the transfer, stored as `transfer_reason` on the escalation |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "case_number": "CE-2026-000042",
+    "status": "activa",
+    "channel": "administrativa",
+    "escalation": {
+      "id": "550e8400-e29b-41d4-a716-446655440030",
+      "advisor_id": "550e8400-e29b-41d4-a716-446655440002",
+      "transfer_reason": "Cliente pregunta por tema comercial"
+    }
+  }
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode                 | When                                                                                                        |
+| ---- | ------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 401  | `INVALID_TOKEN`           | Missing or invalid JWT                                                                                      |
+| 403  | `ADVISOR_INACTIVE`        | Advisor account is deactivated                                                                              |
+| 403  | `FORBIDDEN`               | Non-admin requester is not the advisor currently assigned to the escalation                                 |
+| 404  | `CONVERSATION_NOT_FOUND`  | No conversation with the given ID, or a non-admin requester's area doesn't match the conversation's channel |
+| 404  | `ADVISOR_NOT_FOUND`       | No advisor with the given `target_advisor_id`                                                               |
+| 409  | `CONVERSATION_NOT_ACTIVE` | Conversation `status` is already `cerrada`                                                                  |
+| 409  | `NO_ACTIVE_ESCALATION`    | Conversation has no unresolved escalation (`resolved_at IS NULL`) to transfer                               |
+| 409  | `ALREADY_ASSIGNED`        | `target_advisor_id` is the same advisor already assigned                                                    |
+| 409  | `INVALID_STATUS`          | Target advisor's `role` is not `asesor` (e.g. an admin), or is inactive / not `available`                   |
+| 409  | `TARGET_AT_CAPACITY`      | Target advisor already has `max_conversations` active escalations                                           |
+
+**Notes:**
+
+- Only an advisor with `role = "asesor"` can be a transfer target — admins are excluded even if `is_active` and `available`, since they don't take conversations from the tray. This is enforced explicitly (there is no implicit exclusion via `availability_status`, since the background availability checker updates that field for admins too).
+- Target capacity is checked via `count_active_for_advisor`, which only counts escalations belonging to conversations that are not closed.
+
+**WebSocket events emitted:**
+
+- `conversation.transferred` — targeted send to the source advisor, the target advisor, and all connected admins (not a full broadcast)
 
 ---
 
@@ -1775,6 +1846,8 @@ Emitted when a new message is created in a conversation. Routing depends on whet
   - **Inbound, conversation unassigned / queued** — broadcast to all advisors in the **conversation's channel** (`area = channel` or `area = "ambas"`).
 - **`bot_activo = true`** (bot is handling the conversation — client turns, bot replies, and bot-sent inactivity/closing messages) — sent **only to connections with an active `subscribe_conversation` subscription** to that `conversation_id` (see `subscribe_conversation` above). This is intentionally narrower than a channel/area broadcast: the bot resolves most conversations without any advisor watching, so broadcasting every bot↔client turn to the whole area would generate WS traffic nobody consumes. An advisor (or admin) only receives these events while they have that specific conversation's chat view open. If nobody is subscribed, nothing is sent. The payload omits `unread_count` for this case (it's not incremented/reset by this code path — that field is only meaningful for the inbox view under the `bot_activo = false` flows above).
 
+Every `message.new` payload also carries `conversation_priority` (`baja`/`media`/`alta`/`critica`) — the conversation's current priority at emit time, fetched fresh from the DB. This lets the chat view keep its priority badge in sync without a separate fetch; for the inbox-wide badge, `conversation.priority_updated` (see below) is the authoritative real-time signal since it also reaches advisors not subscribed to that specific conversation.
+
 **Payload (outbound_advisor — with `advisor_name`):**
 
 ```json
@@ -1782,6 +1855,7 @@ Emitted when a new message is created in a conversation. Routing depends on whet
   "event": "message.new",
   "data": {
     "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "conversation_priority": "alta",
     "message": {
       "id": "550e8400-e29b-41d4-a716-446655440055",
       "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
@@ -1808,6 +1882,7 @@ Emitted when a new message is created in a conversation. Routing depends on whet
   "event": "message.new",
   "data": {
     "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "conversation_priority": "baja",
     "message": {
       "id": "550e8400-e29b-41d4-a716-446655440056",
       "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
@@ -1834,6 +1909,7 @@ Emitted when a new message is created in a conversation. Routing depends on whet
   "event": "message.new",
   "data": {
     "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "conversation_priority": "baja",
     "message": {
       "id": "550e8400-e29b-41d4-a716-446655440057",
       "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
@@ -1885,6 +1961,32 @@ Emitted to **all connected advisors** when an advisor returns a conversation to 
 }
 ```
 
+#### conversation.transferred
+
+Emitted when an advisor transfers an active escalation to another advisor via `POST /conversations/{id}/transfer`. Unlike most conversation events, this is **not a broadcast** — it is sent only to: the source advisor (so the conversation disappears from their tray), the target advisor (so it appears as newly assigned), and any connected admins (for audit/monitoring).
+
+```json
+{
+  "event": "conversation.transferred",
+  "data": {
+    "type": "conversation.transferred",
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "case_number": "CE-2026-000042",
+    "from_advisor": {
+      "id": "550e8400-e29b-41d4-a716-446655440001",
+      "full_name": "Ana Gómez"
+    },
+    "to_advisor": {
+      "id": "550e8400-e29b-41d4-a716-446655440002",
+      "full_name": "Mariana Rojas"
+    },
+    "reason": "Cliente pregunta por tema comercial"
+  }
+}
+```
+
+`from_advisor` is `null` if the escalation had no assigned advisor before the transfer (e.g. an admin transferring an unassigned-but-escalated conversation). `reason` is `null` if none was provided in the request.
+
 #### conversation.closed
 
 Emitted to **all connected advisors** when a conversation is closed — either by an advisor via `PATCH /conversations/{id}/close`, or by the bot automatically.
@@ -1931,21 +2033,50 @@ Emitted to **all connected advisors** when the bot escalates a conversation — 
     "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
     "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
     "reason": "solicitud_usuario",
-    "channel": "administrativa"
+    "channel": "administrativa",
+    "case_number": "CE-2026-000043",
+    "conversation_priority": "alta"
   }
 }
 ```
 
-| Field             | Type                      | Description                                                     |
-| ----------------- | ------------------------- | --------------------------------------------------------------- |
-| `conversation_id` | `string` (UUID)           | The escalated conversation                                      |
-| `advisor_id`      | `string` (UUID) or `null` | Assigned advisor, or `null` when placed in the unassigned queue |
-| `reason`          | `string` or `null`        | The escalation reason. May be `null` if unclassified            |
-| `channel`         | `string`                  | `"administrativa"` or `"comercial"`                             |
+| Field                   | Type                      | Description                                                                                                                                                                             |
+| ----------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `conversation_id`       | `string` (UUID)           | The escalated conversation                                                                                                                                                              |
+| `advisor_id`            | `string` (UUID) or `null` | Assigned advisor, or `null` when placed in the unassigned queue                                                                                                                         |
+| `reason`                | `string` or `null`        | The escalation reason. May be `null` if unclassified                                                                                                                                    |
+| `channel`               | `string`                  | `"administrativa"` or `"comercial"`                                                                                                                                                     |
+| `case_number`           | `string` or `null`        | Human-readable case reference (`CE-YYYY-NNNNNN`). `null` only if the backend failed to fetch it when emitting the event (fail-soft) — re-fetch via `GET /conversations/{id}` if needed. |
+| `conversation_priority` | `string`                  | `baja`/`media`/`alta`/`critica` — the conversation's priority at the moment it was escalated. Defaults to `"baja"` if the backend failed to fetch it (same fail-soft as `case_number`). |
 
 **When `advisor_id` is `null`:** the conversation is in the unassigned queue — any available advisor in the channel can take it via `PATCH /conversations/{id}/assign`.
 
 **When `advisor_id` is set:** the bot auto-assigned to the lowest-load available advisor. Other advisors should update the conversation card to reflect the new assignment.
+
+---
+
+#### conversation.priority_updated
+
+Emitted to **all connected advisors** whenever the bot's `evaluate_priority` node raises a conversation's priority. Priority is set **exclusively** by the bot based on client tone/urgency — there is no endpoint or panel action to change it manually, and it never decreases once raised. Not every incoming message triggers this event — only turns where the newly evaluated priority is strictly higher than what's persisted.
+
+```json
+{
+  "event": "conversation.priority_updated",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "priority": "alta",
+    "updated_by": "bot"
+  }
+}
+```
+
+| Field             | Type            | Description                                         |
+| ----------------- | --------------- | --------------------------------------------------- |
+| `conversation_id` | `string` (UUID) | The conversation whose priority changed             |
+| `priority`        | `string`        | The new priority — `baja`/`media`/`alta`/`critica`  |
+| `updated_by`      | `string`        | Always `"bot"` — no other actor can change priority |
+
+**Client implementation note:** use this event to update the inbox badge/sort order in real time. It fires independently of `message.new`/`escalation.new`, so it can arrive on its own turn (e.g. mid-conversation, before the bot's reply is sent) — don't assume it's bundled with another event.
 
 ---
 
@@ -2163,6 +2294,22 @@ Use `status=escalada` to show only the escalation queue, or omit to show all con
 
 ---
 
+### Displaying the Case Number
+
+Every conversation carries a `case_number` field (e.g. `"CE-2026-000043"`) — a short, human-readable reference clients and advisors can cite instead of the internal UUID. Show it in the inbox row and in the chat header:
+
+```javascript
+function CaseNumberBadge({ caseNumber }) {
+  return <span className="case-badge">{caseNumber ?? "—"}</span>;
+}
+```
+
+- **Always handle `null`**: conversations created before this feature shipped have `case_number: null` — render `—` (or hide the badge), never `"CE-null"` or similar.
+- **It's static for the life of the conversation** — no need to re-fetch it on every message; it never changes once assigned, including across bot-close/reuse cycles within the grace window.
+- Arrives in the initial `GET /conversations/` and `GET /conversations/{id}` payloads, and again in the `escalation.new` WebSocket event (see below) — no dedicated endpoint or extra fetch is needed to keep it in sync in real time.
+
+---
+
 ### Rendering Messages
 
 Each message object has a `msg_type` field that determines how it should be displayed. Use `msg_type` — not `content` or `media_url` nullability — as the source of truth for rendering decisions.
@@ -2369,7 +2516,10 @@ ws.onmessage = (event) => {
       break;
 
     case "escalation.new":
-      // New escalation arrived from the bot
+      // New escalation arrived from the bot. data.case_number lets you show
+      // the reference (e.g. in a toast) without an extra fetch — may be null
+      // if the backend failed to look it up (fail-soft); re-fetch the
+      // conversation detail in that case if you need to display it.
       if (data.advisor_id) {
         // Auto-assigned — update the card to show the assigned advisor
         updateConversationAssignment(
@@ -2379,8 +2529,15 @@ ws.onmessage = (event) => {
         );
       } else {
         // Unassigned queue — add or highlight in the inbox
-        addToUnassignedQueue(data.conversation_id, data.channel);
-        showToast(`Nueva conversación en cola (${data.channel})`, "warning");
+        addToUnassignedQueue(
+          data.conversation_id,
+          data.channel,
+          data.case_number,
+        );
+        showToast(
+          `Nueva conversación en cola (${data.case_number ?? data.channel})`,
+          "warning",
+        );
       }
       break;
 

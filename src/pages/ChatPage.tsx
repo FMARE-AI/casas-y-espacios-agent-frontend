@@ -10,11 +10,15 @@ import type {
   WSConversationClosed,
   WSEscalationNew,
   WSEscalationAssigned,
+  WSConversationTransferred,
 } from "../types";
 import MessageFeed from "../components/chat/MessageFeed";
 import ChatInput from "../components/chat/ChatInput";
 import ClientPanel, { type ChatVariant } from "../components/chat/ClientPanel";
-import { useWebSocket } from "../hooks/useWebSocket";
+import TransferModal from "../components/chat/TransferModal";
+import CloseConversationModal, { type CloseData } from "../components/modals/CloseConversationModal";
+import ReturnBotModal from "../components/modals/ReturnBotModal";
+import { useWebSocket, consumePendingTransferReason } from "../hooks/useWebSocket";
 import { ROUTES } from "../constants/routes";
 
 function getInitials(name: string): string {
@@ -29,278 +33,13 @@ function getInitials(name: string): string {
   }
 }
 
-// ── Return-bot confirmation modal ─────────────────────────
-
-function ReturnBotModal({
-  onConfirm,
-  onCancel,
-  isReturning,
-}: {
-  onConfirm: () => void;
-  onCancel: () => void;
-  isReturning: boolean;
-}) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, []);
-
-  return (
-    <div className="fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
-      <div
-        id="modal-confirm-release"
-        className="bg-[#252522] border border-[#3A3A37] rounded-xl shadow-2xl p-6 max-w-md w-full space-y-4"
-      >
-        <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <svg
-              className="w-5 h-5 text-[#00D4AA]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            ¿Devolver esta conversación al bot?
-          </h3>
-          <p className="text-xs text-[#8B8FA8] mt-2">
-            El agente de IA retomará el canal de WhatsApp de manera autónoma.
-          </p>
-        </div>
-        <p className="text-[11px] text-[#8B8FA8] leading-relaxed">
-          Asegúrate de haber resuelto la consulta comercial o administrativa o
-          haber agendado el requerimiento en SIMI antes de liberar la atención.
-        </p>
-        <div className="pt-2 flex justify-end gap-2.5 text-xs">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2.5 bg-transparent hover:bg-[#2E2E2B] border border-[#3A3A37] text-[#8B8FA8] hover:text-white rounded font-semibold transition active:scale-95"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={isReturning}
-            className="px-4 py-2.5 bg-transparent hover:bg-[#00D4AA]/10 border border-[#00D4AA] text-[#00D4AA] rounded font-bold transition active:scale-95 disabled:opacity-60 flex items-center gap-2"
-          >
-            {isReturning && (
-              <div className="w-3.5 h-3.5 border-2 border-[#00D4AA] border-t-transparent rounded-full animate-spin" />
-            )}
-            Confirmar devolución
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Close conversation modal ──────────────────────────────
-
-interface CloseData {
-  resolution_type: string;
-  resolution_notes: string | null;
-  client_satisfied: string;
-}
-
-const RESOLUTION_OPTIONS: { value: string; label: string }[] = [
-  { value: "consulta_cartera_resuelta", label: "Consulta de cartera resuelta" },
-  { value: "pago_acordado", label: "Pago acordado / registrado" },
-  {
-    value: "orden_mantenimiento_creada",
-    label: "Orden de mantenimiento creada",
-  },
-  { value: "queja_pqrs_registrada", label: "Queja / PQRS registrada" },
-  {
-    value: "informacion_contrato_entregada",
-    label: "Información de contrato entregada",
-  },
-  { value: "derivado_otro_canal", label: "Derivado a otro canal" },
-  { value: "sin_respuesta_cliente", label: "Cliente no respondió" },
-  { value: "otro", label: "Otro" },
-];
-
-const SATISFACTION_OPTIONS: { value: string; label: string; active: string }[] =
-  [
-    {
-      value: "si",
-      label: "✓ Sí",
-      active: "bg-[#00D4AA]/10 border-[#00D4AA] text-[#00D4AA]",
-    },
-    {
-      value: "no",
-      label: "✗ No",
-      active: "bg-[#FF5B5B]/10 border-[#FF5B5B] text-[#FF5B5B]",
-    },
-    {
-      value: "sin_confirmar",
-      label: "— Sin confirmar",
-      active: "bg-[#8B8FA8]/10 border-[#8B8FA8] text-[#8B8FA8]",
-    },
-  ];
-
-function CloseConversationModal({
-  onConfirm,
-  onCancel,
-  isClosing,
-}: {
-  onConfirm: (data: CloseData) => void;
-  onCancel: () => void;
-  isClosing: boolean;
-}) {
-  const [resolutionType, setResolutionType] = useState("otro");
-  const [resolutionNotes, setResolutionNotes] = useState("");
-  const [clientSatisfied, setClientSatisfied] = useState("sin_confirmar");
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    document.addEventListener("keydown", handleKeyDown, true);
-    return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, []);
-
-  function handleConfirm() {
-    onConfirm({
-      resolution_type: resolutionType,
-      resolution_notes: resolutionNotes.trim() || null,
-      client_satisfied: clientSatisfied,
-    });
-  }
-
-  return (
-    <div className="fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
-      <div className="bg-[#252522] border border-[#3A3A37] rounded-xl p-6 max-w-sm w-full space-y-4">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#FF5B5B]/10 flex items-center justify-center text-[#FF5B5B] text-lg">
-            ✕
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-[#F0F0F5]">
-              Cerrar conversación
-            </h3>
-            <p className="text-xs text-[#8B8FA8]">
-              Clasifica cómo quedó esta atención
-            </p>
-          </div>
-        </div>
-
-        {/* ¿Cómo se resolvió? */}
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-[#8B8FA8] uppercase tracking-wider">
-            ¿Cómo se resolvió?
-          </p>
-          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-            {RESOLUTION_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setResolutionType(option.value)}
-                className={[
-                  "w-full text-left px-3 py-2 rounded text-xs transition border",
-                  resolutionType === option.value
-                    ? "bg-[#01A4E3]/10 border-[#01A4E3] text-[#01A4E3]"
-                    : "border-[#3A3A37] text-[#8B8FA8] hover:border-[#8B8FA8]",
-                ].join(" ")}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Notas adicionales */}
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-[#8B8FA8] uppercase tracking-wider">
-            Notas adicionales{" "}
-            <span className="ml-1 normal-case font-normal">(opcional)</span>
-          </p>
-          <textarea
-            value={resolutionNotes}
-            onChange={(e) => setResolutionNotes(e.target.value)}
-            placeholder="Ej: Técnico visita el jueves 26"
-            maxLength={500}
-            rows={2}
-            className="w-full bg-[#2E2E2B] border border-[#3A3A37] rounded-md p-2.5 text-white text-xs outline-none focus:border-[#01A4E3] transition resize-none placeholder-[#8B8FA8]/50"
-          />
-          <p className="text-[10px] text-[#8B8FA8] text-right">
-            {resolutionNotes.length}/500
-          </p>
-        </div>
-
-        {/* ¿El cliente quedó satisfecho? */}
-        <div className="space-y-1.5">
-          <p className="text-[10px] font-semibold text-[#8B8FA8] uppercase tracking-wider">
-            ¿El cliente quedó satisfecho?
-          </p>
-          <div className="flex gap-2">
-            {SATISFACTION_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setClientSatisfied(option.value)}
-                className={[
-                  "flex-1 px-2 py-2 rounded text-[10px] transition border",
-                  clientSatisfied === option.value
-                    ? option.active
-                    : "border-[#3A3A37] text-[#8B8FA8]",
-                ].join(" ")}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Botones */}
-        <div className="flex gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="flex-1 py-2.5 text-xs border border-[#3A3A37] text-[#8B8FA8] rounded hover:border-[#F0F0F5] hover:text-[#F0F0F5] transition"
-          >
-            Cancelar
-          </button>
-          <button
-            type="button"
-            onClick={handleConfirm}
-            disabled={isClosing}
-            className="flex-1 py-2.5 text-xs bg-[#FF5B5B]/10 border border-[#FF5B5B]/30 text-[#FF5B5B] rounded hover:bg-[#FF5B5B]/20 transition disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {isClosing && (
-              <div className="w-3 h-3 border-2 border-[#FF5B5B] border-t-transparent rounded-full animate-spin" />
-            )}
-            Confirmar cierre
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Header status dot color ───────────────────────────────
 
 const STATUS_DOT: Record<ChatVariant, string> = {
-  assigned: "bg-[#FFB84D]",
-  unassigned: "bg-[#FF5B5B]",
-  bot: "bg-[#00D4AA]",
-  monitoring: "bg-[#FFB84D]",
+  assigned: "bg-warning",
+  unassigned: "bg-error",
+  bot: "bg-success",
+  monitoring: "bg-warning",
 };
 
 // ── Page ──────────────────────────────────────────────────
@@ -322,6 +61,7 @@ export default function ChatPage() {
   const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [showReturnModal, setShowReturnModal] = useState(false);
   const [showCloseModal, setShowCloseModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -352,6 +92,18 @@ export default function ChatPage() {
       // internally, then reverses to ASC for display) — no extra fetch needed.
 
       setConversation(conv);
+      // Backend may not echo transfer_reason back on a plain GET — fall back to
+      // whatever the conversation.transferred WS event cached for this conversation.
+      if (conv.escalation && !conv.escalation.transfer_reason) {
+        const cachedReason = consumePendingTransferReason(conv.id)
+        if (cachedReason) {
+          setConversation((prev) =>
+            prev && prev.escalation && !prev.escalation.transfer_reason
+              ? { ...prev, escalation: { ...prev.escalation, transfer_reason: cachedReason } }
+              : prev
+          )
+        }
+      }
       setShowReturnedPill(conv.bot_activo && conv.has_escalation_history);
       // Merge instead of replace. `msgs` is only the fresh window this call fetched
       // (the latest messages) — it does NOT include older history the user already
@@ -529,6 +281,47 @@ export default function ChatPage() {
     [conversationId, loadConversation],
   );
 
+  const onConversationTransferred = useCallback(
+    (event: WSConversationTransferred) => {
+      if (event.conversation_id === conversationId) {
+        const selfId = useAuthStore.getState().advisor?.id;
+        const isAdmin = useAuthStore.getState().advisor?.role === "admin";
+        if (selfId && event.from_advisor?.id === selfId && !isAdmin) {
+          navigate(ROUTES.BANDEJA);
+        } else {
+          loadConversation();
+        }
+      }
+    },
+    [conversationId, navigate, loadConversation],
+  );
+
+  const handleTransfer = useCallback(
+    async (targetAdvisorId: string, reason: string | null) => {
+      if (!conversationId) return;
+      const result = await conversationsService.transfer(conversationId, {
+        target_advisor_id: targetAdvisorId,
+        reason,
+      });
+      setShowTransferModal(false);
+      if (result?.escalation?.transfer_reason) {
+        setConversation((prev) =>
+          prev && prev.escalation
+            ? { ...prev, escalation: { ...prev.escalation, transfer_reason: result.escalation.transfer_reason } }
+            : prev
+        );
+      }
+      useToastStore.getState().showToast(
+        reason
+          ? `Conversación transferida: "${reason.length > 60 ? reason.slice(0, 60) + '...' : reason}"`
+          : "Conversación transferida exitosamente.",
+        "success"
+      );
+      navigate(ROUTES.BANDEJA);
+    },
+    [conversationId, navigate]
+  );
+
   // Covers auto-assign on escalation creation: the backend may emit a single
   // `escalation.new` with `advisor_id` already set, with no follow-up
   // `escalation.assigned` event, so this chat must also refresh on that event.
@@ -549,6 +342,7 @@ export default function ChatPage() {
       onConversationReturned: onConversationReturned,
       onConversationClosed: onConversationClosed,
       onEscalationAssigned: onEscalationAssigned,
+      onConversationTransferred: onConversationTransferred,
     }),
     [
       onNewMessage,
@@ -556,6 +350,7 @@ export default function ChatPage() {
       onConversationReturned,
       onConversationClosed,
       onEscalationAssigned,
+      onConversationTransferred,
     ],
   );
 
@@ -728,14 +523,14 @@ export default function ChatPage() {
       className="flex-1 flex flex-col lg:flex-row relative min-h-0"
     >
       {/* ── Central column ── */}
-      <div className="flex-1 flex flex-col bg-[#1D1D1B] border-r border-[#3A3A37] min-w-0 min-h-0">
+      <div className="flex-1 flex flex-col bg-bg-main border-r border-border-default min-w-0 min-h-0">
         {/* Header */}
-        <div className="bg-[#252522] px-4 py-3 border-b border-[#3A3A37] flex justify-between items-center shrink-0">
+        <div className="bg-bg-secondary px-4 py-3 border-b border-border-default flex justify-between items-center shrink-0">
           <div className="flex items-center space-x-3">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] rounded-lg text-xs font-semibold text-[#8B8FA8] hover:text-white transition active:scale-95 shrink-0"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-control text-xs font-semibold text-text-secondary hover:text-white transition active:scale-[0.98] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
                 className="w-3.5 h-3.5"
@@ -754,20 +549,20 @@ export default function ChatPage() {
             </button>
 
             {/* Avatar del Cliente con Iniciales */}
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#01A4E3] to-[#00D4AA] flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-lg border border-[#3A3A37]/35 select-none">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-blue to-success flex items-center justify-center text-xs font-extrabold text-white shrink-0 shadow-lg border border-border-default/35 select-none">
               {getInitials(clientName)}
             </div>
 
             <div>
-              <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+              <h3 className="text-h3 text-text-primary flex items-center gap-1.5">
                 {clientName}
                 <span
                   id="chat-header-status-dot"
-                  className={`w-2 h-2 rounded-full inline-block ${STATUS_DOT[variant]} ring-2 ring-[#252522]`}
+                  className={`w-2 h-2 rounded-full inline-block ${STATUS_DOT[variant]} ring-2 ring-bg-secondary`}
                   title={`Estado: ${variant}`}
                 />
               </h3>
-              <p className="text-[9px] text-[#8B8FA8] flex items-center gap-1">
+              <p className="text-[9px] text-text-secondary flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500/20 border border-green-500/40 inline-block" />
                 WhatsApp: {channel || "—"}
               </p>
@@ -779,7 +574,7 @@ export default function ChatPage() {
             {variant === "monitoring" && (
               <div
                 id="monitoring-mode-pill"
-                className="bg-[#FFB84D]/15 text-[#FFB84D] text-[10px] px-2.5 py-1 rounded font-black border border-[#FFB84D]/30 flex items-center gap-1 animate-pulse"
+                className="bg-warning/15 text-warning text-[10px] px-2.5 py-1 rounded font-black border border-warning/30 flex items-center gap-1 animate-pulse"
               >
                 <svg
                   className="w-4 h-4"
@@ -808,10 +603,10 @@ export default function ChatPage() {
             <button
               type="button"
               onClick={() => setRightPanelOpen(true)}
-              className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-[#2E2E2B] hover:bg-[#3A3A37] border border-[#3A3A37] rounded text-xs font-semibold text-[#8B8FA8] hover:text-white transition"
+              className="lg:hidden flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-control text-xs font-semibold text-text-secondary hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
-                className="w-4 h-4 text-[#01A4E3]"
+                className="w-4 h-4 text-brand-blue"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -853,11 +648,11 @@ export default function ChatPage() {
             onMessageFailed={failOptimisticMessage}
           />
         ) : (
-          <div className="p-3 bg-[#252522] border-t border-[#3A3A37] shrink-0">
+          <div className="p-3 bg-bg-secondary border-t border-border-default shrink-0">
             {variant === "unassigned" && (
               <div
                 id="chat-banner-readonly"
-                className="p-2.5 bg-[#2E2E2B] text-center border border-[#3A3A37] rounded text-xs text-[#FFB84D] font-semibold"
+                className="p-2.5 bg-bg-tertiary text-center border border-border-default rounded text-xs text-warning font-semibold"
               >
                 ⚠️ Modo de Solo Lectura • Debes tomar la conversación para
                 responder.
@@ -866,7 +661,7 @@ export default function ChatPage() {
             {variant === "monitoring" && (
               <div
                 id="chat-banner-monitoring"
-                className="p-2.5 bg-[#FFB84D]/5 text-center border border-[#FFB84D]/20 rounded text-xs text-[#FFB84D] font-semibold"
+                className="p-2.5 bg-warning/5 text-center border border-warning/20 rounded text-xs text-warning font-semibold"
               >
                 👁️ Modo Monitoreo • Vista de solo lectura para administradores.
               </div>
@@ -874,7 +669,7 @@ export default function ChatPage() {
             {variant === "bot" && (
               <div
                 id="chat-banner-bot"
-                className="p-2.5 bg-[#00D4AA]/10 text-center border border-[#00D4AA]/30 rounded text-xs text-[#00D4AA] font-semibold"
+                className="p-2.5 bg-success/10 text-center border border-success/30 rounded text-xs text-success font-semibold"
               >
                 {conversation?.has_escalation_history
                   ? "🤖 El bot retomó esta conversación."
@@ -902,6 +697,7 @@ export default function ChatPage() {
             onTake={handleTake}
             onReturnBot={() => setShowReturnModal(true)}
             onCloseConversation={() => setShowCloseModal(true)}
+            onTransfer={() => setShowTransferModal(true)}
             isTaking={isAssigning}
             isReturning={isReturning}
             isAdmin={role === 'admin'}
@@ -925,6 +721,15 @@ export default function ChatPage() {
           onConfirm={handleClose}
           onCancel={() => setShowCloseModal(false)}
           isClosing={isClosing}
+        />
+      )}
+
+      {/* ── Transfer conversation modal ── */}
+      {showTransferModal && (
+        <TransferModal
+          onConfirm={handleTransfer}
+          onCancel={() => setShowTransferModal(false)}
+          currentAssignedAdvisorId={conversation?.escalation?.advisor?.id}
         />
       )}
     </section>

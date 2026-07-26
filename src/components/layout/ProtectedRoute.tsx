@@ -18,15 +18,16 @@ export default function ProtectedRoute({ requiredRole }: Props) {
   const { token, role, isFirstLogin, sessionExpired } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { reconnect } = useWebSocket()
+  const location = useLocation()
 
-  if (!token) return <Navigate to={ROUTES.LOGIN} replace />
+  if (!token) return <Navigate to={ROUTES.LOGIN} state={{ from: location.pathname }} replace />
   if (isFirstLogin) return <Navigate to={ROUTES.FIRST_LOGIN} replace />
   if (requiredRole && role !== null && role !== requiredRole) {
     return <Navigate to={ROUTES.BANDEJA} replace />
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-[#1D1D1B] flex">
+    <div className="h-screen overflow-hidden bg-bg-main flex">
       <Sidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
@@ -35,7 +36,7 @@ export default function ProtectedRoute({ requiredRole }: Props) {
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <MobileHeader onOpenSidebar={() => setMobileOpen(true)} />
         <WSStatusBanner onReconnect={reconnect} />
-        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
+        <main className="app-scroll flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
           <Outlet />
         </main>
       </div>
@@ -65,31 +66,31 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   }
 
   const WS_DOT_CLASSES: Record<WSStatus, string> = {
-    connecting: 'bg-[#8B8FA8] animate-pulse',
-    connected: 'bg-[#01A4E3] ws-pulse-dot',
-    reconnecting: 'bg-[#FFB84D]',
-    disconnected: 'bg-[#FF5B5B]',
+    connecting: 'bg-text-secondary animate-pulse',
+    connected: 'bg-brand-blue ws-pulse-dot',
+    reconnecting: 'bg-warning',
+    disconnected: 'bg-error',
   }
 
   return (
-    <div className="md:hidden flex items-center justify-between bg-[#252522] border-b border-[#3A3A37] px-4 py-3 shrink-0">
+    <div className="md:hidden flex items-center justify-between bg-bg-secondary border-b border-border-default px-4 py-3 shrink-0">
       <div className="flex items-center space-x-3">
         <button
           onClick={onOpenSidebar}
-          className="text-[#8B8FA8] hover:text-white p-1 focus:outline-none"
+          className="text-text-secondary hover:text-white p-1 focus:outline-none transition"
           aria-label="Abrir menú"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
-        <span className="text-xs font-bold text-white uppercase tracking-wider">
+        <span className="text-label text-text-primary uppercase">
           {getTitle()}
         </span>
       </div>
       <div className="flex items-center space-x-2">
         <span className={`w-2 h-2 rounded-full ${WS_DOT_CLASSES[wsStatus]}`} />
-        <span className="text-[9px] text-[#8B8FA8] uppercase font-bold">
+        <span className="text-[9px] text-text-secondary uppercase font-bold">
           {role ?? 'Asesor'}
         </span>
       </div>
@@ -104,13 +105,13 @@ function WSStatusBanner({ onReconnect }: { onReconnect: () => void }) {
     return (
       <div
         id="ws-disconnected-banner"
-        className="fixed top-0 left-0 right-0 bg-[#FF5B5B]/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
+        className="fixed top-0 left-0 right-0 bg-error/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
       >
         <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
         Sin conexión — los mensajes pueden no llegar en tiempo real.
         <button
           onClick={onReconnect}
-          className="underline ml-1 hover:no-underline"
+          className="underline ml-1 hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
         >
           Reconectar
         </button>
@@ -122,7 +123,7 @@ function WSStatusBanner({ onReconnect }: { onReconnect: () => void }) {
     return (
       <div
         id="ws-reconnecting-banner"
-        className="fixed top-0 left-0 right-0 bg-[#FFB84D]/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
+        className="fixed top-0 left-0 right-0 bg-warning/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
       >
         <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
         Reconectando...

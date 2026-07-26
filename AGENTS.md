@@ -43,6 +43,7 @@ ruff                        >=0.15.15
 ```
 
 Gestor de paquetes: **uv**. Nunca usar `pip install`.
+
 - Prod: `uv add <paquete>`
 - Dev: `uv add --dev <paquete>`
 
@@ -211,17 +212,17 @@ tests/
 
 ## 5. Schema de BD (tablas activas)
 
-| Tabla | Descripción |
-|---|---|
-| `lines` | Líneas WhatsApp; `access_token BYTEA` encriptado con Fernet |
-| `clients` | Clientes identificados por `phone_number` |
-| `advisors` | Usuarios del panel; `role IN ('asesor', 'admin')`; `availability_status` |
-| `conversations` | Sesiones; `bot_activo`, `status`, `intent` (8 valores) |
-| `messages` | Historial por conversación; deduplicación por `wam_id` |
-| `escalations` | Eventos de handover; `advisor_id`, `resolved_at` |
-| `ws_connections` | Conexiones WebSocket activas del panel |
-| `behavior_alerts` | Alertas de moderación de mensajes del asesor |
-| `advisor_schedules` | Intervalos de inactividad configurables por asesor |
+| Tabla               | Descripción                                                              |
+| ------------------- | ------------------------------------------------------------------------ |
+| `lines`             | Líneas WhatsApp; `access_token BYTEA` encriptado con Fernet              |
+| `clients`           | Clientes identificados por `phone_number`                                |
+| `advisors`          | Usuarios del panel; `role IN ('asesor', 'admin')`; `availability_status` |
+| `conversations`     | Sesiones; `bot_activo`, `status`, `intent` (8 valores)                   |
+| `messages`          | Historial por conversación; deduplicación por `wam_id`                   |
+| `escalations`       | Eventos de handover; `advisor_id`, `resolved_at`                         |
+| `ws_connections`    | Conexiones WebSocket activas del panel                                   |
+| `behavior_alerts`   | Alertas de moderación de mensajes del asesor                             |
+| `advisor_schedules` | Intervalos de inactividad configurables por asesor                       |
 
 **Roles:** Solo `asesor` y `admin`. El admin reemplaza al gerente — puede crear asesores, monitorear todas las conversaciones y ver métricas.
 
@@ -229,38 +230,38 @@ tests/
 
 ## 6. Variables de Entorno
 
-| Variable | Default | Descripción |
-|---|---|---|
-| `SUPABASE_URL` | — | URL HTTPS del proyecto (`https://xxx.supabase.co`) |
-| `SUPABASE_ANON_KEY` | — | Anon key (solo para referencias, nunca usada en backend) |
-| `SUPABASE_SERVICE_ROLE_KEY` | — | Service Role Key (bypasea RLS) |
-| `SUPABASE_STORAGE_BUCKET` | — | Bucket de Storage |
-| `SUPABASE_DB_URL` | — | URL postgres directa para LangGraph checkpointer |
-| `OPENAI_API_KEY` | — | Clave OpenAI |
-| `OPENAI_MODEL` | `gpt-4o-mini` | Modelo LLM |
-| `WHISPER_MODEL` | `whisper-1` | Modelo de transcripción |
-| `META_VERIFY_TOKEN` | — | Token handshake GET del webhook |
-| `META_APP_SECRET` | — | Secreto HMAC-SHA256 |
-| `ADMIN_PHONE_NUMBER_ID` | — | phone_number_id línea administrativa |
-| `COMMERCIAL_PHONE_NUMBER_ID` | — | phone_number_id línea comercial |
-| `META_ACCESS_TOKEN` | — | Token bootstrap (en prod viene de tabla `lines`) |
-| `META_API_VERSION` | `v19.0` | Versión Graph API |
-| `ENCRYPTION_KEY` | — | Clave Fernet para access_tokens en BD |
-| `JWT_SECRET` | — | Secret Supabase para validar JWT del panel |
-| `OFFICE_HOURS_START` | `08:00` | Inicio horario de oficina |
-| `OFFICE_HOURS_END` | `18:00` | Fin horario de oficina |
-| `OFFICE_HOURS_TIMEZONE` | `America/Bogota` | Zona horaria |
-| `AVAILABILITY_CHECK_INTERVAL_SECONDS` | `300` | Intervalo del job de disponibilidad |
-| `OUT_OF_HOURS_MESSAGE` | (string) | Mensaje cuando no hay asesores disponibles |
-| `SESSION_TIMEOUT_HOURS` | `24` | Expiración de sesión de conversación |
-| `MAX_CLASSIFICATION_ATTEMPTS` | `2` | Intentos antes de escalar por no_clasificado |
-| `MAX_SIMI_FAILURES` | `2` | Fallos SIMI antes de escalar |
-| `MAX_CONVERSATIONS_PER_ADVISOR` | `3` | Límite de conversaciones simultáneas |
-| `USE_MOCK_SIMI` | `true` | Activa MockSIMIClient |
-| `USE_MOCK_WASI` | `true` | Activa mock de WASI |
-| `MAX_IMAGE_SIZE_MB` | `5` | Límite imágenes |
-| `MAX_VIDEO_SIZE_MB` | `16` | Límite videos |
-| `MAX_DOCUMENT_SIZE_MB` | `20` | Límite documentos |
+| Variable                              | Default          | Descripción                                              |
+| ------------------------------------- | ---------------- | -------------------------------------------------------- |
+| `SUPABASE_URL`                        | —                | URL HTTPS del proyecto (`https://xxx.supabase.co`)       |
+| `SUPABASE_ANON_KEY`                   | —                | Anon key (solo para referencias, nunca usada en backend) |
+| `SUPABASE_SERVICE_ROLE_KEY`           | —                | Service Role Key (bypasea RLS)                           |
+| `SUPABASE_STORAGE_BUCKET`             | —                | Bucket de Storage                                        |
+| `SUPABASE_DB_URL`                     | —                | URL postgres directa para LangGraph checkpointer         |
+| `OPENAI_API_KEY`                      | —                | Clave OpenAI                                             |
+| `OPENAI_MODEL`                        | `gpt-4o-mini`    | Modelo LLM                                               |
+| `WHISPER_MODEL`                       | `whisper-1`      | Modelo de transcripción                                  |
+| `META_VERIFY_TOKEN`                   | —                | Token handshake GET del webhook                          |
+| `META_APP_SECRET`                     | —                | Secreto HMAC-SHA256                                      |
+| `ADMIN_PHONE_NUMBER_ID`               | —                | phone_number_id línea administrativa                     |
+| `COMMERCIAL_PHONE_NUMBER_ID`          | —                | phone_number_id línea comercial                          |
+| `META_ACCESS_TOKEN`                   | —                | Token bootstrap (en prod viene de tabla `lines`)         |
+| `META_API_VERSION`                    | `v19.0`          | Versión Graph API                                        |
+| `ENCRYPTION_KEY`                      | —                | Clave Fernet para access_tokens en BD                    |
+| `JWT_SECRET`                          | —                | Secret Supabase para validar JWT del panel               |
+| `OFFICE_HOURS_START`                  | `08:00`          | Inicio horario de oficina                                |
+| `OFFICE_HOURS_END`                    | `18:00`          | Fin horario de oficina                                   |
+| `OFFICE_HOURS_TIMEZONE`               | `America/Bogota` | Zona horaria                                             |
+| `AVAILABILITY_CHECK_INTERVAL_SECONDS` | `300`            | Intervalo del job de disponibilidad                      |
+| `OUT_OF_HOURS_MESSAGE`                | (string)         | Mensaje cuando no hay asesores disponibles               |
+| `SESSION_TIMEOUT_HOURS`               | `24`             | Expiración de sesión de conversación                     |
+| `MAX_CLASSIFICATION_ATTEMPTS`         | `2`              | Intentos antes de escalar por no_clasificado             |
+| `MAX_SIMI_FAILURES`                   | `2`              | Fallos SIMI antes de escalar                             |
+| `MAX_CONVERSATIONS_PER_ADVISOR`       | `3`              | Límite de conversaciones simultáneas                     |
+| `USE_MOCK_SIMI`                       | `true`           | Activa MockSIMIClient                                    |
+| `USE_MOCK_WASI`                       | `true`           | Activa mock de WASI                                      |
+| `MAX_IMAGE_SIZE_MB`                   | `5`              | Límite imágenes                                          |
+| `MAX_VIDEO_SIZE_MB`                   | `16`             | Límite videos                                            |
+| `MAX_DOCUMENT_SIZE_MB`                | `20`             | Límite documentos                                        |
 
 ---
 
@@ -271,6 +272,7 @@ tests/
 Usar SDD (`/sdd`) cuando la feature es **grande, ambigua o cross-cutting** (toca más de 3 archivos, tiene múltiples casos de borde, o requiere decisiones arquitecturales).
 
 El ciclo SDD vive en `specs/<feature_name>/`:
+
 1. `01-spec.md` — qué y por qué (sin implementación)
 2. `02-clarification.md` — Q&A de ambigüedades resueltas
 3. `03-design.md` — solución técnica; esperar aprobación explícita antes de codear
@@ -282,7 +284,7 @@ El ciclo SDD vive en `specs/<feature_name>/`:
 
 Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedades) se implementan directamente sin SDD.
 
-### Patrón para nuevos endpoints del panel (PW-*)
+### Patrón para nuevos endpoints del panel (PW-\*)
 
 1. Schema del request/response en `app/api/v1/panel/schemas.py`
 2. Endpoint en el router correspondiente (`conversations.py`, `advisors.py`, etc.)
@@ -311,81 +313,87 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 ## 8. Estado Actual
 
 ### Infraestructura
-| Componente | Estado |
-|---|---|
-| FastAPI + Uvicorn | ✅ |
-| Supabase AsyncClient | ✅ |
-| Railway deploy (dev/prod) | ✅ |
-| HMAC-SHA256 webhook verification | ✅ |
-| Encriptación access_token (Fernet) | ✅ |
-| JWT auth panel (python-jose) | ✅ |
+
+| Componente                             | Estado                              |
+| -------------------------------------- | ----------------------------------- |
+| FastAPI + Uvicorn                      | ✅                                  |
+| Supabase AsyncClient                   | ✅                                  |
+| Railway deploy (dev/prod)              | ✅                                  |
+| HMAC-SHA256 webhook verification       | ✅                                  |
+| Encriptación access_token (Fernet)     | ✅                                  |
+| JWT auth panel (python-jose)           | ✅                                  |
 | LangGraph checkpointer (PostgresSaver) | ✅ instalado, pendiente de conectar |
 
 ### Agente Administrativo (Fase 1)
-| Componente | Estado |
-|---|---|
-| AdministrativeState (22 campos) | ✅ |
-| Router por phone_number_id via LineRepository | ✅ |
-| Tools SIMI (MockSIMIClient) | ✅ |
-| Transcripción Whisper (esqueleto) | ✅ nodo pendiente de access_token |
-| Nodo check_availability_for_escalation | ✅ helper listo |
-| Grafo completo | ⬜ Bloqueado hasta credenciales SIMI |
-| Integración SIMI real | ⬜ Bloqueado (sin credenciales) |
+
+| Componente                                    | Estado                               |
+| --------------------------------------------- | ------------------------------------ |
+| AdministrativeState (22 campos)               | ✅                                   |
+| Router por phone_number_id via LineRepository | ✅                                   |
+| Tools SIMI (MockSIMIClient)                   | ✅                                   |
+| Transcripción Whisper (esqueleto)             | ✅ nodo pendiente de access_token    |
+| Nodo check_availability_for_escalation        | ✅ helper listo                      |
+| Grafo completo                                | ⬜ Bloqueado hasta credenciales SIMI |
+| Integración SIMI real                         | ⬜ Bloqueado (sin credenciales)      |
 
 ### Panel Web Interno — Backend (Bloque PW)
 
-| Componente                                          | Estado                                      |
-| --------------------------------------------------- | ------------------------------------------- |
-| Estructura módulo `/panel`                          | ✅                                          |
-| Schemas centralizados                               | ✅                                          |
-| get_current_advisor / require_role                  | ✅                                          |
-| GET /conversations/ + /{id} + /{id}/messages        | ✅                                          |
-| POST /reply + /reply/media + /reply/audio           | ✅                                          |
-| PATCH /assign + /return-bot + /close                | ✅                                          |
-| GET /advisors/me + /advisors/                       | ✅                                          |
-| POST /advisors/ (crear asesor)                      | ✅                                          |
-| PATCH /advisors/me + /advisors/me/availability      | ✅                                          |
-| PATCH /advisors/{id} (admin edita asesor)           | ✅                                          |
-| GET /metrics (admin only)                           | ✅                                          |
-| GET /behavior-alerts/ + PATCH /{id}/review          | ✅                                          |
-| GET/POST /schedules/ + PATCH/DELETE /{id}           | ✅                                          |
-| WebSocketManager + /ws endpoint                     | ✅                                          |
-| POST /auth/token (debug sin password — solo dev)    | ✅ sin guard de settings.DEBUG — ver nota   |
+| Componente                                       | Estado                                    |
+| ------------------------------------------------ | ----------------------------------------- |
+| Estructura módulo `/panel`                       | ✅                                        |
+| Schemas centralizados                            | ✅                                        |
+| get_current_advisor / require_role               | ✅                                        |
+| GET /conversations/ + /{id} + /{id}/messages     | ✅                                        |
+| POST /reply + /reply/media + /reply/audio        | ✅                                        |
+| PATCH /assign + /return-bot + /close             | ✅                                        |
+| GET /advisors/me + /advisors/                    | ✅                                        |
+| POST /advisors/ (crear asesor)                   | ✅                                        |
+| PATCH /advisors/me + /advisors/me/availability   | ✅                                        |
+| PATCH /advisors/{id} (admin edita asesor)        | ✅                                        |
+| GET /metrics (admin only)                        | ✅                                        |
+| GET /behavior-alerts/ + PATCH /{id}/review       | ✅                                        |
+| GET/POST /schedules/ + PATCH/DELETE /{id}        | ✅                                        |
+| WebSocketManager + /ws endpoint                  | ✅                                        |
+| POST /auth/token (debug sin password — solo dev) | ✅ sin guard de settings.DEBUG — ver nota |
 
 > **Nota conocida:** `POST /auth/token` no tiene guard de `settings.DEBUG`. En producción, incluir ese router solo si `DEBUG=True`. `POST /advisors/` no valida `specialty` contra `area` — esa validación solo existe en `PATCH /advisors/{id}`.
 
 > El estado detallado del frontend se encuentra en la Sección 17.
 
 ### Servicios
-| Componente | Estado |
-|---|---|
-| Meta client (texto, media, descarga) | ✅ |
-| SIMI MockClient | ✅ |
-| SIMI RealClient | ⬜ Sin credenciales |
-| Moderación (GPT-4o-mini) | ✅ |
-| Transcripción (Whisper) | ✅ |
-| Job disponibilidad asesores | ✅ |
+
+| Componente                           | Estado              |
+| ------------------------------------ | ------------------- |
+| Meta client (texto, media, descarga) | ✅                  |
+| SIMI MockClient                      | ✅                  |
+| SIMI RealClient                      | ⬜ Sin credenciales |
+| Moderación (GPT-4o-mini)             | ✅                  |
+| Transcripción (Whisper)              | ✅                  |
+| Job disponibilidad asesores          | ✅                  |
 
 ### BD
-| Tablas | Estado |
-|---|---|
-| lines, clients, advisors, conversations, messages | ✅ |
-| escalations, ws_connections, behavior_alerts | ✅ |
-| advisor_schedules | ✅ |
-| advisors.availability_status | ✅ |
-| Repositorios (5 + behavior_alert) | ✅ |
+
+| Tablas                                            | Estado |
+| ------------------------------------------------- | ------ |
+| lines, clients, advisors, conversations, messages | ✅     |
+| escalations, ws_connections, behavior_alerts      | ✅     |
+| advisor_schedules                                 | ✅     |
+| advisors.availability_status                      | ✅     |
+| Repositorios (5 + behavior_alert)                 | ✅     |
 
 ---
 
 ## 9. Convenciones de Código
 
 ### Nombrado
+
 - Funciones: `snake_case`, descriptivas del qué. `get_owner_balance`, no `fetch`.
 - Clases: `PascalCase`. Repositorios no terminan en "Repository" necesariamente — un archivo por aggregate.
 - Variables de entorno: `UPPER_CASE` en `Settings` y en `.env`.
 - Enums: `str, Enum` — valores son strings nativos usables directamente en queries Supabase.
 
 ### Manejo de errores
+
 - Repositorios: loguear con `logger.error` antes de propagar como `DatabaseError`.
 - Endpoints panel: `raise HTTPException(status, detail=error_detail(ErrorCode.X, "msg"))`.
 - Servicios externos (Meta, SIMI, Whisper): excepción tipada específica (`MetaAPIError`, `TranscriptionError`).
@@ -393,6 +401,7 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 - El endpoint `/webhook` siempre devuelve `{"status": "ok"}` a Meta.
 
 ### Logging
+
 - `logger = logging.getLogger(__name__)` en cada módulo.
 - `DEBUG`: trazas de estado LangGraph, checks de moderación.
 - `INFO`: eventos de negocio (mensaje recibido, escalado, status cambiado).
@@ -400,10 +409,12 @@ Features pequeñas y bien definidas (≤3 archivos, spec claro, sin ambigüedade
 - No usar `print()` en producción.
 
 ### Formato
+
 - Ruff: `uv run ruff check . --fix && uv run ruff format .`
 - Line length: 100
 
 ### Updates en Supabase
+
 - Métodos `-> None`: no encadenar `.select()` — no se valida "record not found".
 - Métodos `-> Model`: encadenar `.select()` y verificar `if not response.data`.
 - PostgREST devuelve `BYTEA` como string hex `\x...` — siempre usar `_parse_bytea()`.
@@ -496,6 +507,7 @@ supabase db query --linked "SELECT table_name FROM information_schema.tables WHE
 ```
 
 Para recibir webhooks de Meta localmente:
+
 ```bash
 ngrok http 8000
 # Meta for Developers → WhatsApp → Configuration → Webhook URL:
@@ -595,10 +607,10 @@ src/
 
 ### Login mock
 
-| Email              | Password | Token               | Rol     |
-| ------------------ | -------- | ------------------- | ------- |
-| `asesor@mock.com`  | `123`    | `mock-token-asesor` | `asesor` |
-| `admin@mock.com`   | `123`    | `mock-token-admin`  | `admin`  |
+| Email             | Password | Token               | Rol      |
+| ----------------- | -------- | ------------------- | -------- |
+| `asesor@mock.com` | `123`    | `mock-token-asesor` | `asesor` |
+| `admin@mock.com`  | `123`    | `mock-token-admin`  | `admin`  |
 
 La sesión mock **solo vive en el store de Zustand** — no se persiste en Supabase. Al refrescar la página se pierde y hay que volver a hacer login.
 
@@ -639,26 +651,29 @@ Si el effect llama a `setReconnectAttempt(n + 1)` y `reconnectAttempt` está en 
 
 ```tsx
 // ❌ NUNCA
-const attempt = useWSStore((s) => s.reconnectAttempt)
+const attempt = useWSStore((s) => s.reconnectAttempt);
 useEffect(() => {
-  ws.onclose = () => { setReconnectAttempt(attempt + 1) }
-}, [attempt])  // re-corre inmediatamente, saltea el setTimeout
+  ws.onclose = () => {
+    setReconnectAttempt(attempt + 1);
+  };
+}, [attempt]); // re-corre inmediatamente, saltea el setTimeout
 ```
 
 ```tsx
 // ✅ CORRECTO
 useEffect(() => {
   ws.onclose = () => {
-    const attempt = useWSStore.getState().reconnectAttempt
-    setReconnectAttempt(attempt + 1)
-    setTimeout(connect, delay)
-  }
-}, [])
+    const attempt = useWSStore.getState().reconnectAttempt;
+    setReconnectAttempt(attempt + 1);
+    setTimeout(connect, delay);
+  };
+}, []);
 ```
 
 ### Regla 3 — useAuth tiene deps vacíos: no los toques
 
 `useEffect(..., [])` en `useAuth.ts` es intencional. El effect:
+
 - Lee `getStoredSession()` de localStorage una sola vez al montar
 - Restaura `token`, `refresh_token` y `expires_at` al store vía `useAuthStore.setState`
 - Llama `advisorsService.getMe()` una sola vez para cargar el perfil
@@ -692,14 +707,16 @@ useEffect(() => { useAuthStore.getState().setLoading(false) }, [])
 
 ```tsx
 // ❌ Valor del store escrito dentro del effect puesto en las deps
-const attempt = useWSStore((s) => s.reconnectAttempt)
-useEffect(() => { setReconnectAttempt(attempt + 1) }, [attempt])
+const attempt = useWSStore((s) => s.reconnectAttempt);
+useEffect(() => {
+  setReconnectAttempt(attempt + 1);
+}, [attempt]);
 
 // ✅ Leer imperativo dentro del callback
 useEffect(() => {
-  const attempt = useWSStore.getState().reconnectAttempt
-  setReconnectAttempt(attempt + 1)
-}, [])
+  const attempt = useWSStore.getState().reconnectAttempt;
+  setReconnectAttempt(attempt + 1);
+}, []);
 ```
 
 ```tsx
@@ -712,19 +729,19 @@ useEffect(() => { ... }, [])
 
 ```tsx
 // ❌ Navegar con strings hardcodeados
-navigate('/bandeja')
+navigate("/bandeja");
 
 // ✅ Usar constantes
-import { ROUTES } from '../constants/routes'
-navigate(ROUTES.BANDEJA)
+import { ROUTES } from "../constants/routes";
+navigate(ROUTES.BANDEJA);
 ```
 
 ```tsx
 // ❌ Fetch directo sin el servicio
-const res = await fetch('/api/v1/panel/conversations')
+const res = await fetch("/api/v1/panel/conversations");
 
 // ✅ Siempre vía conversationsService (tiene auth automático + mock fallback)
-const data = await conversationsService.list()
+const data = await conversationsService.list();
 ```
 
 - No usar `localStorage` directamente para sesión — Supabase Auth lo maneja.
@@ -736,29 +753,29 @@ const data = await conversationsService.list()
 
 ## 17. Frontend — Estado Actual
 
-| Componente                                          | Estado                                             |
-| --------------------------------------------------- | -------------------------------------------------- |
-| Auth real (POST /auth/token + refresh_token)        | ✅ login real; mock legacy: `asesor@mock.com` / `123` |
-| authStore (token, refresh_token, expires_at, setSession, clearSession) | ✅            |
-| wsStore (Zustand)                                   | ✅ + decrementAlerts (FE-12)                       |
-| useWebSocket (singleton + backoff)                  | ✅                                                 |
-| EscalationToast + sonido Web Audio API              | ✅                                                 |
-| ProtectedRoute (guard + WS + toasts)                | ✅                                                 |
-| BandejaPage (lista + filtros + modal tomar)         | ✅ con fallback mock                               |
-| ChatPage (historial + reply)                        | ✅                                                 |
-| ChatInput (texto + adjuntos + audio)                | ✅                                                 |
-| AudioRecorder (MediaRecorder API, webm)             | ✅                                                 |
-| MessageBubble (text/image/video/document/audio)     | ✅                                                 |
-| conversationsService (HTTP + mock fallback)         | ✅ list con mock; resto sin fallback               |
-| advisorsService.updateMe (PATCH /advisors/me)       | ✅ implementado — soporta cambio de contraseña     |
-| alertsService (list, markReviewed)                  | ✅ sin fallback mock en markReviewed               |
-| GestionPage (admin) — tabla asesores + CRUD         | ✅ FE-11                                           |
-| BehaviorAlertsPanel (admin-only, FE-12)             | ✅ filtros, WS reload, mock fallback               |
-| Renovación automática de token (interceptor axios)  | ✅ 5 min antes de expirar; refresh único paralelo  |
-| First-login: redirect en bootstrap (must_change_pw) | ✅ bug fix — redirige también al reabrir la app    |
-| **Integración real con backend (fase activa)**      | 🔄 En progreso                                     |
-| Conexión real WS con backend                        | ⬜ Pendiente (token mock rechazado en dev)         |
-| HistorialPage / PerfilPage                          | ⬜ Pendientes                                      |
+| Componente                                                             | Estado                                                |
+| ---------------------------------------------------------------------- | ----------------------------------------------------- |
+| Auth real (POST /auth/token + refresh_token)                           | ✅ login real; mock legacy: `asesor@mock.com` / `123` |
+| authStore (token, refresh_token, expires_at, setSession, clearSession) | ✅                                                    |
+| wsStore (Zustand)                                                      | ✅ + decrementAlerts (FE-12)                          |
+| useWebSocket (singleton + backoff)                                     | ✅                                                    |
+| EscalationToast + sonido Web Audio API                                 | ✅                                                    |
+| ProtectedRoute (guard + WS + toasts)                                   | ✅                                                    |
+| BandejaPage (lista + filtros + modal tomar)                            | ✅ con fallback mock                                  |
+| ChatPage (historial + reply)                                           | ✅                                                    |
+| ChatInput (texto + adjuntos + audio)                                   | ✅                                                    |
+| AudioRecorder (MediaRecorder API, webm)                                | ✅                                                    |
+| MessageBubble (text/image/video/document/audio)                        | ✅                                                    |
+| conversationsService (HTTP + mock fallback)                            | ✅ list con mock; resto sin fallback                  |
+| advisorsService.updateMe (PATCH /advisors/me)                          | ✅ implementado — soporta cambio de contraseña        |
+| alertsService (list, markReviewed)                                     | ✅ sin fallback mock en markReviewed                  |
+| GestionPage (admin) — tabla asesores + CRUD                            | ✅ FE-11                                              |
+| BehaviorAlertsPanel (admin-only, FE-12)                                | ✅ filtros, WS reload, mock fallback                  |
+| Renovación automática de token (interceptor axios)                     | ✅ 5 min antes de expirar; refresh único paralelo     |
+| First-login: redirect en bootstrap (must_change_pw)                    | ✅ bug fix — redirige también al reabrir la app       |
+| **Integración real con backend (fase activa)**                         | 🔄 En progreso                                        |
+| Conexión real WS con backend                                           | ⬜ Pendiente (token mock rechazado en dev)            |
+| HistorialPage / PerfilPage                                             | ⬜ Pendientes                                         |
 
 ---
 
@@ -793,13 +810,13 @@ Leer siempre `response.data.X`. Manejar errores con `error.detail.code`.
 
 Usar `msg_type` como fuente de verdad — no la nulabilidad de `content` o `media_url`.
 
-| `msg_type`   | Cómo renderizar                                              |
-| ------------ | ------------------------------------------------------------ |
-| `text`       | `content` como texto plano                                   |
-| `audio`      | `<audio src={media_url} />` — **nunca mostrar `transcription`** |
-| `image`      | `<img src={media_url} />`                                    |
-| `video`      | `<video src={media_url} controls />`                         |
-| `document`   | `<a href={media_url}>Descargar</a>`                          |
+| `msg_type` | Cómo renderizar                                                 |
+| ---------- | --------------------------------------------------------------- |
+| `text`     | `content` como texto plano                                      |
+| `audio`    | `<audio src={media_url} />` — **nunca mostrar `transcription`** |
+| `image`    | `<img src={media_url} />`                                       |
+| `video`    | `<video src={media_url} controls />`                            |
+| `document` | `<a href={media_url}>Descargar</a>`                             |
 
 `transcription` es contexto interno del agente de IA (Whisper). No mostrarlo como contenido del mensaje. Se puede exponer como toggle "Ver transcripción" colapsado, pero nunca en el bubble.
 
@@ -824,15 +841,15 @@ headers: { 'Content-Type': 'multipart/form-data' }  // rompe el boundary
 
 Envelope: `{ "event": "<tipo>", "data": { ... } }`.
 
-| Evento                  | Qué hacer                                                                    |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `message.new`           | Append al chat si `conversation_id` coincide; actualizar `last_activity`     |
-| `escalation.new`        | Mostrar `EscalationToast`; recargar lista                                    |
-| `escalation.assigned`   | Actualizar tarjeta — quitar de cola sin asignar                              |
-| `conversation.returned` | Marcar conversación con ícono de bot                                         |
-| `conversation.closed`   | Quitar de bandeja o actualizar estado — **defensivo: ver abajo**             |
-| `advisor.status_changed`| Actualizar badge de disponibilidad                                           |
-| `behavior.alert`        | Solo admins: incrementar badge + llamar `GET /behavior-alerts/` para detalles |
+| Evento                   | Qué hacer                                                                     |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `message.new`            | Append al chat si `conversation_id` coincide; actualizar `last_activity`      |
+| `escalation.new`         | Mostrar `EscalationToast`; recargar lista                                     |
+| `escalation.assigned`    | Actualizar tarjeta — quitar de cola sin asignar                               |
+| `conversation.returned`  | Marcar conversación con ícono de bot                                          |
+| `conversation.closed`    | Quitar de bandeja o actualizar estado — **defensivo: ver abajo**              |
+| `advisor.status_changed` | Actualizar badge de disponibilidad                                            |
+| `behavior.alert`         | Solo admins: incrementar badge + llamar `GET /behavior-alerts/` para detalles |
 
 **`conversation.closed` defensivo:** `advisor_id` y `advisor_name` están ausentes cuando `closed_by === "bot"`. Siempre verificar `closed_by` antes de leer esos campos.
 
@@ -842,13 +859,13 @@ Enviar `{ "type": "ping" }` cada 30 segundos. Al abrir un chat, enviar `subscrib
 
 ### 18.6 Casos de borde conocidos
 
-| Situación | Comportamiento correcto |
-|---|---|
+| Situación                                                | Comportamiento correcto                                                                             |
+| -------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | Dos asesores toman la misma conversación simultáneamente | El segundo recibe `ALREADY_ASSIGNED` (409) — mostrar: "Otro asesor tomó esta conversación primero." |
-| `status_until` en respuesta de asesor | Hora local de Bogotá **sin** timezone suffix — no asumir UTC |
-| Admin desactiva asesor con conversaciones activas | La respuesta incluye `"warning"` no-nulo — mostrarlo en la UI |
-| `active_conversations` en perfil | Puede ser `0` si el RPC de Supabase falla — fallback silencioso, no un error |
-| Cerrar conversación sin body | Defaults automáticos: `resolution_type = "otro"`, `client_satisfied = "sin_confirmar"` |
+| `status_until` en respuesta de asesor                    | Hora local de Bogotá **sin** timezone suffix — no asumir UTC                                        |
+| Admin desactiva asesor con conversaciones activas        | La respuesta incluye `"warning"` no-nulo — mostrarlo en la UI                                       |
+| `active_conversations` en perfil                         | Puede ser `0` si el RPC de Supabase falla — fallback silencioso, no un error                        |
+| Cerrar conversación sin body                             | Defaults automáticos: `resolution_type = "otro"`, `client_satisfied = "sin_confirmar"`              |
 
 ### 18.7 Quitar mocks progresivamente
 
@@ -861,4 +878,4 @@ Conectar endpoint por endpoint, en este orden:
 5. WebSocket — cambiar URL al backend real; el JWT de Supabase ya es válido
 6. Alerts, schedules, metrics — en orden de prioridad del equipo
 
-No desactivar todos los mocks a la vez — hacerlo endpoint por endpoint para detectar regresiones.
+Nunca desactivar todos los mocks a la vez — hacerlo endpoint por endpoint para detectar regresiones.

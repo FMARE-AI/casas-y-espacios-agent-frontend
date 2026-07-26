@@ -214,7 +214,7 @@ export default function AudioRecorder({
         type="button"
         onClick={startRecording}
         disabled={disabled}
-        className="p-2 text-[#8B8FA8] hover:text-white hover:bg-[#3A3A37] rounded transition disabled:opacity-40 disabled:cursor-not-allowed"
+        className="p-2 text-text-secondary hover:text-white hover:bg-border-default rounded-control transition disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
         title="Grabar audio"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +232,7 @@ export default function AudioRecorder({
   if (state === 'requesting_permission') {
     return (
       <div className="p-2">
-        <div className="w-4 h-4 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
+        <div className="w-4 h-4 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -240,19 +240,19 @@ export default function AudioRecorder({
   if (state === 'recording') {
     return (
       <div className="flex items-center gap-2 px-2">
-        <span className="w-2 h-2 rounded-full bg-[#FF5B5B] animate-pulse" />
-        <span className="text-[#FF5B5B] text-xs font-mono font-bold">
+        <span className="w-2 h-2 rounded-full bg-error animate-pulse" />
+        <span className="text-error text-xs font-mono font-bold">
           {formatTime(elapsedSeconds)}
         </span>
         {elapsedSeconds >= MAX_DURATION_SECONDS - 30 && (
-          <span className="text-[#FFB84D] text-[10px]">
+          <span className="text-warning text-[10px]">
             Límite próximo
           </span>
         )}
         <button
           type="button"
           onClick={stopRecording}
-          className="p-1.5 bg-[#FF5B5B]/10 hover:bg-[#FF5B5B]/20 border border-[#FF5B5B]/30 rounded text-[#FF5B5B] transition"
+          className="p-1.5 bg-error/10 hover:bg-error/20 border border-error/30 rounded-control text-error transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           title="Detener grabación"
         >
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -270,12 +270,12 @@ export default function AudioRecorder({
           src={audioUrl!}
           controls
           className="h-8 flex-1 min-w-0"
-          style={{ accentColor: '#01A4E3' }}
+          style={{ accentColor: 'var(--color-brand-blue)' }}
         />
         <button
           type="button"
           onClick={sendAudio}
-          className="p-2 bg-[#01A4E3] hover:bg-[#0190C8] text-white rounded transition shrink-0"
+          className="p-2 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           title="Enviar audio"
         >
           <svg className="w-3.5 h-3.5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,7 +285,7 @@ export default function AudioRecorder({
         <button
           type="button"
           onClick={cancelRecording}
-          className="p-2 text-[#8B8FA8] hover:text-[#FF5B5B] hover:bg-[#FF5B5B]/10 rounded transition shrink-0"
+          className="p-2 text-text-secondary hover:text-error hover:bg-error/10 rounded-control transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           title="Cancelar"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,8 +299,8 @@ export default function AudioRecorder({
   if (state === 'sending') {
     return (
       <div className="flex items-center gap-2 px-2">
-        <div className="w-3.5 h-3.5 border-2 border-[#01A4E3] border-t-transparent rounded-full animate-spin" />
-        <span className="text-[#8B8FA8] text-xs">Enviando audio...</span>
+        <div className="w-3.5 h-3.5 border-2 border-brand-blue border-t-transparent rounded-full animate-spin" />
+        <span className="text-text-secondary text-xs">Enviando audio...</span>
       </div>
     )
   }
@@ -308,18 +308,18 @@ export default function AudioRecorder({
   // error state
   return (
     <div className="flex items-center gap-2 px-2">
-      <span className="text-[#FF5B5B] text-xs">{errorMessage}</span>
+      <span className="text-error text-xs">{errorMessage}</span>
       <button
         type="button"
         onClick={sendAudio}
-        className="text-[10px] text-[#01A4E3] hover:text-[#0190C8] font-bold uppercase transition"
+        className="text-[10px] text-brand-blue hover:text-brand-blue-hover font-bold uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
       >
         Reintentar
       </button>
       <button
         type="button"
         onClick={cancelRecording}
-        className="text-[10px] text-[#8B8FA8] hover:text-[#FF5B5B] transition ml-1"
+        className="text-[10px] text-text-secondary hover:text-error transition ml-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
       >
         Cancelar
       </button>

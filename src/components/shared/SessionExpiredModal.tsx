@@ -29,14 +29,14 @@ export default function SessionExpiredModal() {
   return (
     <div
       id="dialog-modal-overlay"
-      className="fixed inset-0 bg-[#1D1D1B]/90 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]"
+      className="fixed inset-0 bg-bg-main/90 flex items-center justify-center p-4 z-[9999]"
     >
       <div
         id="modal-expired-session"
-        className="bg-[#252522] border border-[#3A3A37] rounded-xl shadow-2xl p-6 max-w-sm w-full space-y-4"
+        className="bg-bg-secondary border border-border-default rounded-panel shadow-md p-6 max-w-sm w-full space-y-4"
       >
         <div className="text-center">
-          <div className="bg-red-950/40 text-[#FF5B5B] w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-[#FF5B5B]/30">
+          <div className="bg-red-950/40 text-error w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 border border-error/30">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -46,14 +46,14 @@ export default function SessionExpiredModal() {
               />
             </svg>
           </div>
-          <h3 className="text-sm font-bold text-white">{title}</h3>
-          <p className="text-xs text-[#8B8FA8] mt-2 leading-relaxed">{message}</p>
+          <h3 className="text-h3 text-text-primary">{title}</h3>
+          <p className="text-xs text-text-secondary mt-2 leading-relaxed">{message}</p>
         </div>
 
         <div className="pt-2 text-xs">
           <button
             onClick={handleGoToLogin}
-            className="w-full bg-[#01A4E3] hover:bg-[#0190C8] text-white py-2.5 rounded font-bold transition active:scale-95"
+            className="w-full bg-brand-blue hover:bg-brand-blue-hover text-white py-2.5 rounded-control font-bold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           >
             Ir al login
           </button>

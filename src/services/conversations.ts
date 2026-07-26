@@ -7,6 +7,9 @@ type CloseConversationData = { resolution_type?: string; resolution_notes?: stri
 type AssignResponse = { escalation: { id: string; advisor_id: string; advisor_name: string } }
 type ReturnToBotResponse = { conversation: Conversation }
 type CloseResponse = { conversation: Conversation }
+type TransferResponse = {
+  escalation: { id: string; advisor_id: string; advisor_name: string; transfer_reason?: string | null }
+}
 
 export const conversationsService = {
 
@@ -86,6 +89,11 @@ export const conversationsService = {
 
   async markAsSeen(conversationId: string): Promise<{ unread_count: number }> {
     const { data } = await apiClient.patch(`/api/v1/panel/conversations/${conversationId}/seen`)
+    return data.data
+  },
+
+  async transfer(id: string, body: { target_advisor_id: string; reason?: string | null }): Promise<TransferResponse> {
+    const { data } = await apiClient.post(`/api/v1/panel/conversations/${id}/transfer`, body)
     return data.data
   },
 }

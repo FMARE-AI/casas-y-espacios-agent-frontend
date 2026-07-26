@@ -812,6 +812,59 @@ navigate(ROUTES.BANDEJA)
 - No usar `localStorage` directamente para guardar la sesión — Supabase Auth lo maneja internamente.
 - No importar `socket` del módulo `useWebSocket` — es una variable privada del módulo.
 
+### 16.1 Checklist obligatorio de fluidez de UI y UX (todo cambio de frontend)
+
+Antes de dar por terminado **cualquier** cambio de frontend (componente nuevo, estilo, modal, layout, refactor), verificar explícitamente que no degrada la fluidez de scroll ni la UX de la vista tocada y de las vistas que comparten el componente/clase modificada. Esto viene de incidentes reales detectados en producción (lag de scroll en Gestión de Asesores, botones fuera de viewport en `AdvisorModal`) — no es una preferencia estética, es una regla de calidad.
+
+**Nunca hacer** (causas confirmadas de lag/jank en este proyecto):
+
+```tsx
+// ❌ backdrop-blur-* en un elemento que vive DENTRO de un contenedor con scroll
+// (la barra de filtros o el wrapper de una tabla, por ejemplo). El navegador
+// tiene que recomputar el blur del fondo en cada frame que se mueve → jank.
+<div className="overflow-y-auto"> {/* contenedor con scroll */}
+  <div className="backdrop-blur-md bg-bg-secondary/60">...</div>
+</div>
+
+// ✅ Fondo sólido/semi-opaco, sin blur, si el elemento se mueve con el scroll
+<div className="bg-bg-secondary">...</div>
+```
+
+```tsx
+// ❌ scroll-behavior: smooth (o la clase scroll-smooth) en un panel que el
+// usuario scrollea de forma continua con la rueda del mouse — cada tick de
+// wheel encola una animación con easing sobre la anterior → se siente lageado.
+.app-scroll { scroll-behavior: smooth; }
+
+// ✅ Scroll nativo (sin scroll-behavior) para paneles de scroll continuo.
+// `smooth` solo se justifica para saltos programáticos puntuales
+// (scrollIntoView, anclas), nunca en un contenedor de wheel-scroll.
+```
+
+```tsx
+// ❌ will-change persistente sin una animación real que lo justifique —
+// reserva una capa de compositor/GPU todo el tiempo que el elemento existe.
+<div className="will-change-transform">...</div>  // sin animación de transform activa
+
+// ✅ Solo agregar will-change si hay una animación concreta que lo necesita,
+// y solo mientras esa animación está en curso.
+```
+
+```tsx
+// ❌ Overlay de modal con backdrop-blur-sm a pantalla completa por defecto —
+// es una de las operaciones de GPU más caras que existen en CSS.
+<div className="fixed inset-0 bg-bg-main/75 backdrop-blur-sm" />
+
+// ✅ Scrim sólido/semi-transparente sin blur, salvo que el diseño lo exija
+// explícitamente y ya se haya verificado que no introduce lag.
+<div className="fixed inset-0 bg-bg-main/85" />
+```
+
+- Todo modal debe caber en pantallas de laptop de baja altura (~700-800px): usar `max-h-[90vh]` con header/footer fijos y **scroll interno** en el cuerpo — nunca dejar que un campo dinámico (medidor de fortaleza de contraseña, mensajes de error, etc.) empuje los botones de acción fuera del viewport sin forma de llegar a ellos.
+- Antes de agregar una animación infinita (`animate-pulse`, keyframes con `box-shadow`, etc.) a un elemento que puede repetirse muchas veces en una lista con scroll, confirmar que el número de instancias simultáneas está acotado (ej. solo prioridad crítica) — animar `box-shadow` en muchos elementos a la vez fuerza repintado continuo.
+- Si el cambio toca una clase o utilidad compartida (ej. `.app-scroll`, tokens en `index.css`), buscar **todos** los usos con Grep antes de asumir el impacto — un cambio en una utilidad global afecta cada vista que la usa.
+- Nunca sacrificar accesibilidad de scroll, responsive o UX (elementos inalcanzables, contenido cortado, controles fuera de viewport) a cambio de un efecto visual — si hay que elegir, la UX gana.
+
 ---
 
 ## 17. Integración Frontend-Backend — Reglas Críticas

@@ -130,32 +130,33 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-[#1D1D1B]/75 backdrop-blur-sm transition-opacity will-change-[opacity]"
+        className="fixed inset-0 bg-bg-main/85 transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal card */}
       <div
         id={isEdit ? 'modal-edit-advisor' : 'modal-new-advisor'}
-        className="relative z-10 w-full max-w-lg overflow-hidden rounded-lg border border-[#3A3A37] bg-[#252522] text-[#F0F0F5] shadow-xl transition-colors will-change-transform"
+        className="relative z-10 flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-panel border border-border-default bg-bg-secondary text-text-primary shadow-md transition-colors"
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#3A3A37] px-6 py-4">
-          <h3 className="text-lg font-bold text-[#F0F0F5]">
+        <div className="flex shrink-0 items-center justify-between border-b border-border-default px-4 py-3 sm:px-6 sm:py-4">
+          <h3 className="text-h2 text-text-primary pr-2">
             {isEdit ? 'Editar Perfil del Asesor' : 'Crear Nuevo Asesor Operativo'}
           </h3>
           <button
             onClick={onClose}
-            className="rounded p-1 text-[#8B8FA8] hover:bg-[#2E2E2B] hover:text-[#F0F0F5] transition-colors"
+            className="shrink-0 rounded-control p-1 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4 p-6">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="flex min-h-0 flex-1 flex-col">
+        <div className="app-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
           {error && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-[#FF5B5B]/50 bg-[#FF5B5B]/10 p-3 text-sm text-[#FF5B5B]">
+            <div className="flex items-start gap-2.5 rounded-lg border border-error/50 bg-error/10 p-3 text-sm text-error">
               <AlertTriangle className="h-5 w-5 shrink-0" />
               <div>
                 <span className="font-semibold">Error al guardar:</span>{' '}
@@ -170,25 +171,25 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Nombre completo */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Nombre completo
             </label>
             <input
               type="text"
               placeholder="Ej: Juan Pérez"
               {...register('fullName')}
-              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-colors focus:border-[#01A4E3] ${
-                errors.fullName ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
+              className={`w-full rounded-md border bg-bg-tertiary px-3.5 py-2 text-sm text-text-primary placeholder-text-secondary/40 outline-none transition-colors focus:border-brand-blue ${
+                errors.fullName ? 'border-error' : 'border-border-default'
               }`}
             />
             {errors.fullName && (
-              <p className="mt-1 text-xs text-[#FF5B5B]">{errors.fullName.message}</p>
+              <p className="mt-1 text-xs text-error">{errors.fullName.message}</p>
             )}
           </div>
 
           {/* Correo institucional */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Correo institucional
             </label>
             <div className="relative">
@@ -198,23 +199,23 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
                     type="email"
                     value={advisor?.email || ''}
                     disabled
-                    className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B]/50 px-3.5 py-2 pr-10 text-sm text-[#8B8FA8] cursor-not-allowed outline-none"
+                    className="w-full rounded-md border border-border-default bg-bg-tertiary/50 px-3.5 py-2 pr-10 text-sm text-text-secondary cursor-not-allowed outline-none"
                   />
-                  <Lock className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-[#8B8FA8]/50" />
+                  <Lock className="absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-text-secondary/50" />
                 </>
               ) : (
                 <input
                   type="email"
                   placeholder="Ej: jperez@casasyespacios.co"
                   {...register('email')}
-                  className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] placeholder-[#8B8FA8]/40 outline-none transition-colors focus:border-[#01A4E3] ${
-                    errors.email ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
+                  className={`w-full rounded-md border bg-bg-tertiary px-3.5 py-2 text-sm text-text-primary placeholder-text-secondary/40 outline-none transition-colors focus:border-brand-blue ${
+                    errors.email ? 'border-error' : 'border-border-default'
                   }`}
                 />
               )}
             </div>
             {!isEdit && errors.email && (
-              <p className="mt-1 text-xs text-[#FF5B5B]">{errors.email.message}</p>
+              <p className="mt-1 text-xs text-error">{errors.email.message}</p>
             )}
           </div>
 
@@ -236,14 +237,14 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
           )}
 
           {/* Grid Rol + Área */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 xs:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
+              <label className="mb-1.5 block text-label text-text-secondary uppercase">
                 Rol en el panel
               </label>
               <select
                 {...register('role')}
-                className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3]"
+                className="w-full rounded-md border border-border-default bg-bg-tertiary px-3.5 py-2 text-sm text-text-primary outline-none transition-colors focus:border-brand-blue"
               >
                 <option value="asesor">Asesor</option>
                 <option value="admin">Administrador</option>
@@ -251,12 +252,12 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
+              <label className="mb-1.5 block text-label text-text-secondary uppercase">
                 Área operativa
               </label>
               <select
                 {...register('area')}
-                className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3]"
+                className="w-full rounded-md border border-border-default bg-bg-tertiary px-3.5 py-2 text-sm text-text-primary outline-none transition-colors focus:border-brand-blue"
               >
                 <option value="administrativa">Administrativa</option>
                 <option value="comercial">Comercial</option>
@@ -267,14 +268,14 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Especialidad */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
-              Especialidad <span className="font-normal normal-case text-[#8B8FA8]/60">(opcional)</span>
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
+              Especialidad <span className="font-normal normal-case text-text-secondary/60">(opcional)</span>
             </label>
             <select
               {...register('specialty')}
               disabled={isSpecialtyDisabled}
-              className={`w-full rounded-md border bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3] disabled:cursor-not-allowed disabled:opacity-40 ${
-                errors.specialty ? 'border-[#FF5B5B]' : 'border-[#3A3A37]'
+              className={`w-full rounded-md border bg-bg-tertiary px-3.5 py-2 text-sm text-text-primary outline-none transition-colors focus:border-brand-blue disabled:cursor-not-allowed disabled:opacity-40 ${
+                errors.specialty ? 'border-error' : 'border-border-default'
               }`}
             >
               <option value="">Sin especialidad</option>
@@ -285,10 +286,10 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               ))}
             </select>
             {errors.specialty && (
-              <p className="mt-1 text-xs text-[#FF5B5B]">{errors.specialty.message}</p>
+              <p className="mt-1 text-xs text-error">{errors.specialty.message}</p>
             )}
             {isSpecialtyDisabled && (
-              <p className="mt-1 text-xs text-[#8B8FA8]/60">
+              <p className="mt-1 text-xs text-text-secondary/60">
                 Área "ambas" no admite especialidad.
               </p>
             )}
@@ -296,12 +297,12 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Límite de conversaciones */}
           <div>
-            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#8B8FA8]">
+            <label className="mb-1.5 block text-label text-text-secondary uppercase">
               Límite de conversaciones activas
             </label>
             <select
               {...register('maxConversations', { valueAsNumber: true })}
-              className="w-full rounded-md border border-[#3A3A37] bg-[#2E2E2B] px-3.5 py-2 text-sm text-[#F0F0F5] outline-none transition-colors focus:border-[#01A4E3]"
+              className="w-full rounded-md border border-border-default bg-bg-tertiary px-3.5 py-2 text-sm text-text-primary outline-none transition-colors focus:border-brand-blue"
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
                 <option key={num} value={num}>
@@ -310,7 +311,7 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
               ))}
             </select>
             {isEdit && (
-              <p className="mt-1.5 text-xs text-[#8B8FA8]">
+              <p className="mt-1.5 text-xs text-text-secondary">
                 Capacidad máxima de chats simultáneos que el asesor puede atender.
               </p>
             )}
@@ -318,28 +319,29 @@ export const AdvisorModal: React.FC<AdvisorModalProps> = ({
 
           {/* Nota informativa (solo crear) */}
           {!isEdit && (
-            <div className="flex gap-2.5 rounded-lg border border-[#FFB84D]/35 bg-[#FFB84D]/10 p-3.5 text-xs text-[#FFB84D]">
+            <div className="flex gap-2.5 rounded-lg border border-warning/35 bg-warning/10 p-3.5 text-xs text-warning">
               <Info className="h-4 w-4 shrink-0" />
               <p className="leading-normal">
                 Al crear el perfil se utilizará la contraseña temporal definida arriba. El asesor deberá cambiarla obligatoriamente en su primer inicio de sesión.
               </p>
             </div>
           )}
+        </div>
 
           {/* Acciones */}
-          <div className="flex items-center justify-end gap-3 border-t border-[#3A3A37] pt-4">
+          <div className="flex shrink-0 items-center justify-end gap-3 border-t border-border-default px-4 py-3 sm:px-6 sm:py-4">
             <button
               type="button"
               onClick={onClose}
               disabled={isSaving}
-              className="rounded-md border border-[#3A3A37] bg-transparent px-4.5 py-2 text-sm font-semibold text-[#F0F0F5] hover:bg-[#2E2E2B] transition-colors disabled:opacity-50"
+              className="rounded-control border border-border-default bg-transparent px-4 py-2 text-sm font-semibold text-text-primary hover:bg-bg-tertiary transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isSaving || (!isEdit && !passwordStrength.isValid)}
-              className="rounded-md bg-[#01A4E3] px-4.5 py-2 text-sm font-semibold text-white hover:bg-[#01A4E3]/95 active:bg-[#01A4E3]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="rounded-control bg-brand-blue px-4 py-2 text-sm font-semibold text-white hover:bg-brand-blue/95 active:bg-brand-blue/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
             >
               {isSaving && (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />

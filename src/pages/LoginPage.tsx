@@ -75,7 +75,7 @@ export function LoginPage() {
   return (
     <div
       className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4 relative overflow-hidden"
-      style={{ background: 'radial-gradient(ellipse at 50% -10%, #1e3a4a 0%, #1a1a18 40%, #111110 100%)' }}
+      style={{ background: 'radial-gradient(ellipse at 50% -10%, var(--color-brand-glow) 0%, var(--color-bg-overlay) 40%, var(--color-bg-deep) 100%)' }}
     >
       {/* Atmospheric grid background */}
       <div
@@ -119,11 +119,11 @@ export function LoginPage() {
         {/* Blue top accent bar */}
         <div
           className="h-0.5 w-full rounded-t-xl"
-          style={{ background: 'linear-gradient(90deg, transparent, #01A4E3 40%, #00D4AA 60%, transparent)' }}
+          style={{ background: 'linear-gradient(90deg, transparent, var(--color-brand-blue) 40%, var(--color-success) 60%, transparent)' }}
         />
 
         <div
-          className="bg-[#252522]/95 border border-[#3A3A37] border-t-0 rounded-b-xl p-7 sm:p-9"
+          className="bg-bg-secondary/95 border border-border-default border-t-0 rounded-b-xl p-7 sm:p-9"
           style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(1,164,227,0.06) inset' }}
         >
           {/* Logo */}
@@ -140,9 +140,9 @@ export function LoginPage() {
                 style={{ filter: 'drop-shadow(0 0 16px rgba(1,164,227,0.4))' }}
               />
             </div>
-            <p className="text-xs text-[#8B8FA8] tracking-wide text-center leading-relaxed">
+            <p className="text-xs text-text-secondary tracking-wide text-center leading-relaxed">
               Panel de Atención
-              <span className="mx-2 text-[#3A3A37]">·</span>
+              <span className="mx-2 text-border-default">·</span>
               Acceso exclusivo para el equipo
             </p>
           </div>
@@ -158,23 +158,23 @@ export function LoginPage() {
                   id="login-email"
                   autoComplete="email"
                   {...register('email')}
-                  className="input-field peer w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3 pr-10 pt-5 pb-1.5 text-base outline-none transition-all duration-200"
+                  className="input-field peer w-full bg-bg-tertiary border border-border-default focus:border-brand-blue text-white rounded-lg pl-3 pr-10 pt-5 pb-1.5 text-base outline-none transition-all duration-200"
                   placeholder=" "
                 />
                 <label
                   htmlFor="login-email"
-                  className="absolute text-xs text-[#9296AC] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none"
+                  className="absolute text-xs text-text-secondary duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-brand-blue pointer-events-none"
                 >
                   Correo Electrónico
                 </label>
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B8FA8] pointer-events-none">
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary pointer-events-none">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                   </svg>
                 </span>
               </div>
               {errors.email && (
-                <p className="text-[11px] text-[#FF5B5B] mt-1 pl-1">{errors.email.message}</p>
+                <p className="text-[11px] text-error mt-1 pl-1">{errors.email.message}</p>
               )}
             </div>
 
@@ -186,19 +186,19 @@ export function LoginPage() {
                   id="login-password"
                   autoComplete="current-password"
                   {...register('password')}
-                  className="input-field peer w-full bg-[#2E2E2B] border border-[#3A3A37] focus:border-[#01A4E3] text-white rounded-lg pl-3 pr-10 pt-5 pb-1.5 text-base outline-none transition-all duration-200"
+                  className="input-field peer w-full bg-bg-tertiary border border-border-default focus:border-brand-blue text-white rounded-lg pl-3 pr-10 pt-5 pb-1.5 text-base outline-none transition-all duration-200"
                   placeholder=" "
                 />
                 <label
                   htmlFor="login-password"
-                  className="absolute text-xs text-[#9296AC] duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-[#01A4E3] pointer-events-none"
+                  className="absolute text-xs text-text-secondary duration-200 transform -translate-y-3 scale-75 top-4 z-10 origin-[0] left-3 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-3 peer-focus:text-brand-blue pointer-events-none"
                 >
                   Contraseña
                 </label>
                 <button
                   type="button"
                   onClick={() => setShowPassword(v => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#8B8FA8] hover:text-[#01A4E3] transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-text-secondary hover:text-brand-blue transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
                   aria-label="Toggle password visibility"
                 >
                   {showPassword ? (
@@ -214,7 +214,7 @@ export function LoginPage() {
                 </button>
               </div>
               {errors.password && (
-                <p className="text-[11px] text-[#FF5B5B] mt-1 pl-1">{errors.password.message}</p>
+                <p className="text-[11px] text-error mt-1 pl-1">{errors.password.message}</p>
               )}
             </div>
 
@@ -225,12 +225,12 @@ export function LoginPage() {
                 className="rounded-lg p-3.5 flex items-start gap-3 border"
                 style={{ background: 'rgba(255,91,91,0.08)', borderColor: 'rgba(255,91,91,0.4)' }}
               >
-                <svg className="w-4.5 h-4.5 text-[#FF5B5B] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4.5 h-4.5 text-error shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
                 <div className="text-xs leading-relaxed">
                   <span className="font-semibold text-white block">Error al iniciar sesión</span>
-                  <span className="text-[#8B8FA8]">{error}</span>
+                  <span className="text-text-secondary">{error}</span>
                 </div>
               </div>
             )}
@@ -238,16 +238,16 @@ export function LoginPage() {
             {/* Remember + forgot */}
             <div className="flex items-center justify-between text-xs pt-0.5">
               {/* L-01: checkbox is now functional — controls whether RT persists across browser restarts. */}
-              <label className="flex items-center gap-2 text-[#8B8FA8] cursor-pointer select-none">
+              <label className="flex items-center gap-2 text-text-secondary cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="accent-[#01A4E3] rounded"
+                  className="accent-brand-blue rounded"
                 />
                 <span>Recordar sesión</span>
               </label>
-              <a href="#" className="text-[#01A4E3] hover:text-[#33b8f0] transition-colors font-medium">
+              <a href="#" className="text-brand-blue hover:text-brand-blue-light transition-colors font-medium">
                 ¿Olvidó su contraseña?
               </a>
             </div>
@@ -256,9 +256,9 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting || lockoutSeconds > 0}
-              className="btn-primary w-full h-12 text-white rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary w-full h-12 text-white rounded-control font-semibold text-sm transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               style={{
-                background: 'linear-gradient(135deg, #01A4E3 0%, #0088c2 100%)',
+                background: 'linear-gradient(135deg, var(--color-brand-blue) 0%, var(--color-brand-blue-hover) 100%)',
                 boxShadow: '0 4px 14px rgba(1,164,227,0.25)',
               }}
             >
@@ -282,12 +282,12 @@ export function LoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="mt-7 pt-5 border-t border-[#3A3A37]/50 flex items-center justify-between">
-            <span className="text-[10px] text-[#6B6F7E] uppercase tracking-widest font-semibold">
+          <div className="mt-7 pt-5 border-t border-border-default/50 flex items-center justify-between">
+            <span className="text-label text-text-secondary uppercase">
               © 2026 Casas y Espacios S.A.S.
             </span>
-            <span className="flex items-center gap-1.5 text-[10px] text-[#6B6F7E] font-medium">
-              <svg className="w-3 h-3 text-[#00D4AA]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span className="flex items-center gap-1.5 text-[10px] text-text-secondary font-medium">
+              <svg className="w-3 h-3 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
               Acceso seguro

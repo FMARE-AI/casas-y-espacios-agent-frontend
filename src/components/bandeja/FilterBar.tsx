@@ -1,19 +1,17 @@
-import { memo, useMemo } from 'react'
-import type { Conversation } from '../../types'
+import { memo } from 'react'
 
 interface StatusCounts {
   all: number
   escaladas: number
   activas: number
   cerradas: number
+  mine: number
 }
 
 interface FilterBarProps {
-  conversations: Conversation[]
   statusCounts: StatusCounts
   activeStatus: string | null
   activeChannel: string | null
-  currentAdvisorId: string
   advisorRole: string | null
   onStatusChange: (status: string | null) => void
   onChannelChange: (channel: string | null) => void
@@ -21,44 +19,45 @@ interface FilterBarProps {
 }
 
 export const FilterBar = memo(function FilterBar({
-  conversations,
   statusCounts,
   activeStatus,
   activeChannel,
-  currentAdvisorId,
   advisorRole,
   onStatusChange,
   onChannelChange,
   onRefresh,
 }: FilterBarProps) {
   const totals = statusCounts
-
-  const myCount = useMemo(
-    () => conversations.filter((conv) => conv.escalation?.advisor?.id === currentAdvisorId).length,
-    [conversations, currentAdvisorId]
-  )
+  const myCount = statusCounts.mine
 
   const btnBase = 'px-3 py-1.5 rounded transition flex items-center gap-1.5 text-xs font-semibold border'
-  const btnActive = 'bg-[#01A4E3] border-[#01A4E3] text-white'
-  const btnInactive = 'border-[#3A3A37] text-[#8B8FA8] hover:text-white'
+  const btnActive = 'bg-brand-blue border-brand-blue text-white'
+  const btnInactive = 'border-border-default text-text-secondary hover:text-white'
+  // Active tabs fill solid brand-blue: a brand-blue ring on that same hue reads
+  // as almost no ring at all (verified empirically — ratio 1.00 against its own
+  // face). text-primary reads clearly against blue while still clearing 3:1
+  // against every page surface for the inactive (neutral-background) case.
+  const focusRingActive = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90'
+  const focusRingInactive = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90'
 
   return (
     <div
-      className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#252522] p-2 border border-[#3A3A37] rounded-lg"
+      className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-bg-secondary p-2 border border-border-default rounded-lg"
       style={{ background: 'rgba(37,37,34,0.6)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
     >
       <div className="flex flex-wrap gap-1" id="bandeja-filter-buttons-container">
         {/* Tab "Mis conversaciones" — asesor only */}
         {advisorRole === 'asesor' && (
           <button
-            className={`${btnBase} ${activeStatus === 'mine' ? btnActive : btnInactive}`}
+            className={`${btnBase} transition ${activeStatus === 'mine' ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
             onClick={() => onStatusChange('mine')}
           >
             Mis conversaciones
             {myCount > 0 && (
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  activeStatus === 'mine' ? 'bg-white/20 text-white' : 'bg-[#01A4E3] text-white'
+                key={myCount}
+                className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-scale-in ${
+                  activeStatus === 'mine' ? 'bg-white/20 text-white' : 'bg-brand-blue text-white'
                 }`}
               >
                 {myCount}
@@ -68,22 +67,22 @@ export const FilterBar = memo(function FilterBar({
         )}
 
         <button
-          className={`${btnBase} ${activeStatus === null ? btnActive : btnInactive}`}
+          className={`${btnBase} transition ${activeStatus === null ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
           onClick={() => onStatusChange(null)}
         >
           Todas ({totals.all})
         </button>
         <button
-          className={`${btnBase} ${activeStatus === 'escalada' ? btnActive : btnInactive}`}
+          className={`${btnBase} transition ${activeStatus === 'escalada' ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
           onClick={() => onStatusChange('escalada')}
         >
           Escaladas
-          <span className="bg-[#FF5B5B] text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+          <span key={totals.escaladas} className="bg-error text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold animate-scale-in">
             {totals.escaladas}
           </span>
         </button>
         <button
-          className={`${btnBase} ${activeStatus === 'activa' ? btnActive : btnInactive}`}
+          className={`${btnBase} transition ${activeStatus === 'activa' ? `${btnActive} ${focusRingActive}` : `${btnInactive} ${focusRingInactive}`}`}
           onClick={() => onStatusChange('activa')}
         >
           Activas ({totals.activas})
@@ -94,7 +93,7 @@ export const FilterBar = memo(function FilterBar({
         <select
           value={activeChannel || ''}
           onChange={(e) => onChannelChange(e.target.value || null)}
-          className="bg-[#2E2E2B] border border-[#3A3A37] text-[#F0F0F5] text-xs rounded px-2.5 py-1.5 w-full sm:w-44 focus:border-[#01A4E3] outline-none"
+          className="bg-bg-tertiary border border-border-default text-text-primary text-xs rounded px-2.5 py-1.5 w-full sm:w-44 focus:border-brand-blue outline-none"
         >
           <option value="">Todos los Canales</option>
           <option value="administrativa">Administrativa</option>
@@ -102,7 +101,7 @@ export const FilterBar = memo(function FilterBar({
         </select>
         <button
           onClick={onRefresh}
-          className="bg-[#2E2E2B] hover:bg-[#3A3A37] p-1.5 rounded border border-[#3A3A37] text-[#8B8FA8] hover:text-white shrink-0 active:scale-95 transition"
+          className="bg-bg-tertiary hover:bg-border-default p-1.5 rounded-control border border-border-default text-text-secondary hover:text-white shrink-0 active:scale-[0.98] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
           title="Recargar"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

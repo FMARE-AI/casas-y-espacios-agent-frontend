@@ -2,6 +2,7 @@
 import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
+import { useToastStore } from '../store/toastStore'
 import { advisorsService } from '../services/advisors'
 import { getValidToken } from '../lib/axios'
 import type {
@@ -10,6 +11,8 @@ import type {
   WSMessageNew,
   WSConversationReturned,
   WSConversationClosed,
+  WSConversationTransferred,
+  WSConversationPriorityUpdated,
   WSQueuePending,
   WSAdvisorStatusChanged,
   WSAdvisorConnected,
@@ -25,6 +28,8 @@ interface WSHandlers {
   onMessageNew?: (data: WSMessageNew) => void
   onConversationReturned?: (data: WSConversationReturned) => void
   onConversationClosed?: (data: WSConversationClosed) => void
+  onConversationTransferred?: (data: WSConversationTransferred) => void
+  onConversationPriorityUpdated?: (data: WSConversationPriorityUpdated) => void
   onQueuePending?: (data: WSQueuePending) => void
   onAdvisorStatusChanged?: (data: WSAdvisorStatusChanged) => void
   onBehaviorAlert?: (data: WSBehaviorAlertEvent) => void
@@ -34,7 +39,6 @@ const _handlers: WSHandlers = {}
 
 // Module-level singletons — exactly one socket active at any time
 let socket: WebSocket | null = null
-let connectedToken: string | null = null
 let isConnecting = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
@@ -65,6 +69,20 @@ const myAssignedConversationIds = new Set<string>()
 export function setMyAssignedConversations(ids: string[]): void {
   myAssignedConversationIds.clear()
   ids.forEach((id) => myAssignedConversationIds.add(id))
+}
+
+// The transfer reason travels only on the `conversation.transferred` WS event —
+// GET /conversations/{id} may not echo it back. The receiving advisor is almost
+// never on the chat page yet when that event fires (they're in the inbox), so a
+// per-page ref would miss it. Cache it here at module scope, keyed by conversation,
+// so it survives until whoever opens that chat consumes it in ChatPage's loadConversation.
+const pendingTransferReasons = new Map<string, string>()
+
+export function consumePendingTransferReason(conversationId: string): string | null {
+  const reason = pendingTransferReasons.get(conversationId)
+  if (reason === undefined) return null
+  pendingTransferReasons.delete(conversationId)
+  return reason
 }
 
 const BACKOFF_DELAYS = [1000, 2000, 4000, 8000, 30000]
@@ -177,8 +195,12 @@ function closeSocket(): void {
   clearReconnect()
   if (socket) socket.close()
   socket = null
-  connectedToken = null
   isConnecting = false
+
+  // Clear module-level state to prevent multi-user data leaks on logout
+  myAssignedConversationIds.clear()
+  pendingTransferReasons.clear()
+  currentSubscribedConversationId = null
 }
 
 // Single scheduling path for automatic reconnection. Keeps the retry chain
@@ -221,7 +243,6 @@ function scheduleReconnect(): void {
 function connect(token: string): void {
   if (socket || isConnecting) return
 
-  connectedToken = token
   isConnecting = true
 
   // Only the "recovering from a live drop" case deserves the alarming
@@ -253,7 +274,6 @@ function connect(token: string): void {
     // this reset, isConnecting would stay true forever and block every
     // future automatic reconnection.
     isConnecting = false
-    connectedToken = null
     scheduleReconnect()
     return
   }
@@ -465,6 +485,47 @@ function connect(token: string): void {
         break
       }
 
+      case 'conversation.transferred': {
+        const transferredData = data as WSConversationTransferred
+        const { advisor } = useAuthStore.getState()
+
+        if (transferredData.reason) {
+          pendingTransferReasons.set(transferredData.conversation_id, transferredData.reason)
+        }
+
+        // Keep the sound-gate set in sync regardless of which page is mounted,
+        // same reasoning as escalation.assigned / conversation.returned above.
+        if (advisor?.id === transferredData.from_advisor?.id) {
+          myAssignedConversationIds.delete(transferredData.conversation_id)
+        }
+        if (advisor?.id === transferredData.to_advisor.id) {
+          myAssignedConversationIds.add(transferredData.conversation_id)
+          // Sound + toast rule: only the receiving advisor is notified — never the
+          // transferring advisor, never admins (audit-only role in Phase 1).
+          if (advisor.role !== 'admin') {
+            playNotificationSound()
+            const fromName = transferredData.from_advisor?.full_name
+            useToastStore.getState().showToast(
+              fromName
+                ? `${fromName} te transfirió una conversación.`
+                : 'Te transfirieron una conversación.',
+              'info',
+            )
+          }
+        }
+
+        if (_handlers.onConversationTransferred) {
+          _handlers.onConversationTransferred(transferredData)
+        }
+        break
+      }
+
+      case 'conversation.priority_updated':
+        if (_handlers.onConversationPriorityUpdated) {
+          _handlers.onConversationPriorityUpdated(data as WSConversationPriorityUpdated)
+        }
+        break
+
       case 'queue.pending':
         if (_handlers.onQueuePending) {
           _handlers.onQueuePending(data as WSQueuePending)
@@ -492,7 +553,6 @@ function connect(token: string): void {
     clearPing()
     isConnecting = false
     socket = null
-    connectedToken = null
 
     if (event.code === 4001) {
       useWSStore.getState().setStatus('disconnected')
@@ -585,7 +645,10 @@ export function playNotificationSound() {
       scheduleChimes()
     }
   } catch (e) {
-    console.error('Failed to play notification sound', e)
+    console.error('Failed to play notification sound:', {
+      message: e instanceof Error ? e.message : 'unknown',
+      type: e instanceof Error ? e.name : typeof e,
+    })
   }
 }
 
@@ -604,6 +667,8 @@ export function useWebSocket(handlers?: WSHandlers) {
     onMessageNew,
     onConversationReturned,
     onConversationClosed,
+    onConversationTransferred,
+    onConversationPriorityUpdated,
     onQueuePending,
     onAdvisorStatusChanged,
     onBehaviorAlert,
@@ -615,6 +680,8 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onMessageNew)         _handlers.onMessageNew         = onMessageNew
     if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
     if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
+    if (onConversationTransferred) _handlers.onConversationTransferred = onConversationTransferred
+    if (onConversationPriorityUpdated) _handlers.onConversationPriorityUpdated = onConversationPriorityUpdated
     if (onQueuePending)       _handlers.onQueuePending       = onQueuePending
     if (onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = onAdvisorStatusChanged
     if (onBehaviorAlert)      _handlers.onBehaviorAlert      = onBehaviorAlert
@@ -625,17 +692,28 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onMessageNew         && _handlers.onMessageNew         === onMessageNew)         delete _handlers.onMessageNew
       if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
       if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
+      if (onConversationTransferred && _handlers.onConversationTransferred === onConversationTransferred) delete _handlers.onConversationTransferred
+      if (onConversationPriorityUpdated && _handlers.onConversationPriorityUpdated === onConversationPriorityUpdated) delete _handlers.onConversationPriorityUpdated
       if (onQueuePending       && _handlers.onQueuePending       === onQueuePending)       delete _handlers.onQueuePending
       if (onAdvisorStatusChanged && _handlers.onAdvisorStatusChanged === onAdvisorStatusChanged) delete _handlers.onAdvisorStatusChanged
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
   }, [
     onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
-    onConversationClosed, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
+    onConversationClosed, onConversationTransferred, onConversationPriorityUpdated,
+    onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 
-  // Open / reopen connection when the session changes; close it whenever
-  // there is no valid session (no token, or blocked pending confirmation).
+  // Open the connection when a session exists; close it whenever there is no
+  // valid session (no token, or blocked pending confirmation).
+  //
+  // IMPORTANT: a live socket is NEVER torn down because the access token
+  // changed. The token is only validated at handshake time — the server never
+  // re-checks it on an open connection — so recycling the socket on every
+  // refresh produced visible reconnect churn in the panel (each token refresh
+  // closed and reopened both advisors' sockets during the 2026-07-17 demo).
+  // Reconnect paths (watchdog, onclose, online/visibility) already fetch a
+  // fresh token via getValidToken() before dialing.
   useEffect(() => {
     if (!accessToken || sessionExpired) {
       setStatus('disconnected')
@@ -644,11 +722,10 @@ export function useWebSocket(handlers?: WSHandlers) {
       return
     }
 
-    // Socket already open for this token — nothing to do
-    if (socket && connectedToken === accessToken) return
+    // A socket is already open, connecting, or scheduled to reconnect — leave
+    // it alone; it keeps working regardless of which token it connected with.
+    if (socket || isConnecting || reconnectTimeout !== null) return
 
-    // Token changed — tear down old socket and reconnect
-    closeSocket()
     connect(accessToken)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, sessionExpired])

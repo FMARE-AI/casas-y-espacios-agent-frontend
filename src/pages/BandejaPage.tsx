@@ -4,11 +4,13 @@ import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
-import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew } from '../types'
+import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew, WSConversationPriorityUpdated } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
 import { useWebSocket, setMyAssignedConversations } from '../hooks/useWebSocket'
+
+export const BANDEJA_STATUS_FILTER_KEY = 'bandeja_status_filter'
 
 // --- LOCAL COMPONENTS ---
 
@@ -18,7 +20,7 @@ function ConnectedAdvisors() {
 
   if (advisors.length === 0) {
     return (
-      <div className="text-[11px] text-[#8B8FA8] mt-1" id="connected-advisors-panel">
+      <div className="text-[11px] text-text-secondary mt-1" id="connected-advisors-panel">
         Sin asesoras conectadas
       </div>
     )
@@ -42,20 +44,20 @@ function ConnectedAdvisors() {
             key={advisor.id}
             className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
               isBreak
-                ? 'bg-[#FFB84D]/10 border-[#FFB84D]/25 text-[#FFB84D]'
+                ? 'bg-warning/10 border-warning/25 text-warning'
                 : isOffline
-                ? 'bg-[#8B8FA8]/10 border-[#8B8FA8]/25 text-[#8B8FA8]'
-                : 'bg-[#00D4AA]/10 border-[#00D4AA]/25 text-[#F0F0F5]'
+                ? 'bg-text-secondary/10 border-text-secondary/25 text-text-secondary'
+                : 'bg-success/10 border-success/25 text-text-primary'
             }`}
           >
             <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-              isBreak ? 'bg-[#FFB84D] animate-pulse' : isOffline ? 'bg-[#8B8FA8]' : 'bg-[#00D4AA]'
+              isBreak ? 'bg-warning animate-pulse' : isOffline ? 'bg-text-secondary' : 'bg-success'
             }`} />
             {advisor.full_name.split(' ')[0]}
-            {isBreak && <span className="text-[#FFB84D]/80 font-normal">· Descanso</span>}
-            {isOffline && <span className="text-[#8B8FA8]/80 font-normal">· No disponible</span>}
+            {isBreak && <span className="text-warning/80 font-normal">· Descanso</span>}
+            {isOffline && <span className="text-text-secondary/80 font-normal">· No disponible</span>}
             {!isBreak && !isOffline && isAdmin && advisor.active_conversations !== undefined && (
-              <span className={`font-mono ${isAtLimit ? 'text-[#FF5B5B]' : 'text-[#8B8FA8]'}`}>
+              <span className={`font-mono ${isAtLimit ? 'text-error' : 'text-text-secondary'}`}>
                 {advisor.active_conversations}/{advisor.max_conversations}
               </span>
             )}
@@ -64,8 +66,8 @@ function ConnectedAdvisors() {
       })}
 
       {offline.length > 0 && (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-[#FF5B5B] border border-[#FF5B5B]/25 bg-[#FF5B5B]/10">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#FF5B5B] flex-shrink-0" />
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] text-error border border-error/25 bg-error/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-error flex-shrink-0" />
           {offline.length === 1
             ? `${offline[0].full_name.split(' ')[0]} · fuera`
             : `${offline.length} fuera`}
@@ -77,26 +79,26 @@ function ConnectedAdvisors() {
 
 function SkeletonCard() {
   return (
-    <div className="bg-[#252522] border border-[#3A3A37] rounded-lg p-4 space-y-3 animate-pulse">
+    <div className="bg-bg-secondary border border-border-default rounded-lg p-4 space-y-3 animate-pulse">
       <div className="flex justify-between items-center">
-        <div className="h-3.5 bg-[#2E2E2B] rounded w-1/4"></div>
-        <div className="h-3.5 bg-[#2E2E2B] rounded w-1/12"></div>
+        <div className="h-3.5 bg-bg-tertiary rounded w-1/4"></div>
+        <div className="h-3.5 bg-bg-tertiary rounded w-1/12"></div>
       </div>
-      <div className="h-5 bg-[#2E2E2B] rounded w-3/4"></div>
-      <div className="h-3.5 bg-[#2E2E2B] rounded w-1/2"></div>
+      <div className="h-5 bg-bg-tertiary rounded w-3/4"></div>
+      <div className="h-3.5 bg-bg-tertiary rounded w-1/2"></div>
     </div>
   )
 }
 
 function EmptyState() {
   return (
-    <div id="bandeja-empty-state" className="col-span-full bg-[#252522] border border-[#3A3A37] rounded-xl p-8 text-center flex flex-col items-center justify-center space-y-3 max-w-md mx-auto w-full mt-4">
-      <div className="bg-[#2E2E2B] w-12 h-12 rounded-full flex items-center justify-center text-[#01A4E3] border border-[#3A3A37]">
+    <div id="bandeja-empty-state" className="col-span-full bg-bg-secondary border border-border-default rounded-xl p-8 text-center flex flex-col items-center justify-center space-y-3 max-w-md mx-auto w-full mt-4">
+      <div className="bg-bg-tertiary w-12 h-12 rounded-full flex items-center justify-center text-brand-blue border border-border-default">
         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       </div>
       <div>
-        <h4 className="text-sm font-bold text-white">No hay conversaciones</h4>
-        <p className="text-xs text-[#8B8FA8] mt-1 leading-relaxed">
+        <h4 className="text-h3 text-text-primary">No hay conversaciones</h4>
+        <p className="text-xs text-text-secondary mt-1 leading-relaxed">
           No se encontraron chats que coincidan con este filtro.
         </p>
       </div>
@@ -133,38 +135,38 @@ function TakeModal({
   const waitMinutes = Math.floor(waitSeconds / 60)
 
   return (
-    <div id="dialog-modal-overlay" className="fixed inset-0 bg-[#1D1D1B]/90 backdrop-blur-sm flex items-center justify-center p-4 z-[9999]">
-      <div id="modal-confirm-take" className="bg-[#252522] border border-[#3A3A37] rounded-xl shadow-2xl p-6 max-w-md w-full space-y-4">
+    <div id="dialog-modal-overlay" className="fixed inset-0 bg-bg-main/90 flex items-center justify-center p-4 z-[9999]">
+      <div id="modal-confirm-take" className="bg-bg-secondary border border-border-default rounded-panel shadow-md p-6 max-w-md w-full space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <svg className="w-5 h-5 text-[#01A4E3]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <h3 className="text-h3 text-text-primary flex items-center gap-2">
+            <svg className="w-5 h-5 text-brand-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             ¿Tomar esta conversación?
           </h3>
-          <p className="text-xs text-[#8B8FA8] mt-2">Te asignarás como responsable directo de la comunicación.</p>
+          <p className="text-xs text-text-secondary mt-2">Te asignarás como responsable directo de la comunicación.</p>
         </div>
 
-        <div className="p-3 bg-[#2E2E2B]/40 rounded border border-[#3A3A37] text-xs space-y-1.5">
-          <p className="text-[#8B8FA8]">Cliente: <strong className="text-white" id="modal-take-client">{conversation.client?.full_name || 'Desconocido'}</strong></p>
-          <p className="text-[#8B8FA8]">Motivo: <span className="font-mono text-[#FF5B5B] font-bold" id="modal-take-motive">{conversation.escalation?.reason || 'Sin motivo'}</span></p>
-          <p className="text-[#8B8FA8]">Espera acumulada: <span className="text-[#FFB84D] font-bold" id="modal-take-wait">{waitMinutes} min</span></p>
+        <div className="p-3 bg-bg-tertiary/40 rounded border border-border-default text-xs space-y-1.5">
+          <p className="text-text-secondary">Cliente: <strong className="text-white" id="modal-take-client">{conversation.client?.full_name || 'Desconocido'}</strong></p>
+          <p className="text-text-secondary">Motivo: <span className="font-mono text-error font-bold" id="modal-take-motive">{conversation.escalation?.reason || 'Sin motivo'}</span></p>
+          <p className="text-text-secondary">Espera acumulada: <span className="text-warning font-bold" id="modal-take-wait">{waitMinutes} min</span></p>
         </div>
 
-        <div className="flex items-center justify-between p-2 bg-[#2E2E2B] rounded border border-[#3A3A37] text-[11px]">
-          <span className="text-[#8B8FA8]">Tus conversaciones activas:</span>
+        <div className="flex items-center justify-between p-2 bg-bg-tertiary rounded border border-border-default text-[11px]">
+          <span className="text-text-secondary">Tus conversaciones activas:</span>
           <span className="font-bold" id="modal-take-active-count">
-            <span className={advisorActiveConversations < advisorMaxConversations ? "text-[#00D4AA]" : "text-[#FF5B5B]"}>
+            <span className={advisorActiveConversations < advisorMaxConversations ? "text-success" : "text-error"}>
               {advisorActiveConversations} de {advisorMaxConversations}
             </span>
           </span>
         </div>
 
-        <p className="text-[11px] text-[#8B8FA8] italic leading-relaxed">Nota: Tus compañeros de área verán que este chat está siendo atendido y se desactivarán las respuestas automáticas del bot.</p>
+        <p className="text-[11px] text-text-secondary italic leading-relaxed">Nota: Tus compañeros de área verán que este chat está siendo atendido y se desactivarán las respuestas automáticas del bot.</p>
 
         <div className="pt-2 flex justify-end gap-2.5 text-xs">
-          <button onClick={onCancel} className="px-4 py-2.5 bg-transparent hover:bg-[#2E2E2B] border border-[#3A3A37] text-[#8B8FA8] hover:text-white rounded font-semibold transition active:scale-95" disabled={isTaking}>
+          <button onClick={onCancel} className="px-4 py-2.5 bg-transparent hover:bg-bg-tertiary border border-border-default text-text-secondary hover:text-white rounded-control font-semibold transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90" disabled={isTaking}>
             Cancelar
           </button>
-          <button onClick={onConfirm} className="px-4 py-2.5 bg-[#01A4E3] text-white rounded font-bold hover:bg-[#0190C8] transition active:scale-95" disabled={isTaking}>
+          <button onClick={onConfirm} className="px-4 py-2.5 bg-brand-blue text-white rounded-control font-bold hover:bg-brand-blue-hover transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90" disabled={isTaking}>
             {isTaking ? 'Confirmando...' : 'Confirmar'}
           </button>
         </div>
@@ -184,33 +186,43 @@ export default function BandejaPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0 })
+  const [statusCounts, setStatusCounts] = useState({ all: 0, escaladas: 0, activas: 0, cerradas: 0, mine: 0 })
   const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null)
 
-  // Filtros activos — asesor inicia en "mine", admin en todas
-  const [statusFilter, setStatusFilter] = useState<string | null>(() =>
-    role === 'asesor' ? 'mine' : null
-  )
+  // Active filters — restored from browser session when returning from a chat,
+  // but always initialize to "mine" (advisor) / null (admin) on a new login —
+  // authStore.clearSession() clears BANDEJA_STATUS_FILTER_KEY.
+  const [statusFilter, setStatusFilter] = useState<string | null>(() => {
+    const stored = sessionStorage.getItem(BANDEJA_STATUS_FILTER_KEY)
+    if (stored !== null) return stored === 'null' ? null : stored
+    return role === 'asesor' ? 'mine' : null
+  })
   const [channelFilter, setChannelFilter] = useState<string | null>(null)
 
-  // Modal tomar conversación
+  useEffect(() => {
+    sessionStorage.setItem(BANDEJA_STATUS_FILTER_KEY, statusFilter ?? 'null')
+  }, [statusFilter])
+
+  // Modal to take conversation
   const [takeTarget, setTakeTarget] = useState<Conversation | null>(null)
   const [isTaking, setIsTaking] = useState(false)
 
-  // Cargar perfil al montar la página
+  // Load advisor profile on mount
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await advisorsService.getMe()
         useAuthStore.getState().setAdvisor(res.advisor)
       } catch (err) {
-        console.error('Error fetching advisor profile:', err)
+        console.error('Error fetching advisor profile:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
       }
     }
     fetchProfile()
   }, [])
 
-  // Cargar indicador de asesores en línea al montar (disponible para todos los roles)
+  // Load online advisors indicator on mount (available to all roles)
   useEffect(() => {
     const loadOnlineAdvisors = async () => {
       try {
@@ -229,14 +241,18 @@ export default function BandejaPage() {
       const all = result.conversations || []
       const escaladas = all.filter(c => c.status === 'escalada').length
       const activas = all.filter(c => c.status === 'activa').length
+      const currentAdvisorId = useAuthStore.getState().advisor?.id
       setStatusCounts({
         all: escaladas + activas,
         escaladas,
         activas,
         cerradas: all.filter(c => c.status === 'cerrada').length,
+        mine: all.filter(c => c.status !== 'cerrada' && c.escalation?.advisor?.id === currentAdvisorId).length,
       })
     } catch (err) {
-      console.error('Error fetching counts', err)
+      console.error('Error fetching counts:', {
+        message: err instanceof Error ? err.message : 'unknown',
+      })
     }
   }
 
@@ -265,7 +281,9 @@ export default function BandejaPage() {
         .map(c => c.id)
       setMyAssignedConversations(myIds)
     } catch (err) {
-      console.error('Error loading conversations', err)
+      console.error('Error loading conversations:', {
+        message: err instanceof Error ? err.message : 'unknown',
+      })
     } finally {
       setIsLoading(false)
     }
@@ -276,7 +294,9 @@ export default function BandejaPage() {
         const res = await metricsService.getMetrics()
         setDashboardMetrics(res)
       } catch (err) {
-        console.error('Error loading metrics:', err)
+        console.error('Error loading metrics:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
       }
     }
   }, [statusFilter, channelFilter, role])
@@ -315,7 +335,9 @@ export default function BandejaPage() {
         const res = await advisorsService.getMe()
         useAuthStore.getState().setAdvisor(res.advisor)
       } catch (profileErr) {
-        console.error('Error refreshing advisor profile after take:', profileErr)
+        console.error('Error refreshing advisor profile after take:', {
+          message: profileErr instanceof Error ? profileErr.message : 'unknown',
+        })
       }
       await loadConversations()
       navigate(`/chat/${takeTarget.id}`)
@@ -392,6 +414,19 @@ export default function BandejaPage() {
     loadConversations()
   }, [loadConversations])
 
+  const handleConversationTransferred = useCallback(() => {
+    loadConversations()
+  }, [loadConversations])
+
+  // Priority only ever increases and never adds/removes a card from the current
+  // filtered view, so a targeted patch (like handleMessageNew) is enough — no
+  // need for a full reload.
+  const handleConversationPriorityUpdated = useCallback((data: WSConversationPriorityUpdated) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === data.conversation_id ? { ...c, priority: data.priority } : c))
+    )
+  }, [])
+
   const handleQueuePending = useCallback((data: WSQueuePending) => {
     useToastStore.getState().showToast(data.message, 'info')
     loadConversations()
@@ -404,6 +439,8 @@ export default function BandejaPage() {
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,
     onConversationReturned: handleConversationReturned,
+    onConversationTransferred: handleConversationTransferred,
+    onConversationPriorityUpdated: handleConversationPriorityUpdated,
     onQueuePending: handleQueuePending,
   })
 
@@ -418,13 +455,13 @@ export default function BandejaPage() {
     <section
       id="screen-bandeja"
       className="flex-1 flex flex-col p-4 md:p-6 space-y-4"
-      style={{ background: 'radial-gradient(ellipse at 50% -10%, #1e3a4a 0%, #1a1a18 40%, #111110 100%)' }}
+      style={{ background: 'radial-gradient(ellipse at 50% -10%, var(--color-brand-glow) 0%, var(--color-bg-overlay) 40%, var(--color-bg-deep) 100%)' }}
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#3A3A37] pb-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-default pb-4">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-h2 text-text-primary flex items-center gap-2">
             Bandeja de Entrada
-            <span className="bg-[#01A4E3]/15 text-[#01A4E3] text-xs px-2.5 py-0.5 rounded-full font-bold" id="bandeja-total-counter">
+            <span className="bg-brand-blue/15 text-brand-blue text-xs px-2.5 py-0.5 rounded-full font-bold" id="bandeja-total-counter">
               {total} Totales
             </span>
           </h2>
@@ -435,11 +472,9 @@ export default function BandejaPage() {
       </div>
 
       <FilterBar
-        conversations={conversations}
         statusCounts={statusCounts}
         activeStatus={statusFilter}
         activeChannel={channelFilter}
-        currentAdvisorId={advisor?.id ?? ''}
         advisorRole={role}
         onStatusChange={setStatusFilter}
         onChannelChange={setChannelFilter}

@@ -1,6 +1,14 @@
 import axios from 'axios'
+import type { InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../store/authStore'
 import type { ToastType } from '../store/toastStore'
+
+// Retry/refresh bookkeeping flags stashed on the request config as it's replayed
+// through the interceptor chain.
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean
+  _networkRetry?: boolean
+}
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -12,6 +20,24 @@ const apiClient = axios.create({
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
+
+// H-02: Queue for requests that received 401 while token refresh was in progress
+interface FailedRequest {
+  resolve: (token: string) => void
+  reject: (error: unknown) => void
+}
+let failedQueue: FailedRequest[] = []
+
+function processQueue(error: unknown | null, token: string | null = null) {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error)
+    } else if (token) {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
 
 // Exported so useWebSocket can get a valid token before reconnecting (L-03).
 export async function getValidToken(): Promise<string | null> {
@@ -110,7 +136,7 @@ const LOCAL_ERROR_CODES = new Set([
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     const isLoginEndpoint = error.config?.url?.includes('/auth/token') &&
       !error.config?.url?.includes('/auth/token/refresh')
 
@@ -118,6 +144,32 @@ apiClient.interceptors.response.use(
     // Skip the global toast for the login endpoint: signIn() handles the UX inline
     // (the error could be CORS or backend-down, not the user's internet connection).
     if (!error.response) {
+      const originalRequest = error.config as RetryableRequestConfig
+
+      // The most common trigger for this branch is the FIRST request after a
+      // long-idle tab/laptop sleep: the OS network stack or the backend's
+      // connection needs a moment to wake up, so the very first GET times out
+      // even though a retry a moment later succeeds instantly. Retry once,
+      // silently, before bothering the user with a toast — this is what used
+      // to make GestionPage "tardar mucho y no encontrar nada" after inactivity.
+      if (
+        originalRequest &&
+        originalRequest.method?.toLowerCase() === 'get' &&
+        !originalRequest._networkRetry &&
+        !isLoginEndpoint
+      ) {
+        originalRequest._networkRetry = true
+        await new Promise((r) => setTimeout(r, 800))
+        try {
+          return await apiClient(originalRequest)
+        } catch (retryError) {
+          if (axios.isAxiosError(retryError) && !retryError.response) {
+            dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
+          }
+          return Promise.reject(retryError)
+        }
+      }
+
       if (!isLoginEndpoint) {
         dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
       }
@@ -127,10 +179,54 @@ apiClient.interceptors.response.use(
     const status: number = error.response.status
     const code: string | undefined = error.response.data?.detail?.code
 
-    // 401 — session expired.
+    // H-02: Handle 401 with automatic retry after token refresh
     // Exclude the login endpoint: a 401 there means wrong credentials, not an expired session.
     if (status === 401) {
       const isRefreshEndpoint = error.config?.url?.includes('/auth/token/refresh')
+      const originalRequest = error.config as RetryableRequestConfig
+
+      if (!isRefreshEndpoint && !isLoginEndpoint && !originalRequest._retry) {
+        // If we're already refreshing, queue this request for retry
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({
+              resolve: (token: string) => {
+                originalRequest.headers.Authorization = `Bearer ${token}`
+                resolve(apiClient(originalRequest))
+              },
+              reject: (err) => reject(err),
+            })
+          })
+        }
+
+        originalRequest._retry = true
+        isRefreshing = true
+
+        try {
+          const { data } = await apiClient.post('/api/v1/panel/auth/token/refresh', {
+            refresh_token: useAuthStore.getState().refresh_token,
+          })
+
+          const newToken = data.access_token
+          useAuthStore.getState().setSession(data)
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+
+          // Resolve queued requests with the new token
+          processQueue(null, newToken)
+
+          return apiClient(originalRequest)
+        } catch (refreshError) {
+          // Refresh failed — clear session and reject
+          useAuthStore.getState().clearSession()
+          window.dispatchEvent(new CustomEvent('session-expired'))
+          processQueue(refreshError, null)
+          return Promise.reject(refreshError)
+        } finally {
+          isRefreshing = false
+        }
+      }
+
+      // For refresh endpoint failures or login endpoint, just reject
       if (!isRefreshEndpoint && !isLoginEndpoint) {
         useAuthStore.getState().clearSession()
         window.dispatchEvent(new CustomEvent('session-expired'))

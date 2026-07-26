@@ -65,13 +65,20 @@ describe('axios interceptors', () => {
 
   describe('response interceptor', () => {
     it('dispatches session-expired CustomEvent on 401 response', async () => {
-      apiClient.defaults.adapter = async () => {
+      // A real axios adapter always populates `error.config` from the config it
+      // received (used by the interceptor to distinguish the refresh-token
+      // endpoint from a regular request via error.config.url) — mirror that here
+      // instead of leaving it empty, otherwise the interceptor reads
+      // `originalRequest._retry` off `undefined` and throws before ever reaching
+      // the dispatch logic this test is asserting on.
+      apiClient.defaults.adapter = async (config) => {
         const err = new axios.AxiosError('Unauthorized')
-        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} as never }
+        err.config = config
+        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config }
         throw err
       }
 
-      try { await apiClient.get('/test') } catch { /* expected */ }
+      try { await apiClient.get('/test') } catch { /* expected — the refresh attempt this triggers also 401s */ }
 
       expect(dispatchEventSpy).toHaveBeenCalledWith(
         expect.objectContaining({ type: 'session-expired' })
@@ -79,9 +86,10 @@ describe('axios interceptors', () => {
     })
 
     it('does NOT dispatch event on non-401 errors', async () => {
-      apiClient.defaults.adapter = async () => {
+      apiClient.defaults.adapter = async (config) => {
         const err = new axios.AxiosError('Server Error')
-        err.response = { status: 500, statusText: 'Internal Server Error', data: {}, headers: {}, config: {} as never }
+        err.config = config
+        err.response = { status: 500, statusText: 'Internal Server Error', data: {}, headers: {}, config }
         throw err
       }
 
@@ -94,9 +102,10 @@ describe('axios interceptors', () => {
     })
 
     it('still rejects the promise on 401 (does not swallow errors)', async () => {
-      apiClient.defaults.adapter = async () => {
+      apiClient.defaults.adapter = async (config) => {
         const err = new axios.AxiosError('Unauthorized')
-        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config: {} as never }
+        err.config = config
+        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config }
         throw err
       }
 
