@@ -21,6 +21,7 @@ if (import.meta.env.MODE !== 'production') {
   }
 }
 import ProtectedRoute from './components/layout/ProtectedRoute'
+import IdleLogoutGuard from './components/shared/IdleLogoutGuard'
 import { LoginPage } from './pages/LoginPage'
 import { FirstLoginPage } from './pages/FirstLoginPage'
 
@@ -65,6 +66,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthInit />
+      <IdleLogoutGuard />
 
       {isLoading ? (
         <div className="min-h-screen bg-bg-main flex items-center justify-center">

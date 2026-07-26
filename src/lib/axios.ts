@@ -1,6 +1,14 @@
 import axios from 'axios'
+import type { InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../store/authStore'
 import type { ToastType } from '../store/toastStore'
+
+// Retry/refresh bookkeeping flags stashed on the request config as it's replayed
+// through the interceptor chain.
+type RetryableRequestConfig = InternalAxiosRequestConfig & {
+  _retry?: boolean
+  _networkRetry?: boolean
+}
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
@@ -136,6 +144,32 @@ apiClient.interceptors.response.use(
     // Skip the global toast for the login endpoint: signIn() handles the UX inline
     // (the error could be CORS or backend-down, not the user's internet connection).
     if (!error.response) {
+      const originalRequest = error.config as RetryableRequestConfig
+
+      // The most common trigger for this branch is the FIRST request after a
+      // long-idle tab/laptop sleep: the OS network stack or the backend's
+      // connection needs a moment to wake up, so the very first GET times out
+      // even though a retry a moment later succeeds instantly. Retry once,
+      // silently, before bothering the user with a toast — this is what used
+      // to make GestionPage "tardar mucho y no encontrar nada" after inactivity.
+      if (
+        originalRequest &&
+        originalRequest.method?.toLowerCase() === 'get' &&
+        !originalRequest._networkRetry &&
+        !isLoginEndpoint
+      ) {
+        originalRequest._networkRetry = true
+        await new Promise((r) => setTimeout(r, 800))
+        try {
+          return await apiClient(originalRequest)
+        } catch (retryError) {
+          if (axios.isAxiosError(retryError) && !retryError.response) {
+            dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
+          }
+          return Promise.reject(retryError)
+        }
+      }
+
       if (!isLoginEndpoint) {
         dispatchToast('Sin conexión. Verifica tu conexión a internet.', 'error')
       }
@@ -149,7 +183,7 @@ apiClient.interceptors.response.use(
     // Exclude the login endpoint: a 401 there means wrong credentials, not an expired session.
     if (status === 401) {
       const isRefreshEndpoint = error.config?.url?.includes('/auth/token/refresh')
-      const originalRequest = error.config as any
+      const originalRequest = error.config as RetryableRequestConfig
 
       if (!isRefreshEndpoint && !isLoginEndpoint && !originalRequest._retry) {
         // If we're already refreshing, queue this request for retry

@@ -81,6 +81,7 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
   const [alerts, setAlerts] = useState<BehaviorAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [advisorFilter, setAdvisorFilter] = useState('todos')
   const [severityFilter, setSeverityFilter] = useState('todos')
   const [reviewingIds, setReviewingIds] = useState<Set<string>>(new Set())
@@ -95,8 +96,12 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
     try {
       const result = await alertsService.list({ reviewed: false, limit: 50 })
       setAlerts(result?.alerts || [])
+      setLoadError(false)
     } catch {
-      if (!silent) setAlerts([])
+      // Keep whatever alerts are already on screen — a failed request must
+      // never render as "0 alertas pendientes", which looks identical to a
+      // genuinely clean queue and hid every past fetch failure from the admin.
+      setLoadError(true)
     } finally {
       setIsLoading(false)
       setIsRefreshing(false)
@@ -223,8 +228,28 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
         </div>
       )}
 
+      {/* Load error — takes priority over the empty state so a failed fetch
+          never looks identical to "0 alertas pendientes". */}
+      {!isLoading && loadError && (
+        <div id="behavior-alerts-error" className="flex flex-col items-center gap-3 text-center py-10">
+          <div className="flex items-center gap-2 text-error text-sm">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z" />
+            </svg>
+            <span>No se pudieron cargar las alertas. Verifica tu conexión.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => loadAlerts()}
+            className="rounded-control border border-error/40 px-3 py-1 text-xs font-semibold text-error hover:bg-error/15 transition"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
       {/* Empty state */}
-      {!isLoading && filteredAlerts.length === 0 && (
+      {!isLoading && !loadError && filteredAlerts.length === 0 && (
         <div id="behavior-alerts-empty" className="text-center py-10">
           <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
             <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">

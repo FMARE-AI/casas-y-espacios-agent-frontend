@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { advisorsService } from '../services/advisors'
 import type { Advisor } from '../types'
 import { AdvisorsTable } from '../components/management/AdvisorsTable'
@@ -46,6 +46,7 @@ function extractErrorCode(error: unknown): string | undefined {
 export const GestionPage: React.FC = () => {
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
   const [searchText, setSearchText] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('todos')
   const [areaFilter, setAreaFilter] = useState<string>('todos')
@@ -54,12 +55,8 @@ export const GestionPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [modalError, setModalError] = useState<string | undefined>()
 
-  useEffect(() => {
-    loadAdvisors()
-  }, [])
-
-  async function loadAdvisors() {
-    setIsLoading(true)
+  const loadAdvisors = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true)
     try {
       const { advisors: fetched } = await advisorsService.list()
 
@@ -71,12 +68,40 @@ export const GestionPage: React.FC = () => {
       )
 
       setAdvisors(filtered)
+      setLoadError(false)
     } catch {
-      setAdvisors([])
+      // Keep whatever data is already on screen — a failed request (timeout,
+      // network drop) is not the same as "0 asesores", and wiping the table
+      // to empty here is what made the panel look like "no encontró nada"
+      // when the real cause was a request failure. Surface it instead.
+      setLoadError(true)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let ignore = false
+    const timer = setTimeout(() => {
+      if (!ignore) loadAdvisors().catch(() => {})
+    }, 0)
+    return () => {
+      ignore = true
+      clearTimeout(timer)
+    }
+  }, [loadAdvisors])
+
+  // Events emitted while the WS was down are lost, and the socket itself may
+  // look OPEN while actually dead after a long idle/background period — this
+  // mirrors BandejaPage/BehaviorAlertsPanel so the advisors table also
+  // refetches once the connection is confirmed alive again.
+  useEffect(() => {
+    const handleReconnected = () => {
+      loadAdvisors(true).catch(() => {})
+    }
+    window.addEventListener('ws:reconnected', handleReconnected)
+    return () => window.removeEventListener('ws:reconnected', handleReconnected)
+  }, [loadAdvisors])
 
   const filteredAdvisors = useMemo(() => {
     return advisors.filter((advisor) => {
@@ -275,6 +300,23 @@ export const GestionPage: React.FC = () => {
           </select>
         </div>
       </div>
+
+      {/* Load error banner — shown when a fetch failed, without discarding stale data */}
+      {loadError && !isLoading && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-error/30 bg-error/10 px-4 py-3 text-sm text-error">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span>No se pudo actualizar la lista de asesores. Verifica tu conexión.</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => loadAdvisors()}
+            className="shrink-0 rounded-control border border-error/40 px-3 py-1 text-xs font-semibold hover:bg-error/15 transition"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <AdvisorsTable
