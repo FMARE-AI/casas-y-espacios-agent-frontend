@@ -26,7 +26,10 @@ describe('conversationsService', () => {
 
       const result = await conversationsService.list()
 
-      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/panel/conversations/', { params: {} })
+      // list() has no default value for `params` — calling it with no args
+      // forwards `undefined` straight through to axios (functionally identical
+      // to `{}` in the resulting query string, but not the same JS value).
+      expect(apiClient.get).toHaveBeenCalledWith('/api/v1/panel/conversations/', { params: undefined })
       expect(result).toEqual(mockResponse.data.data)
     })
 
