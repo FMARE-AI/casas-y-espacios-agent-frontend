@@ -26,6 +26,13 @@ const CHANNEL_STYLES: Record<string, string> = {
   comercial:      'bg-brand-blue/15 text-brand-blue',
 }
 
+const CLIENT_TYPE_LABELS: Record<string, string> = {
+  inquilino:   'Inquilino',
+  propietario: 'Propietario',
+  prospecto:   'Prospecto',
+  desconocido: 'Sin clasificar',
+}
+
 function getInitials(name: string | null | undefined): string {
   if (!name) return '?'
   return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
@@ -140,10 +147,36 @@ export default function ClientPanel({
               </div>
               <div className="min-w-0">
                 <p className="text-label text-text-secondary uppercase">
-                  Cédula / NIT
+                  Documento
                 </p>
                 <p className="text-white font-mono text-xs truncate">
                   {client.document_id ?? 'No registrada'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-8 h-8 rounded-lg bg-border-default/60 flex items-center justify-center shrink-0">
+                <svg
+                  className="w-4 h-4 text-text-secondary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-label text-text-secondary uppercase">
+                  Tipo de cliente
+                </p>
+                <p className="text-white font-medium text-xs truncate">
+                  {CLIENT_TYPE_LABELS[client.client_type] ?? client.client_type ?? 'Sin clasificar'}
                 </p>
               </div>
             </div>
