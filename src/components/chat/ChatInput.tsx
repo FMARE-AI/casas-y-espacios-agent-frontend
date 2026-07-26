@@ -4,6 +4,38 @@ import { conversationsService } from '../../services/conversations'
 import AudioRecorder from './AudioRecorder'
 import type { Message } from '../../types'
 
+const EMOJI_CATEGORIES = [
+  {
+    id: 'smileys',
+    label: '😃',
+    title: 'Expresiones',
+    emojis: [
+      '😊', '😂', '🤣', '🥰', '😍', '🤩', '😜', '😎', '🤔', '🤫', 
+      '🙄', '😬', '😴', '😢', '😡', '🤯', '👍', '👎', '👏', '🙌', 
+      '🙏', '👋', '❤️', '🔥', '✨', '🎉', '💡', '💯'
+    ]
+  },
+  {
+    id: 'realestate',
+    label: '🏠',
+    title: 'Inmobiliaria',
+    emojis: [
+      '🏠', '🏡', '🏢', '🏬', '🔑', '🗝️', '📅', '📆', '📍', '🗺️',
+      '🤝', '✍️', '📞', '✉️', '💰', '💵', '📋', '🏷️', '🛠️', '🚧',
+      '📌', '🛋️', '🛏️', '🚿', '🛀', '🚗', '🌳'
+    ]
+  },
+  {
+    id: 'symbols',
+    label: '✅',
+    title: 'Símbolos',
+    emojis: [
+      '✅', '❌', '⚠️', '🚀', '💬', 'ℹ️', '🔔', '🌟', '🔍', '🕒',
+      '📣', '📌', '📈', '📉', '📎', '🔒', '🔓', '🛡️', '⚙️', '🔄'
+    ]
+  }
+]
+
 interface ChatInputProps {
   conversationId: string
   clientName: string
@@ -481,12 +513,15 @@ export default function ChatInput({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [previewModalOpen, setPreviewModalOpen] = useState(false)
   const [attachMenuOpen, setAttachMenuOpen] = useState(false)
+  const [emojiMenuOpen, setEmojiMenuOpen] = useState(false)
+  const [emojiCategory, setEmojiCategory] = useState('smileys')
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [recorderState, setRecorderState] = useState<string>('idle')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
+  const emojiMenuRef = useRef<HTMLDivElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   // Reused across a failed send's retry so the same optimistic bubble is
@@ -539,10 +574,14 @@ export default function ChatInput({
       if (!attachMenuRef.current?.contains(e.target as Node)) {
         setAttachMenuOpen(false)
       }
+      if (!emojiMenuRef.current?.contains(e.target as Node)) {
+        setEmojiMenuOpen(false)
+      }
     }
     function handleEscapeKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         setAttachMenuOpen(false)
+        setEmojiMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -555,6 +594,35 @@ export default function ChatInput({
 
   function toggleAttachMenu() {
     setAttachMenuOpen((open) => !open)
+  }
+
+  function insertEmoji(emoji: string) {
+    if (!textareaRef.current) return
+
+    const start = textareaRef.current.selectionStart
+    const end = textareaRef.current.selectionEnd
+    const currentText = text
+
+    const before = currentText.substring(0, start)
+    const after = currentText.substring(end)
+    const newText = before + emoji + after
+
+    if (newText.length > 2000) {
+      showError('El mensaje supera el límite de 2000 caracteres.')
+      return
+    }
+
+    setText(newText)
+    updateTypingStatus(true)
+
+    // Focus the textarea and set the cursor position right after the inserted emoji
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus()
+        const newCursorPos = start + emoji.length
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 10)
   }
 
   function triggerFileInput(type: keyof typeof FILE_TYPES) {
@@ -919,6 +987,74 @@ export default function ChatInput({
                   </svg>
                   <span>Video</span>
                 </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Emoji button + dropdown */}
+        {recorderState === 'idle' && (
+          <div ref={emojiMenuRef} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setEmojiMenuOpen((open) => !open)}
+              disabled={variant !== 'assigned' || sending}
+              className="p-2.5 text-text-secondary hover:text-white hover:bg-border-default rounded-control transition active:scale-[0.98] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              title="Insertar emoji"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </button>
+
+            {emojiMenuOpen && (
+              <div
+                id="emoji-picker-dropdown"
+                className="absolute bottom-full left-0 mb-2 bg-bg-secondary border border-border-default rounded-xl shadow-lg z-50 w-72 p-3 overflow-hidden animate-fade-in flex flex-col space-y-2"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Category tabs */}
+                <div className="flex border-b border-border-default/60 pb-1.5 justify-between">
+                  <div className="flex gap-1">
+                    {EMOJI_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setEmojiCategory(cat.id)}
+                        className={`px-2.5 py-1 text-xs rounded-lg transition-colors duration-150 ${
+                          emojiCategory === cat.id
+                            ? 'bg-brand-blue/20 text-white border border-brand-blue/30'
+                            : 'text-text-secondary hover:text-white hover:bg-bg-tertiary'
+                        }`}
+                        title={cat.title}
+                      >
+                        {cat.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-[9px] text-text-secondary uppercase self-center font-bold tracking-wider">
+                    {EMOJI_CATEGORIES.find((c) => c.id === emojiCategory)?.title}
+                  </span>
+                </div>
+
+                {/* Emojis grid */}
+                <div className="grid grid-cols-7 gap-1 max-h-40 overflow-y-auto pr-1 py-1 app-scroll">
+                  {EMOJI_CATEGORIES.find((cat) => cat.id === emojiCategory)?.emojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => insertEmoji(emoji)}
+                      className="w-8 h-8 flex items-center justify-center text-lg rounded-lg hover:bg-bg-tertiary transition active:scale-95 cursor-pointer"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
