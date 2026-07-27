@@ -145,17 +145,7 @@ export default function HistorialPage() {
     });
   }, [conversations, searchText, lineFilter, dateFilter]);
 
-  function exportCSV() {
-    const headers = [
-      "N° de Caso",
-      "Cliente",
-      "Cédula",
-      "Línea",
-      "Fecha de Cierre",
-      "Notas de resolución",
-      "Resolutor",
-      "Cliente satisfecho",
-    ];
+  async function exportExcel() {
     const rows = filteredConversations.map((conv) => {
       const closedDateStr = conv.closed_at ?? conv.last_activity;
       let formattedDate = "—";
@@ -173,29 +163,35 @@ export default function HistorialPage() {
       if (conv.client_satisfied === "si") satisfaccion = "Sí";
       if (conv.client_satisfied === "no") satisfaccion = "No";
 
-      return [
-        conv.case_number ?? "—",
-        conv.client.full_name ?? "Sin identificar",
-        conv.client.document_id ?? "—",
-        channelLabel(conv.channel),
-        formattedDate,
-        conv.resolution_notes ?? "Sin notas",
-        resolutor,
-        satisfaccion,
-      ];
+      return {
+        "N° de Caso": conv.case_number ?? "—",
+        Cliente: conv.client.full_name ?? "Sin identificar",
+        Cédula: conv.client.document_id ?? "—",
+        Línea: channelLabel(conv.channel),
+        "Fecha de Cierre": formattedDate,
+        Duración: formatDuration(conv.duration_seconds),
+        "Notas de resolución": conv.resolution_notes ?? "Sin notas",
+        Resolutor: resolutor,
+        "Cliente satisfecho": satisfaccion,
+      };
     });
-    const csvContent = [headers, ...rows]
-      .map((row) =>
-        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `historial_${format(new Date(), "yyyyMMdd")}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+
+    const { utils, writeFile } = await import("xlsx");
+    const worksheet = utils.json_to_sheet(rows);
+    worksheet["!cols"] = [
+      { wch: 14 }, // N° de Caso
+      { wch: 24 }, // Cliente
+      { wch: 14 }, // Cédula
+      { wch: 14 }, // Línea
+      { wch: 18 }, // Fecha de Cierre
+      { wch: 14 }, // Duración
+      { wch: 50 }, // Notas de resolución
+      { wch: 20 }, // Resolutor
+      { wch: 16 }, // Cliente satisfecho
+    ];
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, "Historial");
+    writeFile(workbook, `historial_${format(new Date(), "yyyyMMdd")}.xlsx`);
   }
 
   return (
@@ -216,7 +212,7 @@ export default function HistorialPage() {
         </div>
         <button
           type="button"
-          onClick={exportCSV}
+          onClick={exportExcel}
           className="bg-bg-tertiary hover:bg-border-default border border-border-default text-text-primary px-4 py-2.5 h-11 rounded-control text-xs font-semibold flex items-center gap-2 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
         >
           <svg
@@ -232,7 +228,7 @@ export default function HistorialPage() {
               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
             />
           </svg>
-          <span>Exportar CSV</span>
+          <span>Exportar Excel</span>
         </button>
       </div>
 
