@@ -39,6 +39,41 @@ function processQueue(error: unknown | null, token: string | null = null) {
   failedQueue = []
 }
 
+// Single writer of isRefreshing/refreshPromise/failedQueue, regardless of whether
+// the refresh was triggered proactively (getValidToken) or reactively (401 handler
+// below) — this is what lets processQueue() always run, closing the race where a
+// request queued by the 401 handler could be left pending forever if the in-flight
+// refresh it was waiting on had actually been started by getValidToken().
+function refreshSession(refresh_token: string): Promise<string | null> {
+  isRefreshing = true
+  refreshPromise = apiClient
+    .post('/api/v1/panel/auth/token/refresh', { refresh_token })
+    .then(({ data }) => {
+      useAuthStore.getState().setSession(data)
+      const newToken = data.access_token as string
+      processQueue(null, newToken)
+      return newToken
+    })
+    .catch((error) => {
+      // Only a definitive server rejection invalidates the session. A network
+      // failure (offline, timeout, backend restarting) must NOT log the user
+      // out — callers retry: HTTP requests fail visibly with their own toast,
+      // and the WS backoff chain keeps polling until the network returns.
+      if (axios.isAxiosError(error) && error.response) {
+        useAuthStore.getState().clearSession()
+        window.dispatchEvent(new CustomEvent('session-expired'))
+      }
+      processQueue(error, null)
+      return null
+    })
+    .finally(() => {
+      isRefreshing = false
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
 // Exported so useWebSocket can get a valid token before reconnecting (L-03).
 export async function getValidToken(): Promise<string | null> {
   const { token, expires_at, refresh_token } = useAuthStore.getState()
@@ -60,30 +95,7 @@ export async function getValidToken(): Promise<string | null> {
     return refreshPromise
   }
 
-  isRefreshing = true
-  refreshPromise = apiClient
-    .post('/api/v1/panel/auth/token/refresh', { refresh_token })
-    .then(({ data }) => {
-      useAuthStore.getState().setSession(data)
-      return data.access_token as string
-    })
-    .catch((error) => {
-      // Only a definitive server rejection invalidates the session. A network
-      // failure (offline, timeout, backend restarting) must NOT log the user
-      // out — callers retry: HTTP requests fail visibly with their own toast,
-      // and the WS backoff chain keeps polling until the network returns.
-      if (axios.isAxiosError(error) && error.response) {
-        useAuthStore.getState().clearSession()
-        window.dispatchEvent(new CustomEvent('session-expired'))
-      }
-      return null
-    })
-    .finally(() => {
-      isRefreshing = false
-      refreshPromise = null
-    })
-
-  return refreshPromise
+  return refreshSession(refresh_token)
 }
 
 // Decouple toast notifications from the React store — ToastStack listens for this event
@@ -186,8 +198,25 @@ apiClient.interceptors.response.use(
       const originalRequest = error.config as RetryableRequestConfig
 
       if (!isRefreshEndpoint && !isLoginEndpoint && !originalRequest._retry) {
-        // If we're already refreshing, queue this request for retry
-        if (isRefreshing) {
+        originalRequest._retry = true
+
+        const refresh_token = useAuthStore.getState().refresh_token
+
+        // C-02: no RT means there's no session left to refresh — bail immediately
+        // instead of posting a null refresh_token (the backend requires a string
+        // and would just reject it with a 422).
+        if (!refresh_token) {
+          useAuthStore.getState().clearSession()
+          window.dispatchEvent(new CustomEvent('session-expired'))
+          return Promise.reject(error)
+        }
+
+        // If a refresh is already in flight — proactive (getValidToken) or
+        // reactive (this same branch, from another request) — queue this one.
+        // refreshSession() is the single writer of isRefreshing/refreshPromise and
+        // always calls processQueue() when it settles, so this is resolved/rejected
+        // regardless of which caller actually triggered the in-flight refresh.
+        if (isRefreshing && refreshPromise) {
           return new Promise((resolve, reject) => {
             failedQueue.push({
               resolve: (token: string) => {
@@ -199,31 +228,13 @@ apiClient.interceptors.response.use(
           })
         }
 
-        originalRequest._retry = true
-        isRefreshing = true
-
-        try {
-          const { data } = await apiClient.post('/api/v1/panel/auth/token/refresh', {
-            refresh_token: useAuthStore.getState().refresh_token,
-          })
-
-          const newToken = data.access_token
-          useAuthStore.getState().setSession(data)
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-
-          // Resolve queued requests with the new token
-          processQueue(null, newToken)
-
-          return apiClient(originalRequest)
-        } catch (refreshError) {
-          // Refresh failed — clear session and reject
-          useAuthStore.getState().clearSession()
-          window.dispatchEvent(new CustomEvent('session-expired'))
-          processQueue(refreshError, null)
-          return Promise.reject(refreshError)
-        } finally {
-          isRefreshing = false
+        const newToken = await refreshSession(refresh_token)
+        if (!newToken) {
+          return Promise.reject(error)
         }
+
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return apiClient(originalRequest)
       }
 
       // For refresh endpoint failures or login endpoint, just reject
