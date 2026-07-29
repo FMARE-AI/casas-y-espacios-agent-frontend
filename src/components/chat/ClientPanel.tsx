@@ -1,41 +1,46 @@
-import type { Conversation } from '../../types'
-import { useAuthStore } from '../../store/authStore'
+import type { Conversation } from "../../types";
+import { useAuthStore } from "../../store/authStore";
 
-export type ChatVariant = 'assigned' | 'unassigned' | 'bot' | 'monitoring'
+export type ChatVariant = "assigned" | "unassigned" | "bot" | "monitoring";
 
 interface ClientPanelProps {
-  conversation: Conversation
-  variant: ChatVariant
-  onTake: () => void
-  onReturnBot: () => void
-  isTaking: boolean
-  isReturning: boolean
-  isAdmin?: boolean
-  onClose?: () => void
-  onCloseConversation?: () => void
-  onTransfer?: () => void
+  conversation: Conversation;
+  variant: ChatVariant;
+  onTake: () => void;
+  onReturnBot: () => void;
+  isTaking: boolean;
+  isReturning: boolean;
+  isAdmin?: boolean;
+  onClose?: () => void;
+  onCloseConversation?: () => void;
+  onTransfer?: () => void;
 }
 
 const CHANNEL_LABELS: Record<string, string> = {
-  administrativa: 'Administrativa',
-  comercial:      'Comercial',
-}
+  administrativa: "Administrativa",
+  comercial: "Comercial",
+};
 
 const CHANNEL_STYLES: Record<string, string> = {
-  administrativa: 'bg-success/15 text-success',
-  comercial:      'bg-brand-blue/15 text-brand-blue',
-}
+  administrativa: "bg-success/15 text-success",
+  comercial: "bg-brand-blue/15 text-brand-blue",
+};
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
-  inquilino:   'Inquilino',
-  propietario: 'Propietario',
-  prospecto:   'Prospecto',
-  desconocido: 'Sin clasificar',
-}
+  arrendatario: "arrendatario",
+  propietario: "Propietario",
+  prospecto: "Prospecto",
+  desconocido: "Sin clasificar",
+};
 
 function getInitials(name: string | null | undefined): string {
-  if (!name) return '?'
-  return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
 }
 
 export default function ClientPanel({
@@ -50,8 +55,8 @@ export default function ClientPanel({
   onCloseConversation,
   onTransfer,
 }: ClientPanelProps) {
-  const { client, escalation, channel } = conversation
-  const currentAdvisor = useAuthStore((s) => s.advisor)
+  const { client, escalation, channel } = conversation;
+  const currentAdvisor = useAuthStore((s) => s.advisor);
 
   // An `escalation` object is only ever included in the conversation payload
   // when it is unresolved (resolved_at IS NULL) — see docs/panel_api_reference.md.
@@ -62,7 +67,7 @@ export default function ClientPanel({
   const showTransfer =
     conversation.bot_activo === false &&
     !!escalation?.advisor &&
-    (escalation.advisor.id === currentAdvisor?.id || isAdmin)
+    (escalation.advisor.id === currentAdvisor?.id || isAdmin);
 
   return (
     <aside
@@ -80,8 +85,18 @@ export default function ClientPanel({
             onClick={onClose}
             className="text-text-secondary hover:text-white p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -93,11 +108,12 @@ export default function ClientPanel({
               {getInitials(client.full_name)}
             </div>
             <h4 className="mt-3 text-h3 text-text-primary leading-tight max-w-full truncate">
-              {client.full_name ?? 'Sin identificar'}
+              {client.full_name ?? "Sin identificar"}
             </h4>
             <span
               className={`mt-2 text-label px-2.5 py-1 rounded-full uppercase ${
-                CHANNEL_STYLES[channel] ?? 'bg-border-default/60 text-text-secondary'
+                CHANNEL_STYLES[channel] ??
+                "bg-border-default/60 text-text-secondary"
               }`}
             >
               {CHANNEL_LABELS[channel] ?? channel}
@@ -125,7 +141,9 @@ export default function ClientPanel({
                 <p className="text-label text-text-secondary uppercase">
                   Celular
                 </p>
-                <p className="text-white font-mono text-xs truncate">{client.phone_number}</p>
+                <p className="text-white font-mono text-xs truncate">
+                  {client.phone_number}
+                </p>
               </div>
             </div>
 
@@ -150,7 +168,7 @@ export default function ClientPanel({
                   Documento
                 </p>
                 <p className="text-white font-mono text-xs truncate">
-                  {client.document_id ?? 'No registrada'}
+                  {client.document_id ?? "No registrada"}
                 </p>
               </div>
             </div>
@@ -176,7 +194,9 @@ export default function ClientPanel({
                   Tipo de cliente
                 </p>
                 <p className="text-white font-medium text-xs truncate">
-                  {CLIENT_TYPE_LABELS[client.client_type] ?? client.client_type ?? 'Sin clasificar'}
+                  {CLIENT_TYPE_LABELS[client.client_type] ??
+                    client.client_type ??
+                    "Sin clasificar"}
                 </p>
               </div>
             </div>
@@ -193,7 +213,8 @@ export default function ClientPanel({
 
             <div className="bg-bg-main p-2.5 rounded-lg border border-border-default">
               <p className="text-white/90 font-medium leading-relaxed text-[11.5px]">
-                {escalation.summary ?? 'El asesor revisará el historial de la conversación.'}
+                {escalation.summary ??
+                  "El asesor revisará el historial de la conversación."}
               </p>
             </div>
 
@@ -210,15 +231,20 @@ export default function ClientPanel({
 
             <div className="flex justify-between text-[9px] text-text-secondary">
               <span>
-                Escalado:{' '}
+                Escalado:{" "}
                 <strong className="text-white font-semibold">
-                  {new Date(escalation.escalated_at).toLocaleTimeString('es-CO', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {new Date(escalation.escalated_at).toLocaleTimeString(
+                    "es-CO",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
                 </strong>
               </span>
-              <span className="font-mono">ID: {escalation.id.slice(0, 8).toUpperCase()}</span>
+              <span className="font-mono">
+                ID: {escalation.id.slice(0, 8).toUpperCase()}
+              </span>
             </div>
           </div>
         )}
@@ -226,7 +252,7 @@ export default function ClientPanel({
 
       {/* Action buttons */}
       <div className="space-y-2 mt-4 lg:mt-0">
-        {variant === 'unassigned' && !isAdmin && (
+        {variant === "unassigned" && !isAdmin && (
           <button
             type="button"
             onClick={onTake}
@@ -236,15 +262,25 @@ export default function ClientPanel({
             {isTaking ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
               </svg>
             )}
             <span>Tomar Conversación</span>
           </button>
         )}
 
-        {variant === 'assigned' && (
+        {variant === "assigned" && (
           <>
             <button
               type="button"
@@ -255,8 +291,18 @@ export default function ClientPanel({
               {isReturning ? (
                 <div className="w-4 h-4 border-2 border-error border-t-transparent rounded-full animate-spin" />
               ) : (
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               )}
               <span>Devolver al Bot</span>
@@ -277,13 +323,23 @@ export default function ClientPanel({
             onClick={onTransfer}
             className="w-full h-12 border border-brand-blue/20 hover:border-brand-blue/40 hover:bg-brand-blue/10 text-brand-blue hover:text-white text-xs font-semibold rounded-control transition mt-2 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
           >
-            <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            <svg
+              className="w-4.5 h-4.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+              />
             </svg>
             <span>Transferir</span>
           </button>
         )}
       </div>
     </aside>
-  )
+  );
 }

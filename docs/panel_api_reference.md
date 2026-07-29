@@ -2219,12 +2219,12 @@ Emitted to **admin advisors only** when background moderation detects inappropri
 
 ### ClientType
 
-| Value         | Description                            |
-| ------------- | -------------------------------------- |
-| `inquilino`   | Tenant                                 |
-| `propietario` | Property owner                         |
-| `prospecto`   | Commercial prospect (not yet a client) |
-| `desconocido` | Identity not yet established           |
+| Value          | Description                            |
+| -------------- | -------------------------------------- |
+| `arrendatario` | Tenant                                 |
+| `propietario`  | Property owner                         |
+| `prospecto`    | Commercial prospect (not yet a client) |
+| `desconocido`  | Identity not yet established           |
 
 ---
 
