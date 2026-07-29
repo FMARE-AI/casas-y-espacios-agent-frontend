@@ -27,7 +27,7 @@ const CHANNEL_STYLES: Record<string, string> = {
 };
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
-  arrendatario: "arrendatario",
+  arrendatario: "Arrendatario",
   propietario: "Propietario",
   prospecto: "Prospecto",
   desconocido: "Sin clasificar",
