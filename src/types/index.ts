@@ -47,7 +47,19 @@ export interface Advisor {
 
 export interface Client {
   id: string;
-  phone_number: string;
+  /**
+   * Null when the contact reached us through a WhatsApp username and has not
+   * shared their number. A client always has at least one of phone_number /
+   * bsuid, but either may be null — never assume this one is present.
+   */
+  phone_number: string | null;
+  /**
+   * Business-Scoped User ID — opaque per-business identifier, present when the
+   * contact reached us through a WhatsApp username. Display-only: it is not a
+   * phone number, is not dialable, and must never be used to build a `tel:` or
+   * `wa.me` link.
+   */
+  bsuid: string | null;
   full_name: string | null;
   document_id: string | null;
   client_type: ClientType;

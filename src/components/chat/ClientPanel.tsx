@@ -137,12 +137,19 @@ export default function ClientPanel({
                   />
                 </svg>
               </div>
+              {/*
+                phone_number is null for a contact who reached us through a
+                WhatsApp username and has not shared their number. Falling back
+                to the bsuid keeps an identifier on screen instead of a blank
+                field — the label switches so it is never mistaken for a
+                dialable number.
+              */}
               <div className="min-w-0">
                 <p className="text-label text-text-secondary uppercase">
-                  Celular
+                  {client.phone_number ? "Celular" : "Usuario de WhatsApp"}
                 </p>
                 <p className="text-white font-mono text-xs truncate">
-                  {client.phone_number}
+                  {client.phone_number ?? client.bsuid ?? "No registrado"}
                 </p>
               </div>
             </div>
