@@ -164,34 +164,47 @@ export default function HistorialPage() {
       if (conv.client_satisfied === "no") satisfaccion = "No";
 
       return {
-        "N° de Caso": conv.case_number ?? "—",
-        Cliente: conv.client.full_name ?? "Sin identificar",
-        Cédula: conv.client.document_id ?? "—",
-        Línea: channelLabel(conv.channel),
-        "Fecha de Cierre": formattedDate,
-        Duración: formatDuration(conv.duration_seconds),
-        "Notas de resolución": conv.resolution_notes ?? "Sin notas",
-        Resolutor: resolutor,
-        "Cliente satisfecho": satisfaccion,
+        caseNumber: conv.case_number ?? "—",
+        client: conv.client.full_name ?? "Sin identificar",
+        document: conv.client.document_id ?? "—",
+        channel: channelLabel(conv.channel),
+        closedAt: formattedDate,
+        duration: formatDuration(conv.duration_seconds),
+        notes: conv.resolution_notes ?? "Sin notas",
+        resolutor,
+        satisfaction: satisfaccion,
       };
     });
 
-    const { utils, writeFile } = await import("xlsx");
-    const worksheet = utils.json_to_sheet(rows);
-    worksheet["!cols"] = [
-      { wch: 14 }, // N° de Caso
-      { wch: 24 }, // Cliente
-      { wch: 14 }, // Cédula
-      { wch: 14 }, // Línea
-      { wch: 18 }, // Fecha de Cierre
-      { wch: 14 }, // Duración
-      { wch: 50 }, // Notas de resolución
-      { wch: 20 }, // Resolutor
-      { wch: 16 }, // Cliente satisfecho
+    // xlsx (SheetJS) was replaced with exceljs: the npm-published xlsx build
+    // carries unpatched prototype-pollution and ReDoS advisories with no fix
+    // available on the registry (2026-08 security audit finding F-03).
+    const ExcelJS = (await import("exceljs")).default;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Historial");
+    worksheet.columns = [
+      { header: "N° de Caso", key: "caseNumber", width: 14 },
+      { header: "Cliente", key: "client", width: 24 },
+      { header: "Cédula", key: "document", width: 14 },
+      { header: "Línea", key: "channel", width: 14 },
+      { header: "Fecha de Cierre", key: "closedAt", width: 18 },
+      { header: "Duración", key: "duration", width: 14 },
+      { header: "Notas de resolución", key: "notes", width: 50 },
+      { header: "Resolutor", key: "resolutor", width: 20 },
+      { header: "Cliente satisfecho", key: "satisfaction", width: 16 },
     ];
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, "Historial");
-    writeFile(workbook, `historial_${format(new Date(), "yyyyMMdd")}.xlsx`);
+    worksheet.addRows(rows);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `historial_${format(new Date(), "yyyyMMdd")}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
