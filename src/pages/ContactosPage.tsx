@@ -3,8 +3,10 @@ import { clientsService } from "../services/clients";
 import type { ClientDirectoryEntry, ClientType, CommercialClassification } from "../types";
 
 // The backend GET /clients endpoint only supports `q` — client_type and
-// commercial_classification filters are applied client-side over this batch.
-const FETCH_LIMIT = 100;
+// commercial_classification filters are applied client-side. Backend caps
+// `limit` at 100 per page (docs/panel_api_reference.md), so a full directory
+// larger than that is fetched across multiple pages — see fetchAllClients.
+const BACKEND_PAGE_SIZE = 100;
 const PAGE_SIZE = 20;
 
 const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
@@ -63,9 +65,33 @@ function TableSkeleton() {
   );
 }
 
+async function fetchAllClients(q: string): Promise<ClientDirectoryEntry[]> {
+  const collected: ClientDirectoryEntry[] = [];
+  let offset = 0;
+  let total = Infinity;
+
+  while (offset < total) {
+    const result = await clientsService.list({
+      q: q || undefined,
+      limit: BACKEND_PAGE_SIZE,
+      offset,
+    });
+
+    collected.push(...result.clients);
+    total = result.total;
+
+    if (result.clients.length === 0) break;
+    offset += result.clients.length;
+  }
+
+  return collected;
+}
+
 export default function ContactosPage() {
   const [clients, setClients] = useState<ClientDirectoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [retryToken, setRetryToken] = useState(0);
 
   const [searchInput, setSearchInput] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -86,16 +112,17 @@ export default function ContactosPage() {
   useEffect(() => {
     let cancelled = false;
     setIsLoading(true);
+    setLoadError(false);
 
-    clientsService
-      .list({ q: searchQuery || undefined, limit: FETCH_LIMIT, offset: 0 })
-      .then((result) => {
+    fetchAllClients(searchQuery)
+      .then((all) => {
         if (cancelled) return;
-        setClients(result.clients);
+        setClients(all);
       })
       .catch(() => {
         if (cancelled) return;
         setClients([]);
+        setLoadError(true);
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false);
@@ -104,7 +131,7 @@ export default function ContactosPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery]);
+  }, [searchQuery, retryToken]);
 
   // Reset to page 1 whenever the query or a filter changes
   useEffect(() => {
@@ -202,6 +229,17 @@ export default function ContactosPage() {
       {/* ── Table ── */}
       {isLoading ? (
         <TableSkeleton />
+      ) : loadError ? (
+        <div className="w-full bg-bg-secondary border border-border-default rounded-xl py-12 flex flex-col items-center gap-3">
+          <p className="text-text-secondary text-sm">No se pudo cargar el directorio de contactos.</p>
+          <button
+            type="button"
+            onClick={() => setRetryToken((t) => t + 1)}
+            className="bg-brand-blue hover:bg-brand-blue/90 text-white px-4 py-1.5 rounded-control text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          >
+            Reintentar
+          </button>
+        </div>
       ) : (
         <div className="app-scroll w-full bg-bg-secondary border border-border-default rounded-xl overflow-x-auto">
           <table id="contacts-table" className="w-full text-left text-xs text-text-primary">
@@ -267,7 +305,7 @@ export default function ContactosPage() {
       )}
 
       {/* ── Pagination ── */}
-      {!isLoading && total > PAGE_SIZE && (
+      {!isLoading && !loadError && total > PAGE_SIZE && (
         <div className="w-full flex items-center justify-between text-xs text-text-secondary">
           <span>
             Mostrando {pagedClients.length === 0 ? 0 : offset + 1}–{Math.min(offset + PAGE_SIZE, total)} de {total}
