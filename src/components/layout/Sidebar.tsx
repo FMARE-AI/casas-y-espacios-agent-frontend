@@ -230,7 +230,18 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               }
             />
 
-            {/* 
+            <NavItem
+              to="/contactos"
+              active={isActive('/contactos')}
+              label="Contactos"
+              icon={
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4" />
+                </svg>
+              }
+            />
+
+            {/*
               NOTA: El badge de "Gestión Asesores" muestra unreadAlerts (alertas de comportamiento sin revisar).
               Zustand se encarga de incrementarlo por WebSocket (evento behavior.alert).
               Se debe llamar a useWSStore.getState().decrementAlerts() en GestionPage.tsx 
