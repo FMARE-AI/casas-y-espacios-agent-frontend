@@ -49,8 +49,8 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 ```json
 {
-  "access_token": "eyJhbGciOiJFUzI1NiIs...",
-  "refresh_token": "eyJhbGciOiJFUzI1NiIs...",
+  "access_token": "***REMOVED***",
+  "refresh_token": "***REMOVED***",
   "token_type": "bearer",
   "expires_in": 3600,
   "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -83,7 +83,7 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 ```json
 {
-  "refresh_token": "eyJhbGciOiJFUzI1NiIs..."
+  "refresh_token": "***REMOVED***"
 }
 ```
 
@@ -91,8 +91,8 @@ The JWT is signed with **ES256** using Supabase's EC private key. FastAPI verifi
 
 ```json
 {
-  "access_token": "eyJhbGciOiJFUzI1NiIs...",
-  "refresh_token": "eyJhbGciOiJFUzI1NiIs...",
+  "access_token": "***REMOVED***",
+  "refresh_token": "***REMOVED***",
   "expires_in": 3600,
   "token_type": "bearer"
 }
@@ -167,12 +167,12 @@ No request body required.
         "closed_by_advisor": null,
         "closed_at": null,
         "unread_count": 0,
-        "duration_seconds": null,
         "case_number": "CE-2026-000043",
         "priority": "alta",
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
+          "bsuid": null,
           "full_name": "Carlos Rodríguez",
           "document_id": "1020304050",
           "client_type": "propietario"
@@ -220,7 +220,6 @@ No request body required.
 - **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
 - **`case_number`** is a human-readable, unique case reference in the format `CE-YYYY-NNNNNN` (e.g. `CE-2026-000043`), generated atomically in Postgres when the conversation is created. It is `null` for conversations created before this feature was deployed — render `—` (or similar) in that case. It never changes for the lifetime of the conversation, including when a closed conversation is transparently reused within the grace window (see `CLAUDE.md` §3.6.1) — the reused conversation keeps its original `case_number`.
 - **`priority`** is one of `baja`, `media`, `alta`, `critica` — always present, defaults to `baja` for every conversation. Set **exclusively** by the bot's `evaluate_priority` node based on the client's tone/urgency each turn; there is no endpoint or panel control to set it manually. It is **monotonic**: it only ever increases within a conversation, never decreases. Use it to sort/highlight the inbox (e.g. badge color, default sort by priority then `last_activity`). Real-time updates also arrive via the `conversation.priority_updated` WebSocket event (see below) — no need to re-fetch the list to keep badges current.
-- **`duration_seconds`** is the number of seconds between the conversation's start and `closed_at`, computed server-side. It is `null` while the conversation is still open (not `cerrada`). The frontend renders it as a human-readable duration (e.g. `"4 min"`, `"1 h 23 min"`, `"3 días"`) and shows `—` when `null`.
 
 ---
 
@@ -275,6 +274,7 @@ No request body required.
         "id": "550e8400-e29b-41d4-a716-446655440020",
         "full_name": "Carlos Rodríguez",
         "phone_number": "+573001234567",
+        "bsuid": null,
         "document_id": "1020304050",
         "client_type": "propietario"
       },
@@ -930,6 +930,74 @@ msg_type = "document" → render download link using media_url
 **WebSocket events emitted:**
 
 - `conversation.closed` — broadcast to all connected advisors
+
+---
+
+## Clients
+
+### GET /api/v1/panel/clients
+
+**Auth required:** Yes (any active advisor — asesor or admin, no role restriction)
+
+**Description:** Client directory ("Contactos") — every client in `clients` regardless of origin channel (administrativo or comercial). Each client includes their most recent commercial classification when they have at least one classified commercial conversation.
+
+**Query params:**
+
+| Param    | Type      | Default | Description                                                      |
+| -------- | --------- | ------- | ---------------------------------------------------------------- |
+| `q`      | `string`  | none    | Case-insensitive substring search over name, phone, and document |
+| `limit`  | `integer` | 20      | Page size (1–100)                                                |
+| `offset` | `integer` | 0       | Pagination offset                                                |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "clients": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440020",
+        "phone_number": "+573001234567",
+        "bsuid": null,
+        "document_id": "1020304050",
+        "full_name": "Carlos Rodríguez",
+        "client_type": "propietario",
+        "is_authenticated": true,
+        "created_at": "2026-05-10T09:00:00+00:00",
+        "commercial_classification": null
+      },
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440021",
+        "phone_number": "+573007654321",
+        "bsuid": null,
+        "document_id": null,
+        "full_name": "Prospecto Nuevo",
+        "client_type": "prospecto",
+        "is_authenticated": false,
+        "created_at": "2026-06-01T11:30:00+00:00",
+        "commercial_classification": "potencial"
+      }
+    ],
+    "total": 2,
+    "limit": 20,
+    "offset": 0
+  }
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode          | When                           |
+| ---- | ------------------ | ------------------------------ |
+| 401  | `INVALID_TOKEN`    | Missing or invalid JWT         |
+| 403  | `ADVISOR_INACTIVE` | Advisor account is deactivated |
+
+**Notes:**
+
+- `client_type` is one of `arrendatario`, `propietario`, `prospecto`, `desconocido`.
+- `commercial_classification` is `null` unless the client has at least one conversation with `intent = "comercial"` and a set `commercial_classification` (`potencial` / `no_potencial`). When a client has multiple classified commercial conversations over time, this is the classification from the **most recent** one (by `created_at`).
+- This first version deliberately excludes a "contact client" action (depends on WhatsApp message templates — separate feature) and the full commercial requirement summary (only the classification badge is shown here).
+- `bsuid` is a WhatsApp username-based identifier (support_bsuid_from_meta) — present only for contacts who reached the bot via username without ever sharing a phone number; display-only, never dialable.
 
 ---
 
@@ -2225,6 +2293,29 @@ Emitted to **admin advisors only** when background moderation detects inappropri
 | `propietario`  | Property owner                         |
 | `prospecto`    | Commercial prospect (not yet a client) |
 | `desconocido`  | Identity not yet established           |
+
+### Client identity: `phone_number` and `bsuid`
+
+A client is identified by `phone_number`, by `bsuid`, or by both — **at least
+one is always present, but either one may be `null`.**
+
+| Field          | Type           | When it's `null`                                                                 |
+| -------------- | -------------- | -------------------------------------------------------------------------------- |
+| `phone_number` | `string\|null` | Contact reached us through a WhatsApp username and has not shared their number   |
+| `bsuid`        | `string\|null` | Contact was created before WhatsApp usernames existed, or Meta sent no `user_id` |
+
+`bsuid` (Business-Scoped User ID) is an opaque per-business identifier, format
+`{ISO-3166 alpha-2}.{alphanumeric}` (e.g. `CO.1A2B3C4D5E6F7G8H`). A parent
+BSUID inserts `ENT` after the country code: `CO.ENT.1A2B3C…`.
+
+**Frontend must not treat `phone_number` as always present.** When it is
+`null`, show a non-dialable placeholder rather than an empty field — the
+advisor otherwise sees a client with no identifier and no explanation. Never
+render a `bsuid` as a phone number or build a `tel:`/`wa.me` link from it.
+
+The bot asks these contacts for their real number via WhatsApp's Phone Number
+Request CTA, so `phone_number` can become non-null later in the same
+conversation.
 
 ---
 
