@@ -10,10 +10,7 @@ import {
 } from "date-fns";
 import { conversationsService } from "../services/conversations";
 import { CaseNumberTag } from "../components/shared/CaseNumberTag";
-import type { Conversation } from "../types";
-
-// intent exists in the backend response but is not yet declared in types/index.ts
-type ConvRow = Conversation & { intent?: string };
+import type { Conversation, ConversationIntent } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -46,6 +43,49 @@ function channelLabel(channel: string): string {
   return channel.charAt(0).toUpperCase() + channel.slice(1);
 }
 
+// Classifies the conversation's routing intent (conversaciones.intent) —
+// distinct from ClientType (clients.client_type, shown in Contactos).
+// Grouped by the specialty each intent routes to; see docs/panel_api_reference.md.
+const INTENT_LABEL: Record<ConversationIntent, string> = {
+  cartera: "Cartera",
+  pagos: "Pagos",
+  facturacion: "Facturación",
+  disputa_cobro: "Disputa de Cobro",
+  mantenimiento: "Mantenimiento",
+  contratos: "Contratos",
+  quejas_inmueble: "Quejas de Inmueble",
+  comercial: "Comercial",
+  faq: "FAQ",
+  sin_clasificar: "Sin Clasificar",
+};
+
+const INTENT_CHIP: Record<ConversationIntent, string> = {
+  cartera: "bg-brand-blue/10 text-brand-blue border border-brand-blue/20",
+  pagos: "bg-brand-blue/10 text-brand-blue border border-brand-blue/20",
+  facturacion: "bg-brand-blue/10 text-brand-blue border border-brand-blue/20",
+  disputa_cobro: "bg-brand-blue/10 text-brand-blue border border-brand-blue/20",
+  mantenimiento: "bg-warning/10 text-warning border border-warning/20",
+  contratos: "bg-warning/10 text-warning border border-warning/20",
+  quejas_inmueble: "bg-warning/10 text-warning border border-warning/20",
+  comercial: "bg-success/10 text-success border border-success/20",
+  faq: "bg-border-default text-text-secondary border border-border-default",
+  sin_clasificar: "bg-error/10 text-error border border-error/20",
+};
+
+function IntentBadge({ intent }: { intent: ConversationIntent | null }) {
+  if (intent === null) return <span className="text-text-secondary text-xs">—</span>;
+  return (
+    <span
+      className={[
+        "text-[9px] px-2 py-0.5 rounded font-black uppercase",
+        INTENT_CHIP[intent],
+      ].join(" ")}
+    >
+      {INTENT_LABEL[intent]}
+    </span>
+  );
+}
+
 // closed_by_advisor is null for bot closures and for historical
 // closures that could not be backfilled — fall back to "Asesor".
 function resolutorLabel(conv: Conversation): string | null {
@@ -69,6 +109,7 @@ function TableSkeleton() {
         >
           <div className="h-3 bg-bg-tertiary rounded w-32" />
           <div className="h-3 bg-bg-tertiary rounded w-20" />
+          <div className="h-3 bg-bg-tertiary rounded w-20" />
           <div className="h-3 bg-bg-tertiary rounded w-24" />
           <div className="h-3 bg-bg-tertiary rounded flex-1" />
           <div className="h-3 bg-bg-tertiary rounded w-24" />
@@ -84,7 +125,7 @@ function TableSkeleton() {
 export default function HistorialPage() {
   const navigate = useNavigate();
 
-  const [conversations, setConversations] = useState<ConvRow[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchText, setSearchText] = useState("");
@@ -103,7 +144,7 @@ export default function HistorialPage() {
     conversationsService
       .list({ status: "cerrada", limit: 100, offset: 0 })
       .then((result) => {
-        setConversations(result.conversations as ConvRow[]);
+        setConversations(result.conversations);
       })
       .catch(() => {
         // silently fail — table stays empty
@@ -168,6 +209,7 @@ export default function HistorialPage() {
         client: conv.client.full_name ?? "Sin identificar",
         document: conv.client.document_id ?? "—",
         channel: channelLabel(conv.channel),
+        intent: conv.intent ? INTENT_LABEL[conv.intent] : "—",
         closedAt: formattedDate,
         duration: formatDuration(conv.duration_seconds),
         notes: conv.resolution_notes ?? "Sin notas",
@@ -188,6 +230,7 @@ export default function HistorialPage() {
       { header: "Cédula", key: "document", width: 14 },
       { header: "Línea", key: "channel", width: 14 },
       { header: "Fecha de Cierre", key: "closedAt", width: 18 },
+      { header: "Intención", key: "intent", width: 18 },
       { header: "Duración", key: "duration", width: 14 },
       { header: "Notas de resolución", key: "notes", width: 50 },
       { header: "Resolutor", key: "resolutor", width: 20 },
@@ -309,6 +352,7 @@ export default function HistorialPage() {
                 <th className="p-4 whitespace-nowrap">Cliente</th>
                 <th className="p-4 whitespace-nowrap">Línea</th>
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
+                <th className="p-4 whitespace-nowrap">Intención</th>
                 <th className="p-4 whitespace-nowrap">Duración</th>
                 <th className="p-4 whitespace-nowrap">Notas de resolución</th>
                 <th className="p-4 whitespace-nowrap">Resolutor</th>
@@ -324,7 +368,7 @@ export default function HistorialPage() {
             >
               {filteredConversations.length === 0 ? (
                 <tr>
-                  <td colSpan={9}>
+                  <td colSpan={10}>
                     <div className="text-center py-12">
                       <p className="text-text-secondary text-sm">
                         No se encontraron conversaciones cerradas
@@ -365,6 +409,9 @@ export default function HistorialPage() {
                     </td>
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatClosedDate(conv.closed_at ?? conv.last_activity)}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">
+                      <IntentBadge intent={conv.intent} />
                     </td>
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatDuration(conv.duration_seconds)}

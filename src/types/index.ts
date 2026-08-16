@@ -21,6 +21,19 @@ export type ClientType =
   | "propietario"
   | "prospecto"
   | "desconocido";
+// Classifies the conversation (routing), not the client — do not confuse
+// with ClientType. See docs/panel_api_reference.md § ConversationIntent.
+export type ConversationIntent =
+  | "cartera"
+  | "pagos"
+  | "facturacion"
+  | "disputa_cobro"
+  | "mantenimiento"
+  | "contratos"
+  | "quejas_inmueble"
+  | "comercial"
+  | "faq"
+  | "sin_clasificar";
 export type WSStatus =
   | "connecting"
   | "connected"
@@ -133,6 +146,7 @@ export interface Conversation {
   has_escalation_history: boolean;
   channel: string;
   last_activity: string;
+  intent: ConversationIntent | null;
   client: Client;
   escalation: Escalation | null;
   resolution_type: string | null;

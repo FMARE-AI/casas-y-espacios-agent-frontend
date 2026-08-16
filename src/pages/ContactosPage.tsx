@@ -12,7 +12,7 @@ const PAGE_SIZE = 20;
 const CLIENT_TYPE_LABEL: Record<ClientType, string> = {
   arrendatario: "Arrendatario",
   propietario: "Propietario",
-  prospecto: "Comercial",
+  prospecto: "Prospecto",
   desconocido: "Desconocido",
 };
 
@@ -209,7 +209,7 @@ export default function ContactosPage() {
           <option value="todos">Todos los Tipos</option>
           <option value="arrendatario">Arrendatario</option>
           <option value="propietario">Propietario</option>
-          <option value="prospecto">Comercial</option>
+          <option value="prospecto">Prospecto</option>
           <option value="desconocido">Desconocido</option>
         </select>
 
