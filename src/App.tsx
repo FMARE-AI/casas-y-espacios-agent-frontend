@@ -30,6 +30,7 @@ const GestionPage = lazy(() => import('./pages/GestionPage'))
 const BandejaPage = lazy(() => import('./pages/BandejaPage'))
 const ChatPage = lazy(() => import('./pages/ChatPage'))
 const HistorialPage = lazy(() => import('./pages/HistorialPage'))
+const ContactosPage = lazy(() => import('./pages/ContactosPage'))
 const PerfilPage = lazy(() => import('./pages/PerfilPage'))
 
 function AuthInit() {
@@ -87,6 +88,7 @@ export default function App() {
               <Route path={ROUTES.BANDEJA} element={<BandejaPage />} />
               <Route path={ROUTES.CHAT} element={<ChatPage />} />
               <Route path="/historial" element={<HistorialPage />} />
+              <Route path={ROUTES.CONTACTOS} element={<ContactosPage />} />
               <Route path={ROUTES.PERFIL} element={<PerfilPage />} />
             </Route>
 

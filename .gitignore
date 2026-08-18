@@ -39,3 +39,5 @@ mockup.html
 *.sw?
 .vercel
 .env*
+
+*security_audit_report.html

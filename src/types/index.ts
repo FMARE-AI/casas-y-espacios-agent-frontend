@@ -21,6 +21,19 @@ export type ClientType =
   | "propietario"
   | "prospecto"
   | "desconocido";
+// Classifies the conversation (routing), not the client — do not confuse
+// with ClientType. See docs/panel_api_reference.md § ConversationIntent.
+export type ConversationIntent =
+  | "cartera"
+  | "pagos"
+  | "facturacion"
+  | "disputa_cobro"
+  | "mantenimiento"
+  | "contratos"
+  | "quejas_inmueble"
+  | "comercial"
+  | "faq"
+  | "sin_clasificar";
 export type WSStatus =
   | "connecting"
   | "connected"
@@ -63,6 +76,25 @@ export interface Client {
   full_name: string | null;
   document_id: string | null;
   client_type: ClientType;
+}
+
+export type CommercialClassification = "potencial" | "no_potencial";
+
+export interface ClientDirectoryEntry {
+  id: string;
+  phone_number: string | null;
+  bsuid: string | null;
+  document_id: string | null;
+  full_name: string | null;
+  client_type: ClientType;
+  is_authenticated: boolean;
+  created_at: string;
+  /**
+   * Null unless the client has at least one classified commercial
+   * conversation (intent = "comercial"). When multiple exist, this is the
+   * classification from the most recent one — see docs/panel_api_reference.md.
+   */
+  commercial_classification: CommercialClassification | null;
 }
 
 export interface Message {
@@ -114,6 +146,7 @@ export interface Conversation {
   has_escalation_history: boolean;
   channel: string;
   last_activity: string;
+  intent: ConversationIntent | null;
   client: Client;
   escalation: Escalation | null;
   resolution_type: string | null;
@@ -195,6 +228,13 @@ export interface PaginatedMessages {
 export interface PaginatedAlerts {
   alerts: BehaviorAlert[];
   total: number;
+}
+
+export interface PaginatedClients {
+  clients: ClientDirectoryEntry[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 // ── WEBSOCKET EVENTS ──────────────────────────────────────

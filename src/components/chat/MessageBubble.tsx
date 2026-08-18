@@ -188,6 +188,18 @@ function getFileName(url: string | null, mimeType: string | null = null): string
   }
 }
 
+// Some upstream messages arrive with their text content percent-encoded
+// (e.g. "%20", "%C3%A1"). Decode defensively so advisors see natural text;
+// malformed sequences or already-plain text fall back to the original string.
+function decodeMessageContent(content: string | null): string | null {
+  if (!content || !/%[0-9A-Fa-f]{2}/.test(content)) return content
+  try {
+    return decodeURIComponent(content)
+  } catch {
+    return content
+  }
+}
+
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) {
@@ -206,14 +218,14 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
       <div className="flex flex-col gap-1.5 max-w-[240px]">
         <img
           src={msg.media_url}
-          alt={msg.content ?? 'Imagen'}
+          alt={decodeMessageContent(msg.content) ?? 'Imagen'}
           loading="lazy"
           className="rounded-lg w-full h-auto max-h-[300px] object-cover cursor-pointer hover:opacity-90 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
           onClick={() => setIsExpanded(true)}
         />
         {msg.content && (
           <p className="text-sm text-text-primary px-1 whitespace-pre-wrap">
-            {msg.content}
+            {decodeMessageContent(msg.content)}
           </p>
         )}
 
@@ -237,7 +249,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
             <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <img
                 src={msg.media_url}
-                alt={msg.content ?? 'Imagen'}
+                alt={decodeMessageContent(msg.content) ?? 'Imagen'}
                 className="max-w-full max-h-full rounded-lg object-contain shadow-2xl cursor-default"
               />
             </div>
@@ -245,7 +257,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
             {/* Caption */}
             {msg.content && (
               <p className="mt-4 text-sm text-text-primary bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
-                {msg.content}
+                {decodeMessageContent(msg.content)}
               </p>
             )}
           </div>
@@ -264,7 +276,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
       </div>
       {msg.content && (
         <p className="text-sm text-text-primary px-1 whitespace-pre-wrap">
-          {msg.content}
+          {decodeMessageContent(msg.content)}
         </p>
       )}
     </div>
@@ -320,7 +332,7 @@ const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
         <p className={`mt-2 px-1 text-sm whitespace-pre-wrap leading-relaxed ${
           isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-text-primary'
         }`}>
-          {msg.content}
+          {decodeMessageContent(msg.content)}
         </p>
       )}
     </div>
@@ -431,7 +443,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
           <p className={`mt-2.5 px-1 text-sm whitespace-pre-wrap leading-relaxed ${
             isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-text-primary'
           }`}>
-            {msg.content}
+            {decodeMessageContent(msg.content)}
           </p>
         )}
 
@@ -465,7 +477,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
             {/* Caption */}
             {msg.content && (
               <p className="mt-4 text-sm text-text-primary bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
-                {msg.content}
+                {decodeMessageContent(msg.content)}
               </p>
             )}
           </div>
@@ -483,7 +495,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
       </div>
       {msg.content && (
         <p className="text-sm text-text-primary px-1 whitespace-pre-wrap leading-relaxed">
-          {msg.content}
+          {decodeMessageContent(msg.content)}
         </p>
       )}
     </div>
@@ -499,7 +511,7 @@ const BubbleContent = memo(function BubbleContent({ msg, isDocument }: { msg: Me
     case 'audio': return <AudioBubble msg={msg} />
     case 'video': return <VideoBubble msg={msg} />
     default: return (
-      <p className="text-sm leading-relaxed">{msg.content}</p>
+      <p className="text-sm leading-relaxed">{decodeMessageContent(msg.content)}</p>
     )
   }
 })
