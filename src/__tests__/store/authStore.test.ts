@@ -147,6 +147,33 @@ describe('authStore', () => {
     })
   })
 
+  // The epoch is what lets async work started under one session (above all an
+  // in-flight token refresh) tell whether the session it belongs to is still
+  // the current one before it applies its result.
+  describe('sessionEpoch', () => {
+    it('advances when the session is cleared', () => {
+      const before = useAuthStore.getState().sessionEpoch
+      useAuthStore.getState().clearSession()
+      expect(useAuthStore.getState().sessionEpoch).toBe(before + 1)
+    })
+
+    it('advances on reset()', () => {
+      const before = useAuthStore.getState().sessionEpoch
+      useAuthStore.getState().reset()
+      expect(useAuthStore.getState().sessionEpoch).toBe(before + 1)
+    })
+
+    it('does NOT advance on setSession — a refresh continues the same session', () => {
+      const before = useAuthStore.getState().sessionEpoch
+      useAuthStore.getState().setSession({
+        access_token: 'at',
+        refresh_token: 'rt',
+        expires_in: 3600,
+      })
+      expect(useAuthStore.getState().sessionEpoch).toBe(before)
+    })
+  })
+
   describe('setSessionExpired', () => {
     it('sets sessionExpired to the given value', () => {
       useAuthStore.getState().setSessionExpired(true)

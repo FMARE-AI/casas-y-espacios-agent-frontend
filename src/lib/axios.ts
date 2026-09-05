@@ -20,23 +20,33 @@ const apiClient = axios.create({
 
 let isRefreshing = false
 let refreshPromise: Promise<string | null> | null = null
+// Session epoch the in-flight refresh belongs to, plus a monotonic id so a
+// superseded refresh cannot clear the bookkeeping of the one that replaced it.
+let refreshEpoch = -1
+let refreshSeq = 0
 
 // H-02: Queue for requests that received 401 while token refresh was in progress
 interface FailedRequest {
+  epoch: number
   resolve: (token: string) => void
   reject: (error: unknown) => void
 }
 let failedQueue: FailedRequest[] = []
 
-function processQueue(error: unknown | null, token: string | null = null) {
-  failedQueue.forEach((prom) => {
+// Only settles the entries belonging to `epoch`. Requests queued by a session
+// that has since ended must not be resolved with a different session's token
+// (nor the reverse), so entries from other epochs stay queued for their own
+// refresh instead of being drained here.
+function processQueue(epoch: number, error: unknown | null, token: string | null = null) {
+  const mine = failedQueue.filter((p) => p.epoch === epoch)
+  failedQueue = failedQueue.filter((p) => p.epoch !== epoch)
+  mine.forEach((prom) => {
     if (error) {
       prom.reject(error)
     } else if (token) {
       prom.resolve(token)
     }
   })
-  failedQueue = []
 }
 
 // Single writer of isRefreshing/refreshPromise/failedQueue, regardless of whether
@@ -45,16 +55,40 @@ function processQueue(error: unknown | null, token: string | null = null) {
 // request queued by the 401 handler could be left pending forever if the in-flight
 // refresh it was waiting on had actually been started by getValidToken().
 function refreshSession(refresh_token: string): Promise<string | null> {
+  // Captured before the request goes out. If the session ends while this is in
+  // flight (logout, expiry, ADVISOR_INACTIVE), the epoch moves and this refresh
+  // becomes an orphan: it must neither install its tokens nor tear anything
+  // down, because whatever session exists when it lands is not the one it was
+  // issued for. Without this guard a slow refresh belonging to a session the
+  // user already left would clearSession() the session they logged into
+  // afterwards — reproduced in dev, where a fresh login survived 29s before a
+  // stale refresh's 401 destroyed it.
+  const epoch = useAuthStore.getState().sessionEpoch
+  const seq = ++refreshSeq
+  const isCurrent = () => useAuthStore.getState().sessionEpoch === epoch
+
   isRefreshing = true
-  refreshPromise = apiClient
+  refreshEpoch = epoch
+  const promise = apiClient
     .post('/api/v1/panel/auth/token/refresh', { refresh_token })
     .then(({ data }) => {
+      if (!isCurrent()) {
+        // Orphan success: dropped deliberately. Installing these tokens would
+        // silently resurrect a session the user ended, or overwrite the
+        // credentials of the one they just created.
+        processQueue(epoch, new Error('Refresh belonged to an ended session'), null)
+        return null
+      }
       useAuthStore.getState().setSession(data)
       const newToken = data.access_token as string
-      processQueue(null, newToken)
+      processQueue(epoch, null, newToken)
       return newToken
     })
     .catch((error) => {
+      if (!isCurrent()) {
+        processQueue(epoch, error, null)
+        return null
+      }
       // Only a definitive server rejection invalidates the session. A network
       // failure (offline, timeout, backend restarting) must NOT log the user
       // out — callers retry: HTTP requests fail visibly with their own toast,
@@ -63,15 +97,31 @@ function refreshSession(refresh_token: string): Promise<string | null> {
         useAuthStore.getState().clearSession()
         window.dispatchEvent(new CustomEvent('session-expired'))
       }
-      processQueue(error, null)
+      processQueue(epoch, error, null)
       return null
     })
     .finally(() => {
-      isRefreshing = false
-      refreshPromise = null
+      // Only release the slot if a newer refresh has not already claimed it.
+      if (refreshSeq === seq) {
+        isRefreshing = false
+        refreshPromise = null
+        refreshEpoch = -1
+      }
     })
 
-  return refreshPromise
+  refreshPromise = promise
+  return promise
+}
+
+// True when a refresh is in flight AND it belongs to the session asking about
+// it. A refresh left over from an ended session is not something the current
+// session may await — it would hand back the previous session's token.
+function hasCurrentRefreshInFlight(): boolean {
+  return (
+    isRefreshing &&
+    refreshPromise !== null &&
+    refreshEpoch === useAuthStore.getState().sessionEpoch
+  )
 }
 
 // Exported so useWebSocket can get a valid token before reconnecting (L-03).
@@ -91,10 +141,22 @@ export async function getValidToken(): Promise<string | null> {
 
   // AT is absent (page reload) or expiring — refresh.
   // Serialize parallel calls to a single refresh request.
-  if (isRefreshing && refreshPromise) {
+  if (hasCurrentRefreshInFlight()) {
     return refreshPromise
   }
 
+  return refreshSession(refresh_token)
+}
+
+// Refreshes unconditionally, skipping the "token still looks fresh" shortcut in
+// getValidToken(). Needed when the SERVER has rejected a token the client still
+// believes is valid (WebSocket close 4001) — clock skew between browser and
+// backend, or a token revoked ahead of its stated expiry. Returns null when
+// there is no session left to refresh.
+export async function forceRefreshToken(): Promise<string | null> {
+  const { refresh_token } = useAuthStore.getState()
+  if (!refresh_token) return null
+  if (hasCurrentRefreshInFlight()) return refreshPromise
   return refreshSession(refresh_token)
 }
 
@@ -216,9 +278,11 @@ apiClient.interceptors.response.use(
         // refreshSession() is the single writer of isRefreshing/refreshPromise and
         // always calls processQueue() when it settles, so this is resolved/rejected
         // regardless of which caller actually triggered the in-flight refresh.
-        if (isRefreshing && refreshPromise) {
+        if (hasCurrentRefreshInFlight()) {
+          const epoch = useAuthStore.getState().sessionEpoch
           return new Promise((resolve, reject) => {
             failedQueue.push({
+              epoch,
               resolve: (token: string) => {
                 originalRequest.headers.Authorization = `Bearer ${token}`
                 resolve(apiClient(originalRequest))

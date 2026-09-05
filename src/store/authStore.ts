@@ -40,6 +40,13 @@ interface AuthState {
   blockedTitle: string | null
   blockedMessage: string | null
   error: string | null
+  // Monotonic counter bumped every time a session ENDS (clearSession/reset).
+  // Async work started under one session (most importantly an in-flight token
+  // refresh) captures this value and compares it before applying its result, so
+  // a response that lands after the user logged out can no longer tear down the
+  // session that replaced it. Never bumped by setSession(): a token refresh
+  // continues the same session rather than starting a new one.
+  sessionEpoch: number
 
   setSession: (data: SessionData) => void
   clearSession: () => void
@@ -65,6 +72,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   blockedTitle: null,
   blockedMessage: null,
   error: null,
+  sessionEpoch: 0,
 
   setSession: (data) => {
     const expires_at = Date.now() + data.expires_in * 1000
@@ -106,7 +114,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     // it could land after a new login and kill the freshly issued tokens,
     // forcing the user to log in twice.
     supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-    set({
+    set((state) => ({
       token: null,
       refresh_token: null,
       expires_at: null,
@@ -117,7 +125,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       blockedTitle: null,
       blockedMessage: null,
       error: null,
-    })
+      sessionEpoch: state.sessionEpoch + 1,
+    }))
   },
 
   setToken: (token) => {
@@ -157,7 +166,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.removeItem(BANDEJA_STATUS_FILTER_KEY)
     // scope 'local' — see clearSession() for why global revocation is unsafe.
     supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-    set({
+    set((state) => ({
       token: null,
       refresh_token: null,
       expires_at: null,
@@ -168,7 +177,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       blockedTitle: null,
       blockedMessage: null,
       error: null,
-    })
+      sessionEpoch: state.sessionEpoch + 1,
+    }))
   },
 }))
 
