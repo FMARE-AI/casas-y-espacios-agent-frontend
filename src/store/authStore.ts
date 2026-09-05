@@ -21,6 +21,18 @@ function getTokenStorage(): Storage {
   return localStorage.getItem(REMEMBER_KEY) === 'true' ? localStorage : sessionStorage
 }
 
+// Why a session ended, handed to the login screen. Only set when the session
+// ended on its own — a deliberate logout has nothing to explain.
+export interface SessionNotice {
+  title: string
+  message: string
+}
+
+const EXPIRED_NOTICE: SessionNotice = {
+  title: 'Tu sesión ha expirado',
+  message: 'Por seguridad, tu sesión se cerró automáticamente. Ingresa nuevamente para continuar.',
+}
+
 export interface SessionData {
   access_token: string
   refresh_token: string
@@ -37,8 +49,7 @@ interface AuthState {
   isLoading: boolean
   isFirstLogin: boolean
   sessionExpired: boolean
-  blockedTitle: string | null
-  blockedMessage: string | null
+  sessionNotice: SessionNotice | null
   error: string | null
   // Monotonic counter bumped every time a session ENDS (clearSession/reset).
   // Async work started under one session (most importantly an in-flight token
@@ -55,12 +66,12 @@ interface AuthState {
   setLoading: (loading: boolean) => void
   setFirstLogin: (value: boolean) => void
   setSessionExpired: (value: boolean) => void
-  setBlockedModal: (title: string, message: string) => void
+  endSession: (notice?: SessionNotice) => void
   setError: (message: string | null) => void
   reset: () => void
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   refresh_token: null,
   expires_at: null,
@@ -69,8 +80,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: true,
   isFirstLogin: false,
   sessionExpired: false,
-  blockedTitle: null,
-  blockedMessage: null,
+  sessionNotice: null,
   error: null,
   sessionEpoch: 0,
 
@@ -98,7 +108,13 @@ export const useAuthStore = create<AuthState>((set) => ({
       code: err?.code ?? 'unknown',
     }))
 
-    set({ token: data.access_token, refresh_token: data.refresh_token, expires_at })
+    set({
+      token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at,
+      sessionExpired: false,
+      sessionNotice: null,
+    })
   },
 
   clearSession: () => {
@@ -122,8 +138,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       role: null,
       isFirstLogin: false,
       sessionExpired: false,
-      blockedTitle: null,
-      blockedMessage: null,
+      sessionNotice: null,
       error: null,
       sessionEpoch: state.sessionEpoch + 1,
     }))
@@ -153,7 +168,24 @@ export const useAuthStore = create<AuthState>((set) => ({
   setLoading: (isLoading) => set({ isLoading }),
   setFirstLogin: (isFirstLogin) => set({ isFirstLogin }),
   setSessionExpired: (sessionExpired) => set({ sessionExpired }),
-  setBlockedModal: (blockedTitle, blockedMessage) => set({ blockedTitle, blockedMessage }),
+
+  // The single way a session ends for a reason the user did not ask for
+  // (expiry, inactivity, a deactivated account). Clearing the credentials is
+  // what actually forces the login screen — ProtectedRoute redirects the moment
+  // `token` is null — and the notice rides along so the login page can say why.
+  //
+  // This replaces a flag + title + message that each caller set on its own and
+  // left a blocking modal to finish the sign-out. That split is why the same
+  // event sometimes showed the modal and sometimes bounced straight to /login:
+  // whichever ran first won. Ending the session in one step removes the race
+  // and the extra click.
+  endSession: (notice) => {
+    get().clearSession()
+    set({ sessionExpired: true, sessionNotice: notice ?? EXPIRED_NOTICE })
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('session-expired'))
+    }
+  },
   setError: (error) => set({ error }),
 
   reset: () => {
@@ -174,8 +206,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       role: null,
       isFirstLogin: false,
       sessionExpired: false,
-      blockedTitle: null,
-      blockedMessage: null,
+      sessionNotice: null,
       error: null,
       sessionEpoch: state.sessionEpoch + 1,
     }))

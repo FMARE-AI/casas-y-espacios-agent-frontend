@@ -284,7 +284,7 @@ let lastAuthRecoveryAt = 0
 
 function expireSession(): void {
   useWSStore.getState().setStatus('disconnected')
-  useAuthStore.getState().setSessionExpired(true)
+  useAuthStore.getState().endSession()
 }
 
 function handleAuthRejection(): void {

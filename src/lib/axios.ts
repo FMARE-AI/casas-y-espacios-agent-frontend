@@ -105,8 +105,7 @@ function refreshSession(refresh_token: string): Promise<string | null> {
           return null
         }
 
-        useAuthStore.getState().clearSession()
-        window.dispatchEvent(new CustomEvent('session-expired'))
+        useAuthStore.getState().endSession()
         processQueue(epoch, error, null)
         return null
       }
@@ -290,8 +289,7 @@ apiClient.interceptors.response.use(
         // instead of posting a null refresh_token (the backend requires a string
         // and would just reject it with a 422).
         if (!refresh_token) {
-          useAuthStore.getState().clearSession()
-          window.dispatchEvent(new CustomEvent('session-expired'))
+          useAuthStore.getState().endSession()
           return Promise.reject(error)
         }
 
@@ -325,8 +323,7 @@ apiClient.interceptors.response.use(
 
       // For refresh endpoint failures or login endpoint, just reject
       if (!isRefreshEndpoint && !isLoginEndpoint) {
-        useAuthStore.getState().clearSession()
-        window.dispatchEvent(new CustomEvent('session-expired'))
+        useAuthStore.getState().endSession()
       }
       return Promise.reject(error)
     }
@@ -343,12 +340,13 @@ apiClient.interceptors.response.use(
 
       case 403:
         if (code === 'ADVISOR_INACTIVE') {
-          // Show blocking modal — token stays until user confirms (see SessionExpiredModal)
-          useAuthStore.getState().setSessionExpired(true)
-          useAuthStore.getState().setBlockedModal(
-            'Tu cuenta ha sido desactivada',
-            'Contacta a un administrador para restablecer el acceso.'
-          )
+          // The account is gone as far as the panel is concerned: end the
+          // session immediately rather than leaving a usable token behind a
+          // modal, and let the login screen carry the explanation.
+          useAuthStore.getState().endSession({
+            title: 'Tu cuenta ha sido desactivada',
+            message: 'Contacta a un administrador para restablecer el acceso.',
+          })
         } else if (code === 'FORBIDDEN') {
           dispatchToast('No tienes permiso para realizar esta acción.', 'error')
         } else if (code === 'CONVERSATION_OUTSIDE_AREA') {

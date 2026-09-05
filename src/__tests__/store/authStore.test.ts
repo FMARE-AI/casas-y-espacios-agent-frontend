@@ -211,6 +211,75 @@ describe('authStore', () => {
     })
   })
 
+  // endSession is the single path for a session ending on its own. What matters
+  // is that it FORCES the login screen — ProtectedRoute redirects the moment
+  // `token` is null — and carries the reason there, in one step, with no modal
+  // left to finish the job.
+  describe('endSession', () => {
+    it('clears the credentials so the app falls back to the login screen', () => {
+      useAuthStore.setState({ token: 'at', refresh_token: 'rt', expires_at: Date.now() + 1000 })
+
+      useAuthStore.getState().endSession()
+
+      expect(useAuthStore.getState().token).toBeNull()
+      expect(useAuthStore.getState().refresh_token).toBeNull()
+      expect(localStorage.getItem('panel_refresh_token')).toBeNull()
+    })
+
+    it('defaults to the expired notice', () => {
+      useAuthStore.getState().endSession()
+
+      expect(useAuthStore.getState().sessionNotice).toEqual({
+        title: 'Tu sesión ha expirado',
+        message: 'Por seguridad, tu sesión se cerró automáticamente. Ingresa nuevamente para continuar.',
+      })
+    })
+
+    it('keeps a caller-supplied notice (inactivity, deactivated account)', () => {
+      const notice = { title: 'Sesión cerrada por inactividad', message: 'Ingresa nuevamente.' }
+
+      useAuthStore.getState().endSession(notice)
+
+      expect(useAuthStore.getState().sessionNotice).toEqual(notice)
+    })
+
+    it('advances the session epoch, so an in-flight refresh is orphaned', () => {
+      const before = useAuthStore.getState().sessionEpoch
+
+      useAuthStore.getState().endSession()
+
+      expect(useAuthStore.getState().sessionEpoch).toBe(before + 1)
+    })
+
+    // Regression guard. endSession leaves sessionExpired true; if a later login
+    // did not clear it, the WebSocket guards (`!accessToken || sessionExpired`)
+    // would refuse to connect and the panel would come up mute after a perfectly
+    // good sign-in.
+    it('does not leave the NEXT session marked as expired', () => {
+      useAuthStore.getState().endSession()
+      expect(useAuthStore.getState().sessionExpired).toBe(true)
+
+      useAuthStore.getState().setSession({
+        access_token: 'fresh-at',
+        refresh_token: 'fresh-rt',
+        expires_in: 3600,
+      })
+
+      expect(useAuthStore.getState().sessionExpired).toBe(false)
+      expect(useAuthStore.getState().sessionNotice).toBeNull()
+    })
+
+    // A deliberate logout has nothing to explain — the login page must stay clean.
+    it('a plain clearSession() leaves no notice behind', () => {
+      useAuthStore.getState().endSession()
+      expect(useAuthStore.getState().sessionNotice).not.toBeNull()
+
+      useAuthStore.getState().clearSession()
+
+      expect(useAuthStore.getState().sessionNotice).toBeNull()
+    })
+  })
+
   describe('setSessionExpired', () => {
     it('sets sessionExpired to the given value', () => {
       useAuthStore.getState().setSessionExpired(true)
