@@ -9,6 +9,11 @@ import { supabase } from '../lib/supabase'
 const REFRESH_TOKEN_KEY = 'panel_refresh_token'
 const EXPIRES_AT_KEY = 'panel_expires_at'
 const REMEMBER_KEY = 'panel_remember'
+// Identifies the sign-in that the stored credentials belong to. Regenerated on
+// every LOGIN (never on a token refresh), so tabs can tell "the session I am
+// part of just rotated its token" apart from "somebody signed in as a different
+// account in another tab".
+const SESSION_ID_KEY = 'panel_session_id'
 
 // Legacy key — read-only, cleared on next setSession to clean up old data.
 const LEGACY_TOKEN_KEY = 'panel_token'
@@ -26,10 +31,49 @@ function getTokenStorage(): Storage {
 // instead of silently resetting to the default on every visit.
 export function getRememberPreference(): boolean {
   try {
-    return localStorage.getItem(REMEMBER_KEY) === 'true'
+    // Absent means "never chosen", and the panel has always defaulted to
+    // remembering. Only an explicit opt-out turns it off — reading an absent key
+    // as false would silently downgrade every first-time visitor to a session
+    // that dies with the browser.
+    return localStorage.getItem(REMEMBER_KEY) !== 'false'
   } catch {
     return false
   }
+}
+
+// The sign-in THIS tab belongs to. Read once at module load, so a tab opened
+// against an existing session (or a reload) picks up whatever is stored, and
+// updated whenever this tab performs a login of its own.
+let tabSessionId: string | null = readStoredSessionId()
+
+function readStoredSessionId(): string | null {
+  try {
+    return localStorage.getItem(SESSION_ID_KEY)
+  } catch {
+    return null
+  }
+}
+
+function startBrowserSession(): void {
+  try {
+    const id =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+    localStorage.setItem(SESSION_ID_KEY, id)
+    tabSessionId = id
+  } catch {
+    // Storage unavailable — isSameBrowserSession() then compares null to null
+    // and stays permissive, which matches the single-tab behaviour.
+  }
+}
+
+// Whether the credentials currently in shared storage belong to the same sign-in
+// this tab is part of. False means another tab signed in — possibly as a
+// DIFFERENT advisor — and adopting its refresh token would leave this tab
+// showing one user's data while authenticating as another.
+export function isSameBrowserSession(): boolean {
+  return readStoredSessionId() === tabSessionId
 }
 
 // Why a session ended, handed to the login screen. Only set when the session
@@ -99,8 +143,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const expires_at = Date.now() + data.expires_in * 1000
 
     // Persist "remember me" preference so getTokenStorage() works after page reload.
+    // rememberMe is only ever passed by a login; a token refresh leaves it
+    // undefined, which is exactly how we tell the two apart — a refresh
+    // continues the current sign-in, a login starts a new one.
     if (data.rememberMe !== undefined) {
       localStorage.setItem(REMEMBER_KEY, String(data.rememberMe))
+      startBrowserSession()
     }
     const storage = getTokenStorage()
     storage.setItem(REFRESH_TOKEN_KEY, data.refresh_token)
@@ -241,6 +289,11 @@ if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
     if (event.key !== REFRESH_TOKEN_KEY || !event.newValue) return
     if (useAuthStore.getState().refresh_token === event.newValue) return
+
+    // Only follow rotations from the sign-in this tab is part of. A different
+    // sign-in in another tab may be a different advisor entirely, and adopting
+    // its token would leave this tab rendering one user while acting as another.
+    if (!isSameBrowserSession()) return
 
     const expires_at_str = localStorage.getItem(EXPIRES_AT_KEY)
     const expires_at =

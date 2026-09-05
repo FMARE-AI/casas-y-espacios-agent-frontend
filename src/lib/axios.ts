@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore, getStoredSession } from '../store/authStore'
+import { useAuthStore, getStoredSession, isSameBrowserSession } from '../store/authStore'
 import type { ToastType } from '../store/toastStore'
 
 // Retry/refresh bookkeeping flags stashed on the request config as it's replayed
@@ -99,7 +99,7 @@ function refreshSession(refresh_token: string): Promise<string | null> {
         // it says our copy of the token was stale. Adopt the rotated one and let
         // callers retry, instead of logging every open tab out.
         const rotated = getStoredSession()?.refresh_token
-        if (rotated && rotated !== refresh_token) {
+        if (rotated && rotated !== refresh_token && isSameBrowserSession()) {
           useAuthStore.setState({ refresh_token: rotated })
           processQueue(epoch, error, null)
           return null

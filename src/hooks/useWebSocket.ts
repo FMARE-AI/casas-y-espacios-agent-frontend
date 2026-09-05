@@ -288,6 +288,14 @@ function expireSession(): void {
 }
 
 function handleAuthRejection(): void {
+  // Another dial is already under way (or a socket survived this close): let it
+  // play out. Checked BEFORE the cooldown is stamped — spending the window's one
+  // retry on an attempt we are not going to make would send the next 4001
+  // straight to the login screen, and returning here without scheduling
+  // anything would leave the socket dead until an 'online' or visibility event
+  // happened to wake it.
+  if (socket || isConnecting || isResolvingToken) return
+
   const now = Date.now()
   if (now - lastAuthRecoveryAt < AUTH_RECOVERY_COOLDOWN_MS) {
     // Already spent this window's retry and the server rejected us again — the
@@ -296,8 +304,6 @@ function handleAuthRejection(): void {
     return
   }
   lastAuthRecoveryAt = now
-
-  if (socket || isConnecting || isResolvingToken) return
 
   isResolvingToken = true
   forceRefreshToken()

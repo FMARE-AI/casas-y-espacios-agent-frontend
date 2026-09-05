@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useAuthStore, getRememberPreference } from '../../store/authStore'
+import { useAuthStore, getRememberPreference, isSameBrowserSession } from '../../store/authStore'
 import type { Advisor, AdvisorRole } from '../../types'
 
 // ── Factories ──────────────────────────────────────────────
@@ -248,8 +248,73 @@ describe('authStore', () => {
       expect(sessionStorage.getItem('panel_refresh_token')).toBe('rt')
     })
 
-    it('defaults to false when nothing was ever chosen', () => {
+    // The panel has always defaulted to remembering. Reading an absent key as
+    // false silently downgraded every first-time visitor to a session that dies
+    // with the browser.
+    it('defaults to true when nothing was ever chosen', () => {
+      expect(getRememberPreference()).toBe(true)
+    })
+
+    it('stays off once explicitly turned off', () => {
+      localStorage.setItem('panel_remember', 'false')
+
       expect(getRememberPreference()).toBe(false)
+    })
+  })
+
+  // Two tabs share one localStorage, so a sign-in in one is visible to the
+  // other. Following a rotation is right when both tabs are the same sign-in and
+  // wrong when they are not: the second tab may be a different advisor, and
+  // adopting its token would leave this tab rendering one user while
+  // authenticating as another.
+  describe('cross-tab session identity', () => {
+    function signIn(refresh_token: string) {
+      useAuthStore.getState().setSession({
+        access_token: 'at',
+        refresh_token,
+        expires_in: 3600,
+        rememberMe: true,
+      })
+    }
+
+    it('treats a token refresh as the same sign-in', () => {
+      signIn('rt-1')
+      // A refresh omits rememberMe — that is how it is told apart from a login.
+      useAuthStore.getState().setSession({
+        access_token: 'at-2',
+        refresh_token: 'rt-2',
+        expires_in: 3600,
+      })
+
+      expect(isSameBrowserSession()).toBe(true)
+    })
+
+    it('adopts a rotation from the same sign-in', () => {
+      signIn('rt-1')
+      useAuthStore.setState({ refresh_token: 'rt-1' })
+
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'panel_refresh_token',
+        newValue: 'rt-rotated',
+      }))
+
+      expect(useAuthStore.getState().refresh_token).toBe('rt-rotated')
+    })
+
+    it('ignores a token written by a DIFFERENT sign-in', () => {
+      signIn('rt-mine')
+      useAuthStore.setState({ refresh_token: 'rt-mine' })
+
+      // Another tab signs in — possibly as another advisor — which stamps a new
+      // session id into the shared storage.
+      localStorage.setItem('panel_session_id', 'some-other-sign-in')
+
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'panel_refresh_token',
+        newValue: 'rt-of-another-account',
+      }))
+
+      expect(useAuthStore.getState().refresh_token).toBe('rt-mine')
     })
   })
 
