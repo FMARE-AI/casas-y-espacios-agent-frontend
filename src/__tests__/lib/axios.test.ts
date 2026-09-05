@@ -229,6 +229,39 @@ describe('axios interceptors', () => {
     })
   })
 
+  // Regression: a request already in flight when the user clicks "logout"
+  // loses its Authorization header at send time (getValidToken() sees the
+  // refresh_token already cleared) and comes back 401 from the backend. The
+  // 401 handler used to treat that stale response as proof the session had
+  // just expired and showed the "tu sesión expiró" notice on top of an
+  // already-completed, deliberate logout.
+  describe('manual logout races with an in-flight request', () => {
+    it('does not end the session again or show an expiry notice for a 401 that outlives a manual logout', async () => {
+      useAuthStore.setState({
+        token: 'live-at',
+        refresh_token: 'live-rt',
+        expires_at: Date.now() + 3600 * 1000,
+      })
+
+      apiClient.defaults.adapter = async (config) => {
+        // Simulates the user clicking "logout" after this request was already
+        // sent but before its response landed.
+        useAuthStore.getState().clearSession()
+        const err = new axios.AxiosError('Unauthorized')
+        err.config = config
+        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config }
+        throw err
+      }
+
+      dispatchEventSpy.mockClear()
+      await apiClient.get('/test').catch(() => undefined)
+
+      expect(useAuthStore.getState().sessionExpired).toBe(false)
+      expect(useAuthStore.getState().sessionNotice).toBeNull()
+      expect(sessionExpiredCalls(dispatchEventSpy)).toHaveLength(0)
+    })
+  })
+
   // Regression: the refresh catch used to treat ANY response as proof the
   // session was invalid. The backend documents a 503 on this endpoint when it
   // cannot reach Supabase Auth, so a backend hiccup (or a Railway cold start)
