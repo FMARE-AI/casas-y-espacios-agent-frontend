@@ -173,6 +173,7 @@ No request body required.
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
           "bsuid": null,
+          "user_name": null,
           "full_name": "Carlos Rodríguez",
           "document_id": "1020304050",
           "client_type": "propietario"
@@ -275,6 +276,7 @@ No request body required.
         "full_name": "Carlos Rodríguez",
         "phone_number": "+573001234567",
         "bsuid": null,
+        "user_name": null,
         "document_id": "1020304050",
         "client_type": "propietario"
       },
@@ -959,6 +961,7 @@ msg_type = "document" → render download link using media_url
         "id": "550e8400-e29b-41d4-a716-446655440020",
         "phone_number": "+573001234567",
         "bsuid": null,
+        "user_name": null,
         "document_id": "1020304050",
         "full_name": "Carlos Rodríguez",
         "client_type": "propietario",
@@ -968,8 +971,9 @@ msg_type = "document" → render download link using media_url
       },
       {
         "id": "550e8400-e29b-41d4-a716-446655440021",
-        "phone_number": "+573007654321",
-        "bsuid": null,
+        "phone_number": null,
+        "bsuid": "CO.1A2B3C4D5E6F7G8H",
+        "user_name": "ana.g",
         "document_id": null,
         "full_name": "Prospecto Nuevo",
         "client_type": "prospecto",
@@ -998,6 +1002,7 @@ msg_type = "document" → render download link using media_url
 - `commercial_classification` is `null` unless the client has at least one conversation with `intent = "comercial"` and a set `commercial_classification` (`potencial` / `no_potencial`). When a client has multiple classified commercial conversations over time, this is the classification from the **most recent** one (by `created_at`).
 - This first version deliberately excludes a "contact client" action (depends on WhatsApp message templates — separate feature) and the full commercial requirement summary (only the classification badge is shown here).
 - `bsuid` is a WhatsApp username-based identifier (support_bsuid_from_meta) — present only for contacts who reached the bot via username without ever sharing a phone number; display-only, never dialable.
+- `user_name` is that contact's public WhatsApp username handle — the readable label to show in their row when `phone_number` is `null`, since a `bsuid` is an opaque string. See [Client identity](#client-identity-phone_number-and-bsuid).
 
 ---
 
@@ -2303,6 +2308,7 @@ one is always present, but either one may be `null`.**
 | -------------- | -------------- | -------------------------------------------------------------------------------- |
 | `phone_number` | `string\|null` | Contact reached us through a WhatsApp username and has not shared their number   |
 | `bsuid`        | `string\|null` | Contact was created before WhatsApp usernames existed, or Meta sent no `user_id` |
+| `user_name`    | `string\|null` | Meta has not sent a `username` for this contact — the common case                |
 
 `bsuid` (Business-Scoped User ID) is an opaque per-business identifier, format
 `{ISO-3166 alpha-2}.{alphanumeric}` (e.g. `CO.1A2B3C4D5E6F7G8H`). A parent
@@ -2316,6 +2322,30 @@ render a `bsuid` as a phone number or build a `tel:`/`wa.me` link from it.
 The bot asks these contacts for their real number via WhatsApp's Phone Number
 Request CTA, so `phone_number` can become non-null later in the same
 conversation.
+
+#### `user_name` — the label to show when there is no number
+
+`user_name` is the contact's public WhatsApp username handle (e.g. `ana.g`),
+sent by Meta in the webhook and stored as-is. It exists to solve exactly the
+placeholder problem above: `bsuid` is an opaque string no advisor can
+recognize, and `user_name` is the same person's readable handle.
+
+Suggested precedence for a client's display label: `full_name` →
+`phone_number` → `user_name` → `bsuid`.
+
+Three rules:
+
+- **It is not an identifier.** Never look a client up by it, never send to it,
+  never build a link from it. `phone_number` and `bsuid` are the identifiers.
+- **It is not their name.** It is self-chosen and unverified — `full_name` is
+  the only field holding a name the client actually gave us.
+- **It can change.** The contact can edit their handle, and the stored value
+  updates on their next message. It is never cleared: a webhook that omits it
+  means "Meta didn't send it", not "they removed it".
+
+Sent on every client payload — the conversation inbox, the conversation
+detail, and the client directory — whenever we have it, regardless of whether
+`phone_number` is present. Deciding when to show it is the panel's call.
 
 ---
 
