@@ -42,13 +42,10 @@ function writeStoredActivity(timestamp: number): void {
  * actively working in one tab isn't logged out because a second, unattended
  * tab of the same panel went quiet.
  *
- * Deliberately does NOT call clearSession() itself — it only sets the same
- * blockedTitle/blockedMessage + sessionExpired flags already used for the
- * ADVISOR_INACTIVE case in axios.ts. SessionExpiredModal (rendered by
- * ProtectedRoute whenever sessionExpired is true) owns the actual sign-out +
- * redirect once the user acknowledges it. This keeps the idle timer's blast
- * radius limited to "show the existing modal" instead of reaching into
- * session/navigation state directly.
+ * Ends the session through the store's endSession(), the same path used for
+ * expiry and for a deactivated account, so the idle timer does not carry its own
+ * notion of what "logged out" means. Clearing the credentials is what sends the
+ * user to the login screen; the notice explains why once they get there.
  */
 export function useIdleLogout(): void {
   // 0 is a safe placeholder — the real timestamp is set inside the effect
@@ -104,11 +101,10 @@ export function useIdleLogout(): void {
       const idleFor = Date.now() - lastActivityRef.current
       if (idleFor >= IDLE_TIMEOUT_MS) {
         firedRef.current = true
-        useAuthStore.getState().setBlockedModal(
-          'Sesión cerrada por inactividad',
-          'Por tu seguridad, cerramos tu sesión automáticamente tras 40 minutos sin actividad. Ingresa nuevamente para continuar.'
-        )
-        useAuthStore.getState().setSessionExpired(true)
+        useAuthStore.getState().endSession({
+          title: 'Sesión cerrada por inactividad',
+          message: 'Por tu seguridad, cerramos tu sesión automáticamente tras 40 minutos sin actividad. Ingresa nuevamente para continuar.',
+        })
       }
     }, CHECK_INTERVAL_MS)
 

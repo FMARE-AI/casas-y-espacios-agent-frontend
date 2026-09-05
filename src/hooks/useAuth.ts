@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore, getStoredSession } from "../store/authStore";
+import { useAuthStore, getStoredSession, isSameBrowserSession } from "../store/authStore";
 import { advisorsService } from "../services/advisors";
 import { ROUTES } from "../constants/routes";
 import apiClient from "../lib/axios";
@@ -32,7 +32,18 @@ export function useAuth() {
   useEffect(() => {
     const stored = getStoredSession();
 
-    if (stored) {
+    // Shared storage may belong to a DIFFERENT sign-in by the time this effect
+    // re-runs: it re-runs on every navigation (see the note on the deps below),
+    // and another tab may have signed in as another advisor in between. Adopting
+    // those credentials would leave this tab rendering one user while
+    // authenticating as another.
+    //
+    // A genuine page load is unaffected: the session id is read at module load
+    // from this same storage, so it matches and the session restores normally.
+    // This is the third door onto the shared refresh token, alongside the
+    // 'storage' listener in authStore and the rotation guard in axios — all
+    // three have to agree or the guard is only decorative.
+    if (stored && isSameBrowserSession()) {
       // Keep refresh_token and expires_at in sync from storage, but never write
       // token: null here — doing so would reset a valid in-memory AT on every
       // re-run of this effect (React Router's navigate() ref can change after

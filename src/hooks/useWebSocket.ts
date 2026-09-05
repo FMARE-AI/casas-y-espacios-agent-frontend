@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
 import { advisorsService } from '../services/advisors'
-import { getValidToken } from '../lib/axios'
+import { getValidToken, forceRefreshToken } from '../lib/axios'
 import type {
   WSEscalationNew,
   WSEscalationAssigned,
@@ -40,6 +40,11 @@ const _handlers: WSHandlers = {}
 // Module-level singletons — exactly one socket active at any time
 let socket: WebSocket | null = null
 let isConnecting = false
+// Set while a dial is awaiting a token but has not reached `new WebSocket()`
+// yet. Without it, two dial paths firing during that async gap (mount effect +
+// 'online', say) both pass the `socket || isConnecting` guard and open two
+// sockets, breaking the single-socket invariant this module depends on.
+let isResolvingToken = false
 let reconnectTimeout: ReturnType<typeof setTimeout> | null = null
 let pingInterval: ReturnType<typeof setInterval> | null = null
 // True once the current session's socket has completed at least one handshake.
@@ -149,14 +154,11 @@ if (typeof window !== 'undefined') {
 
   window.addEventListener('online', () => {
     // Skip the remaining backoff delay and retry immediately once the network is back.
-    if (socket || isConnecting) return
+    if (socket || isConnecting || isResolvingToken) return
     const { token, sessionExpired } = useAuthStore.getState()
     if (!token || sessionExpired) return
     clearReconnect()
-    getValidToken().then((validToken) => {
-      if (validToken) connect(validToken)
-      else scheduleReconnect()
-    }).catch(() => scheduleReconnect())
+    dial()
   })
 
   // Returning to a throttled background tab or waking from sleep: verify the
@@ -177,14 +179,11 @@ if (typeof window !== 'undefined') {
       return
     }
 
-    if (socket || isConnecting) return
+    if (socket || isConnecting || isResolvingToken) return
     const { token, sessionExpired } = useAuthStore.getState()
     if (!token || sessionExpired) return
     clearReconnect()
-    getValidToken().then((validToken) => {
-      if (validToken) connect(validToken)
-      else scheduleReconnect()
-    }).catch(() => scheduleReconnect())
+    dial()
   })
 }
 
@@ -196,6 +195,9 @@ function closeSocket(): void {
   if (socket) socket.close()
   socket = null
   isConnecting = false
+  isResolvingToken = false
+  // A new session gets a fresh auth-recovery budget (see handleAuthRejection).
+  lastAuthRecoveryAt = 0
 
   // Clear module-level state to prevent multi-user data leaks on logout
   myAssignedConversationIds.clear()
@@ -207,7 +209,7 @@ function closeSocket(): void {
 // alive even when the token refresh fails transiently (network down, backend
 // restarting): a failed attempt schedules the next one instead of dying silently.
 function scheduleReconnect(): void {
-  if (reconnectTimeout !== null || socket || isConnecting) return
+  if (reconnectTimeout !== null || socket || isConnecting || isResolvingToken) return
 
   // Session intentionally ended (logout, expired, or blocked pending
   // confirmation) — do not reconnect. Without this guard, a socket closed
@@ -228,16 +230,101 @@ function scheduleReconnect(): void {
 
   reconnectTimeout = setTimeout(() => {
     reconnectTimeout = null
-    // L-03: use getValidToken() instead of reading the raw token from state.
-    // This refreshes the AT if it's expired before reconnecting, avoiding a
-    // 4001 close that would force the user back to the login screen unnecessarily.
-    getValidToken()
-      .then((token) => {
-        if (token) connect(token)
-        else scheduleReconnect()
-      })
-      .catch(() => scheduleReconnect())
+    dial()
   }, getBackoffDelay(attempt))
+}
+
+// Single dial path: resolve a token that is actually valid, THEN open the
+// socket. Every automatic and manual reconnection goes through here.
+//
+// L-03: the token must come from getValidToken(), never straight from the
+// store. The access token is only refreshed lazily (by an HTTP request or by a
+// reconnect) and lives an hour, so a panel that has been sitting on WebSocket
+// pushes alone can hold an access token that expired long ago. Dialing with it
+// earns a 4001 close and used to bounce the user to the login screen with a
+// perfectly healthy session.
+function dial(): void {
+  if (socket || isConnecting || isResolvingToken) return
+
+  // Mirrors connect()'s own status handling so the transition is visible during
+  // the async token step rather than only once the socket is constructed.
+  if (!hasConnectedOnce) {
+    useWSStore.getState().setStatus('connecting')
+  }
+
+  isResolvingToken = true
+  getValidToken()
+    .then((token) => {
+      isResolvingToken = false
+      // Fall back to the in-memory access token: getValidToken() returns null
+      // when there is no refresh token to refresh WITH, and in that case the
+      // access token already in memory is the only credential available.
+      const dialToken = token ?? useAuthStore.getState().token
+      if (dialToken) connect(dialToken)
+      else scheduleReconnect()
+    })
+    .catch(() => {
+      isResolvingToken = false
+      scheduleReconnect()
+    })
+}
+
+// The server rejected our token at handshake time (close code 4001). That says
+// nothing about the HTTP session: the refresh token can be perfectly valid and
+// usually is, because the access token is refreshed lazily and can be stale, or
+// because the browser clock runs ahead of the backend's and getValidToken()
+// therefore believes a rejected token is still fresh.
+//
+// So: force one real refresh and redial before declaring the session dead.
+// Bounded by a cooldown rather than a boolean, so a genuinely dead token cannot
+// spin: the server ACCEPTS the socket and only then closes it with 4001, so
+// onopen has already fired and cannot be used to reset a one-shot flag.
+const AUTH_RECOVERY_COOLDOWN_MS = 60 * 1000
+let lastAuthRecoveryAt = 0
+
+function expireSession(): void {
+  useWSStore.getState().setStatus('disconnected')
+  useAuthStore.getState().endSession()
+}
+
+function handleAuthRejection(): void {
+  // Another dial is already under way (or a socket survived this close): let it
+  // play out. Checked BEFORE the cooldown is stamped — spending the window's one
+  // retry on an attempt we are not going to make would send the next 4001
+  // straight to the login screen, and returning here without scheduling
+  // anything would leave the socket dead until an 'online' or visibility event
+  // happened to wake it.
+  if (socket || isConnecting || isResolvingToken) return
+
+  const now = Date.now()
+  if (now - lastAuthRecoveryAt < AUTH_RECOVERY_COOLDOWN_MS) {
+    // Already spent this window's retry and the server rejected us again — the
+    // session really is gone.
+    expireSession()
+    return
+  }
+  lastAuthRecoveryAt = now
+
+  isResolvingToken = true
+  forceRefreshToken()
+    .then((token) => {
+      isResolvingToken = false
+      if (token) {
+        connect(token)
+        return
+      }
+      // No token came back. That is only a dead session if the refresh actually
+      // invalidated it — a transient backend fault (500/503) leaves the refresh
+      // token in place, and deserves the normal backoff chain rather than a
+      // login screen.
+      if (useAuthStore.getState().refresh_token) scheduleReconnect()
+      else expireSession()
+    })
+    .catch(() => {
+      isResolvingToken = false
+      if (useAuthStore.getState().refresh_token) scheduleReconnect()
+      else expireSession()
+    })
 }
 
 function connect(token: string): void {
@@ -555,8 +642,7 @@ function connect(token: string): void {
     socket = null
 
     if (event.code === 4001) {
-      useWSStore.getState().setStatus('disconnected')
-      useAuthStore.getState().setSessionExpired(true)
+      handleAuthRejection()
       return
     }
 
@@ -724,18 +810,17 @@ export function useWebSocket(handlers?: WSHandlers) {
 
     // A socket is already open, connecting, or scheduled to reconnect — leave
     // it alone; it keeps working regardless of which token it connected with.
-    if (socket || isConnecting || reconnectTimeout !== null) return
+    if (socket || isConnecting || isResolvingToken || reconnectTimeout !== null) return
 
-    connect(accessToken)
+    dial()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, sessionExpired])
 
   const reconnect = useCallback(() => {
     if (useAuthStore.getState().sessionExpired) return
-    const token = useAuthStore.getState().token
-    if (!token) return
+    if (!useAuthStore.getState().token) return
     closeSocket()
-    connect(token)
+    dial()
   }, [])
 
   const subscribeConversation = useCallback((conversationId: string) => {
