@@ -279,6 +279,40 @@ describe('useAuth', () => {
     })
   })
 
+  // Regression: this effect re-runs on every navigation and used to copy the
+  // stored refresh token into the store unconditionally. Another tab signing in
+  // as a different advisor would therefore be adopted on the victim tab's next
+  // click — found by testing two real tabs, not by unit tests.
+  describe('credentials written by a different sign-in', () => {
+    it('does not adopt a refresh token stamped with another session id', async () => {
+      localStorage.setItem('panel_refresh_token', 'rt-of-another-account')
+      localStorage.setItem('panel_expires_at', String(Date.now() + 3600 * 1000))
+      localStorage.setItem('panel_session_id', 'a-different-sign-in')
+      useAuthStore.setState({ token: 'my-at', refresh_token: 'rt-mine' })
+
+      const { unmount } = renderUseAuth()
+      await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+
+      expect(useAuthStore.getState().refresh_token).toBe('rt-mine')
+      unmount()
+    })
+
+    it('still restores the session on a normal page load', async () => {
+      // No session id stored at all: nothing claims a different sign-in, which
+      // is what a plain reload of an older session looks like.
+      localStorage.setItem('panel_refresh_token', 'rt-restored')
+      localStorage.setItem('panel_expires_at', String(Date.now() + 3600 * 1000))
+      mockGetMe.mockResolvedValue({ advisor: makeAdvisor() })
+      useAuthStore.setState({ token: 'my-at', refresh_token: null })
+
+      const { unmount } = renderUseAuth()
+      await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+
+      expect(useAuthStore.getState().refresh_token).toBe('rt-restored')
+      unmount()
+    })
+  })
+
   // ── session-expired event ──────────────────────────────────────────────────
 
   describe('session-expired event', () => {

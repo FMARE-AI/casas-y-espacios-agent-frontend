@@ -73,7 +73,15 @@ function startBrowserSession(): void {
 // DIFFERENT advisor — and adopting its refresh token would leave this tab
 // showing one user's data while authenticating as another.
 export function isSameBrowserSession(): boolean {
-  return readStoredSessionId() === tabSessionId
+  const stored = readStoredSessionId()
+
+  // Nothing in storage claims a sign-in, so there is no competing session to
+  // protect against: a session predating this key, or storage cleared out from
+  // under the tab. Refusing here would block a tab from restoring its OWN
+  // session, which is a worse failure than the one this guard exists to stop.
+  if (stored === null) return true
+
+  return stored === tabSessionId
 }
 
 // Why a session ended, handed to the login screen. Only set when the session
