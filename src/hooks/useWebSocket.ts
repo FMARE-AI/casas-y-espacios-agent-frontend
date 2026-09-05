@@ -303,12 +303,21 @@ function handleAuthRejection(): void {
   forceRefreshToken()
     .then((token) => {
       isResolvingToken = false
-      if (token) connect(token)
+      if (token) {
+        connect(token)
+        return
+      }
+      // No token came back. That is only a dead session if the refresh actually
+      // invalidated it — a transient backend fault (500/503) leaves the refresh
+      // token in place, and deserves the normal backoff chain rather than a
+      // login screen.
+      if (useAuthStore.getState().refresh_token) scheduleReconnect()
       else expireSession()
     })
     .catch(() => {
       isResolvingToken = false
-      expireSession()
+      if (useAuthStore.getState().refresh_token) scheduleReconnect()
+      else expireSession()
     })
 }
 

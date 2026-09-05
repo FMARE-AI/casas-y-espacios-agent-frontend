@@ -1,6 +1,6 @@
 import axios from 'axios'
 import type { InternalAxiosRequestConfig } from 'axios'
-import { useAuthStore } from '../store/authStore'
+import { useAuthStore, getStoredSession } from '../store/authStore'
 import type { ToastType } from '../store/toastStore'
 
 // Retry/refresh bookkeeping flags stashed on the request config as it's replayed
@@ -89,14 +89,36 @@ function refreshSession(refresh_token: string): Promise<string | null> {
         processQueue(epoch, error, null)
         return null
       }
-      // Only a definitive server rejection invalidates the session. A network
-      // failure (offline, timeout, backend restarting) must NOT log the user
-      // out — callers retry: HTTP requests fail visibly with their own toast,
-      // and the WS backoff chain keeps polling until the network returns.
-      if (axios.isAxiosError(error) && error.response) {
+
+      const status = axios.isAxiosError(error) ? error.response?.status : undefined
+
+      // Only an explicit auth rejection means the SESSION is invalid.
+      if (status === 401 || status === 403) {
+        // ...unless another tab rotated the refresh token between our read of it
+        // and this response. The rejection then says nothing about the session —
+        // it says our copy of the token was stale. Adopt the rotated one and let
+        // callers retry, instead of logging every open tab out.
+        const rotated = getStoredSession()?.refresh_token
+        if (rotated && rotated !== refresh_token) {
+          useAuthStore.setState({ refresh_token: rotated })
+          processQueue(epoch, error, null)
+          return null
+        }
+
         useAuthStore.getState().clearSession()
         window.dispatchEvent(new CustomEvent('session-expired'))
+        processQueue(epoch, error, null)
+        return null
       }
+
+      // Everything else means the refresh could not be COMPLETED, not that the
+      // session is invalid: a network failure (offline, timeout, backend
+      // restarting) or a server-side fault (500, or the documented 503 when the
+      // backend cannot reach Supabase Auth). Logging the user out here turns a
+      // backend hiccup into a forced re-login while their refresh token is still
+      // perfectly good. Callers retry instead: HTTP requests fail visibly with
+      // their own toast, and the WS backoff chain keeps polling until the
+      // backend answers again.
       processQueue(epoch, error, null)
       return null
     })

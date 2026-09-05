@@ -182,6 +182,34 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }))
 
+// Cross-tab refresh-token sync. The backend ROTATES the refresh token on every
+// refresh, and Zustand state is per-tab: a second tab that refreshed while this
+// one sat idle leaves this tab holding a token the server already invalidated.
+// Using it earns a 401, which clearSession() used to turn into a logout for
+// BOTH tabs, since the storage keys are shared.
+//
+// Only a NEW value is adopted. A removal is ignored on purpose: it can also come
+// from a clearSession() racing with a fresh login in another tab, and adopting
+// it would tear down the session that just started. The access token is not
+// synced — it is memory-only and each tab's own copy stays valid until its own
+// expiry.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== REFRESH_TOKEN_KEY || !event.newValue) return
+    if (useAuthStore.getState().refresh_token === event.newValue) return
+
+    const expires_at_str = localStorage.getItem(EXPIRES_AT_KEY)
+    const expires_at =
+      expires_at_str && !isNaN(Number(expires_at_str)) ? Number(expires_at_str) : null
+
+    useAuthStore.setState(
+      expires_at !== null
+        ? { refresh_token: event.newValue, expires_at }
+        : { refresh_token: event.newValue }
+    )
+  })
+}
+
 // AT is no longer stored — always returns null. Kept for backwards compat.
 export const getStoredToken = (): string | null => null
 

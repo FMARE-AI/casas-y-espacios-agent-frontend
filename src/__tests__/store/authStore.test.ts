@@ -174,6 +174,43 @@ describe('authStore', () => {
     })
   })
 
+  // Keeps a second tab from using a refresh token that another tab already
+  // rotated away — using it would 401 and log every tab out.
+  describe('cross-tab refresh token sync', () => {
+    it('adopts a refresh token rotated by another tab', () => {
+      useAuthStore.setState({ refresh_token: 'old-rt' })
+
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'panel_refresh_token',
+        newValue: 'rotated-rt',
+      }))
+
+      expect(useAuthStore.getState().refresh_token).toBe('rotated-rt')
+    })
+
+    it('ignores a removal — it may be a logout racing a fresh login', () => {
+      useAuthStore.setState({ refresh_token: 'current-rt' })
+
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'panel_refresh_token',
+        newValue: null,
+      }))
+
+      expect(useAuthStore.getState().refresh_token).toBe('current-rt')
+    })
+
+    it('ignores storage events for unrelated keys', () => {
+      useAuthStore.setState({ refresh_token: 'current-rt' })
+
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'panel_last_activity',
+        newValue: '123456',
+      }))
+
+      expect(useAuthStore.getState().refresh_token).toBe('current-rt')
+    })
+  })
+
   describe('setSessionExpired', () => {
     it('sets sessionExpired to the given value', () => {
       useAuthStore.getState().setSessionExpired(true)
