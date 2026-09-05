@@ -4,7 +4,13 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useAuth } from '../hooks/useAuth'
-import { useAuthStore } from '../store/authStore'
+import { useAuthStore, getRememberPreference } from '../store/authStore'
+import {
+  listRememberedAccounts,
+  rememberAccount,
+  forgetAccount,
+  type RememberedAccount,
+} from '../lib/rememberedAccounts'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -23,7 +29,9 @@ function getBackoffDelay(failedAttempts: number): number {
 export function LoginPage() {
   const { signIn, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
+  // Lazy initialisers: read storage once on mount, not on every render.
+  const [rememberMe, setRememberMe] = useState(getRememberPreference)
+  const [accounts, setAccounts] = useState<RememberedAccount[]>(listRememberedAccounts)
   // Why the previous session ended, if it ended on its own. A deliberate logout
   // leaves this null and the banner never renders.
   const sessionNotice = useAuthStore((s) => s.sessionNotice)
@@ -57,12 +65,55 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
+    setValue,
+    setFocus,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormData>({ resolver: zodResolver(schema) })
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(schema),
+    // Most recently used account, so the common case is "type password, enter".
+    defaultValues: { email: accounts[0]?.email ?? '' },
+  })
+
+  // Which remembered account is currently loaded into the form, tracked here
+  // rather than read back off the field: react-hook-form's watch() trips the
+  // React Compiler lint rule, and the switcher only needs to know about accounts
+  // it put there itself.
+  const [selectedEmail, setSelectedEmail] = useState(() => accounts[0]?.email ?? '')
+
+  // Everything except the account already in the field.
+  const otherAccounts = accounts.filter((a) => a.email !== selectedEmail)
+
+  function selectAccount(email: string) {
+    setValue('email', email, { shouldValidate: true })
+    setSelectedEmail(email)
+    setFocus('password')
+  }
+
+  function handleForgetAccount(email: string) {
+    forgetAccount(email)
+    const remaining = listRememberedAccounts()
+    setAccounts(remaining)
+
+    // Only touch the field when the account being forgotten is the one in it —
+    // otherwise dismissing a chip would wipe what the user had already typed.
+    if (email === selectedEmail) {
+      const next = remaining[0]?.email ?? ''
+      setValue('email', next, { shouldValidate: false })
+      setSelectedEmail(next)
+    }
+  }
 
   const onSubmit = async (data: LoginFormData) => {
     if (lockoutSeconds > 0) return
     const success = await signIn(data.email, data.password, rememberMe)
+    if (success) {
+      // Only a real sign-in earns a place in the list, so typos never stick.
+      // Unchecking the box is an explicit "do not keep me on this device", which
+      // covers the account as much as the session — a shared machine should not
+      // be left showing who logged in.
+      if (rememberMe) rememberAccount(data.email)
+      else forgetAccount(data.email)
+    }
     if (!success) {
       // M-01: increment failure counter and apply exponential backoff.
       setFailedAttempts((prev) => {
@@ -196,6 +247,37 @@ export function LoginPage() {
               {errors.email && (
                 <p className="text-[11px] text-error mt-1 pl-1">{errors.email.message}</p>
               )}
+
+              {otherAccounts.length > 0 && (
+                <div id="remembered-accounts" className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-text-secondary pl-1">Otras cuentas:</span>
+                  {otherAccounts.map((account) => (
+                    <span
+                      key={account.email}
+                      className="group inline-flex items-center rounded-full border border-border-default bg-bg-tertiary text-[11px] text-text-secondary"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => selectAccount(account.email)}
+                        className="pl-2.5 pr-1 py-1 rounded-l-full hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                      >
+                        {account.email}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleForgetAccount(account.email)}
+                        aria-label={`Olvidar ${account.email}`}
+                        title="Olvidar esta cuenta"
+                        className="pr-2 pl-0.5 py-1 rounded-r-full text-text-secondary hover:text-error transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Password */}
@@ -265,7 +347,7 @@ export function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="accent-brand-blue rounded"
                 />
-                <span>Recordar sesión</span>
+                <span>Recordar mi cuenta en este equipo</span>
               </label>
               <a href="#" className="text-brand-blue hover:text-brand-blue-light transition-colors font-medium">
                 ¿Olvidó su contraseña?

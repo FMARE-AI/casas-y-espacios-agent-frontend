@@ -18,7 +18,18 @@ const LEGACY_TOKEN_KEY = 'panel_token'
 const BANDEJA_STATUS_FILTER_KEY = 'bandeja_status_filter'
 
 function getTokenStorage(): Storage {
-  return localStorage.getItem(REMEMBER_KEY) === 'true' ? localStorage : sessionStorage
+  return getRememberPreference() ? localStorage : sessionStorage
+}
+
+// Whether this device was told to keep the session across browser restarts.
+// Read by the login form so the checkbox comes up the way the user last left it
+// instead of silently resetting to the default on every visit.
+export function getRememberPreference(): boolean {
+  try {
+    return localStorage.getItem(REMEMBER_KEY) === 'true'
+  } catch {
+    return false
+  }
 }
 
 // Why a session ended, handed to the login screen. Only set when the session
@@ -118,9 +129,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearSession: () => {
+    // REMEMBER_KEY is intentionally NOT removed here: it is a device preference,
+    // not session state. Clearing it made the "Recordar sesión" checkbox forget
+    // the user's choice on every logout.
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(EXPIRES_AT_KEY)
-    localStorage.removeItem(REMEMBER_KEY)
     localStorage.removeItem(LEGACY_TOKEN_KEY)
     sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(EXPIRES_AT_KEY)
@@ -189,9 +202,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setError: (error) => set({ error }),
 
   reset: () => {
+    // See clearSession(): the remember preference outlives the session.
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     localStorage.removeItem(EXPIRES_AT_KEY)
-    localStorage.removeItem(REMEMBER_KEY)
     localStorage.removeItem(LEGACY_TOKEN_KEY)
     sessionStorage.removeItem(REFRESH_TOKEN_KEY)
     sessionStorage.removeItem(EXPIRES_AT_KEY)

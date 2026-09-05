@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useAuthStore } from '../../store/authStore'
+import { useAuthStore, getRememberPreference } from '../../store/authStore'
 import type { Advisor, AdvisorRole } from '../../types'
 
 // ── Factories ──────────────────────────────────────────────
@@ -215,6 +215,44 @@ describe('authStore', () => {
   // is that it FORCES the login screen — ProtectedRoute redirects the moment
   // `token` is null — and carries the reason there, in one step, with no modal
   // left to finish the job.
+  // "Recordar sesión" describes the DEVICE, not the session. Wiping it on logout
+  // made the checkbox forget the user's choice every single time they signed out.
+  describe('remember preference', () => {
+    it('survives clearSession so the checkbox comes back the way it was left', () => {
+      useAuthStore.getState().setSession({
+        access_token: 'at',
+        refresh_token: 'rt',
+        expires_in: 3600,
+        rememberMe: true,
+      })
+      expect(getRememberPreference()).toBe(true)
+
+      useAuthStore.getState().clearSession()
+
+      expect(getRememberPreference()).toBe(true)
+      // ...while the credentials themselves are gone.
+      expect(localStorage.getItem('panel_refresh_token')).toBeNull()
+    })
+
+    it('records an unchecked box too', () => {
+      useAuthStore.getState().setSession({
+        access_token: 'at',
+        refresh_token: 'rt',
+        expires_in: 3600,
+        rememberMe: false,
+      })
+
+      expect(getRememberPreference()).toBe(false)
+      // Not remembering means the token must not outlive the tab.
+      expect(localStorage.getItem('panel_refresh_token')).toBeNull()
+      expect(sessionStorage.getItem('panel_refresh_token')).toBe('rt')
+    })
+
+    it('defaults to false when nothing was ever chosen', () => {
+      expect(getRememberPreference()).toBe(false)
+    })
+  })
+
   describe('endSession', () => {
     it('clears the credentials so the app falls back to the login screen', () => {
       useAuthStore.setState({ token: 'at', refresh_token: 'rt', expires_at: Date.now() + 1000 })
