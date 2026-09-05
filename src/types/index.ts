@@ -73,6 +73,12 @@ export interface Client {
    * `wa.me` link.
    */
   bsuid: string | null;
+  /**
+   * Contact's public WhatsApp username handle. Null when Meta has not sent
+   * a username for this contact (the common case). Not an identifier — never
+   * used to look up or send to a client, only as a display label.
+   */
+  user_name: string | null;
   full_name: string | null;
   document_id: string | null;
   client_type: ClientType;
