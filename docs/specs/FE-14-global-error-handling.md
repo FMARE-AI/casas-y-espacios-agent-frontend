@@ -1,5 +1,15 @@
 # FE-14 — Global Error Handling & Toast System
 
+> **Nota (2026-09-05):** la parte de **fin de sesión** de esta spec quedó
+> superada. `SessionExpiredModal`, `blockedModal` / `blockedTitle` /
+> `blockedMessage` y `setBlockedModal()` ya no existen. Hoy toda sesión que
+> termina sin que el usuario lo pida pasa por `authStore.endSession(notice?)`,
+> que limpia las credenciales y deja un `sessionNotice`; `ProtectedRoute`
+> redirige a `/login` en cuanto `token` es `null` y `LoginPage` muestra el
+> aviso. Ver `docs/ARCHITECTURE.md` para el flujo vigente. El resto de la spec
+> (interceptor de Axios, cola de toasts, `ToastStack`) sigue siendo válido.
+
+
 ## Objetivo
 
 Centralizar el manejo de errores HTTP en un único interceptor de Axios y extender el sistema de toasts para soportar múltiples tipos de notificación (éxito, error, advertencia, información) con una cola concurrente.
