@@ -8,6 +8,7 @@ import type { ToastType } from '../store/toastStore'
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
   _networkRetry?: boolean
+  _sessionEpoch?: number
 }
 
 const apiClient = axios.create({
@@ -187,6 +188,17 @@ function dispatchToast(message: string, type: ToastType): void {
 }
 
 apiClient.interceptors.request.use(async (config) => {
+  // Stamped BEFORE the async getValidToken() hop below, so a 401 that comes
+  // back after the session already ended (logout, expiry, deactivation — all
+  // of which bump sessionEpoch) can be told apart from a 401 within the same
+  // session that is still live. Without this, a request in flight at logout
+  // time loses its Authorization header (getValidToken() sees refresh_token
+  // already cleared), earns a 401 from the backend, and the response
+  // interceptor below used to treat that stale 401 as a fresh session expiry —
+  // showing "tu sesión expiró" right after a deliberate, manual logout.
+  const retryableConfig = config as RetryableRequestConfig
+  retryableConfig._sessionEpoch = useAuthStore.getState().sessionEpoch
+
   // Skip auth injection for auth endpoints to avoid loops
   if (config.url?.includes('/auth/token')) return config
 
@@ -279,6 +291,16 @@ apiClient.interceptors.response.use(
     if (status === 401) {
       const isRefreshEndpoint = error.config?.url?.includes('/auth/token/refresh')
       const originalRequest = error.config as RetryableRequestConfig
+
+      // The session this request belonged to has already ended (logout,
+      // expiry, deactivation — all bump sessionEpoch) by the time this 401
+      // came back. Retrying would replay against whatever session replaced
+      // it, and calling endSession() again would show a bogus "session
+      // expired" notice on top of an already-handled, deliberate logout.
+      const requestEpoch = originalRequest._sessionEpoch
+      if (requestEpoch !== undefined && requestEpoch !== useAuthStore.getState().sessionEpoch) {
+        return Promise.reject(error)
+      }
 
       if (!isRefreshEndpoint && !isLoginEndpoint && !originalRequest._retry) {
         originalRequest._retry = true
