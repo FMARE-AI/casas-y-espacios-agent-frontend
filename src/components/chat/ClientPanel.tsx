@@ -149,7 +149,7 @@ export default function ClientPanel({
                   {client.phone_number ? "Celular" : "Usuario de WhatsApp"}
                 </p>
                 <p className="text-white font-mono text-xs truncate">
-                  {client.phone_number ?? client.user_name ?? "No registrado"}
+                  {client.phone_number || client.user_name || "No registrado"}
                 </p>
               </div>
             </div>
