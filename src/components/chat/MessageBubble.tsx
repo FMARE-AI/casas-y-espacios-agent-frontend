@@ -69,6 +69,18 @@ function getFileIcon(mimeType: string | null): { icon: string; color: string } {
 
 // ── Optimistic UI status indicator ────────────────────────
 
+// WhatsApp-shaped checkmark path — offsetX lets a second tick sit slightly
+// right of the first, the same way WhatsApp draws its double check.
+function CheckPath({ offsetX = 0 }: { offsetX?: number }) {
+  return (
+    <path
+      d="M11.071 1.501a.75.75 0 011.06.057l.006.007a.75.75 0 01-.057 1.06L5.503 9.87a.75.75 0 01-1.02.005L1.42 7.048a.75.75 0 01.98-1.134l2.545 2.199 6.126-6.612z"
+      fill="currentColor"
+      transform={offsetX ? `translate(${offsetX}, 0)` : undefined}
+    />
+  )
+}
+
 const MessageStatus = memo(function MessageStatus({ status }: { status?: 'sending' | 'failed' }) {
   if (status === 'sending') {
     return (
@@ -80,12 +92,32 @@ const MessageStatus = memo(function MessageStatus({ status }: { status?: 'sendin
   }
   if (status === 'failed') {
     return (
-      <span className="text-error font-bold" title="No se pudo enviar">
-        ⚠ No enviado •
-      </span>
+      <svg className="w-3 h-3 shrink-0 text-error" viewBox="0 0 16 16" fill="none" role="img" aria-label="No se pudo enviar">
+        <title>No se pudo enviar</title>
+        <path
+          d="M4 4l8 8m0-8l-8 8"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+        />
+      </svg>
     )
   }
-  return null
+  // Confirmed by the server (status is neither 'sending' nor 'failed') — a
+  // double checkmark, like WhatsApp's own "sent" tick pair.
+  return (
+    <svg
+      className="w-3.5 h-3 text-text-secondary shrink-0"
+      viewBox="0 0 17 15"
+      fill="none"
+      role="img"
+      aria-label="Enviado"
+    >
+      <title>Enviado</title>
+      <CheckPath />
+      <CheckPath offsetX={4} />
+    </svg>
+  )
 })
 
 function getFileName(url: string | null, mimeType: string | null = null): string {
@@ -566,6 +598,11 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
         <MessageStatus status={message._status} />
         {time}{advisorName ? ` • ${advisorName}` : ''}
       </span>
+      {message._status === 'failed' && (
+        <span className="text-[9px] text-error font-semibold mr-1">
+          No se pudo enviar
+        </span>
+      )}
     </div>
   )
 })
