@@ -73,7 +73,7 @@ Configuración del cliente HTTP (`src/lib/axios.ts`):
 **Interceptores activos:**
 
 1. **Request** — Obtiene la sesión de Supabase e inyecta `Authorization: Bearer <token>` en cada request
-2. **Response** — Ante un 401, dispara el evento custom `session-expired` que activa el `SessionExpiredModal`
+2. **Response** — Ante un 401 o 403 del refresh llama a `endSession()`, que limpia las credenciales y guarda un `sessionNotice`. `ProtectedRoute` redirige a `/login` en cuanto `token` es `null` y `LoginPage` muestra el aviso. Un 5xx (incluido el 503 documentado del refresh) NO cierra la sesión: el refresh no pudo completarse, pero el refresh token sigue siendo válido
 
 ---
 

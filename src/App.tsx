@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useAuthStore } from './store/authStore'
 import { useWSStore } from './store/wsStore'
@@ -40,8 +40,19 @@ function AuthInit() {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading, isFirstLogin } = useAuthStore()
+  const location = useLocation()
   if (isLoading) return null
-  if (token) return <Navigate to={isFirstLogin ? ROUTES.FIRST_LOGIN : ROUTES.BANDEJA} replace />
+  if (token) {
+    if (isFirstLogin) return <Navigate to={ROUTES.FIRST_LOGIN} replace />
+    // ProtectedRoute attaches the page the user was trying to reach (e.g. a
+    // conversation link from an email notification) as location.state.from
+    // when it bounces an unauthenticated visitor here. Without reading it,
+    // this reactive redirect — which fires the instant `token` is set,
+    // ahead of useAuth's own post-login navigate(from) — always won the
+    // race and sent every login to Bandeja regardless of where it started.
+    const from = (location.state as { from?: string } | null)?.from
+    return <Navigate to={from && from !== ROUTES.LOGIN ? from : ROUTES.BANDEJA} replace />
+  }
   return <>{children}</>
 }
 

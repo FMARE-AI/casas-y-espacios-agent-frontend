@@ -132,10 +132,11 @@ axios interceptor (request)
 axios interceptor (response)
     ├─ 2xx → pasa la respuesta
     ├─ sin respuesta (red/timeout/CORS) → dispatchEvent('api-toast', error)
-    ├─ 401 → clearSession() + dispatchEvent('session-expired')
-    │              └─ SessionExpiredModal
-    ├─ 403 ADVISOR_INACTIVE → setSessionExpired(true) + setBlockedModal(...)
-    │              └─ SessionExpiredModal con mensaje personalizado (token intacto)
+    ├─ 401 → endSession()
+    │              └─ limpia credenciales; ProtectedRoute redirige a /login
+    │                 y LoginPage muestra el sessionNotice
+    ├─ 403 ADVISOR_INACTIVE → endSession({ title, message })
+    │              └─ mismo camino, con aviso propio (el token NO sobrevive)
     ├─ 403 (otros) → dispatchEvent('api-toast', error | 'warning')
     ├─ 404 → re-throw sin toast (contexto-dependiente — componente decide)
     ├─ 409 → dispatchEvent('api-toast', mensaje según código, 'warning' | 'info')

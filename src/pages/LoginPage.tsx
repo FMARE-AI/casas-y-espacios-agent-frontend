@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import { useAuth } from '../hooks/useAuth'
+import { useAuthStore, getRememberPreference } from '../store/authStore'
 
 const schema = z.object({
   email: z.string().email('Email inválido'),
@@ -22,7 +23,11 @@ function getBackoffDelay(failedAttempts: number): number {
 export function LoginPage() {
   const { signIn, error } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
+  // Lazy initialiser: read storage once on mount, not on every render.
+  const [rememberMe, setRememberMe] = useState(getRememberPreference)
+  // Why the previous session ended, if it ended on its own. A deliberate logout
+  // leaves this null and the banner never renders.
+  const sessionNotice = useAuthStore((s) => s.sessionNotice)
 
   // M-01: backoff state
   const [, setFailedAttempts] = useState(0)
@@ -54,7 +59,9 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<LoginFormData>({ resolver: zodResolver(schema) })
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(schema),
+  })
 
   const onSubmit = async (data: LoginFormData) => {
     if (lockoutSeconds > 0) return
@@ -148,6 +155,22 @@ export function LoginPage() {
           </div>
 
           {/* Form */}
+          {sessionNotice && (
+            <div
+              id="session-notice"
+              role="status"
+              className="mb-5 flex items-start gap-3 rounded-control border border-warning/30 bg-warning/10 px-3.5 py-3"
+            >
+              <svg className="w-4 h-4 mt-0.5 shrink-0 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01M5 19h14a2 2 0 001.84-2.75L13.74 4a2 2 0 00-3.48 0l-7.1 12.25A2 2 0 004.99 19z" />
+              </svg>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-text-primary">{sessionNotice.title}</p>
+                <p className="text-xs text-text-secondary mt-0.5 leading-relaxed">{sessionNotice.message}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
 
             {/* Email */}
@@ -245,7 +268,7 @@ export function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="accent-brand-blue rounded"
                 />
-                <span>Recordar sesión</span>
+                <span>Recordar mi cuenta en este equipo</span>
               </label>
               <a href="#" className="text-brand-blue hover:text-brand-blue-light transition-colors font-medium">
                 ¿Olvidó su contraseña?

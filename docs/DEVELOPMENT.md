@@ -184,7 +184,7 @@ Usar los tokens de color de la paleta definida en `src/index.css`. Ejemplo de gl
 | FE-8 | `PerfilPage.tsx`, `components/perfil/` | Placeholder |
 | FE-9 | `components/chat/AudioRecorder.tsx` | Por crear |
 | FE-10 | `hooks/useWebSocket.ts`, `store/wsStore.ts` | Por crear |
-| FE-11 | `components/shared/SessionExpiredModal.tsx` | Placeholder |
+| FE-11 | `store/authStore.ts` (`endSession`) + aviso en `LoginPage.tsx` | Implementado |
 
 ---
 

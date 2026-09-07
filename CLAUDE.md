@@ -75,7 +75,7 @@ src/
     chat/        AudioRecorder.tsx, ChatInput.tsx, MessageBubble.tsx
     bandeja/     ConversationCard.tsx, FilterBar.tsx, MetricsDashboard.tsx
     gestion/     BehaviorAlertsPanel.tsx (admin-only)
-    shared/      EscalationToast.tsx, SuccessToast.tsx, SessionExpiredModal.tsx
+    shared/      EscalationToast.tsx, SuccessToast.tsx
 
   services/
     conversations.ts         — llamadas HTTP + fallback mock
@@ -85,6 +85,7 @@ src/
 
   lib/
     supabase.ts               — cliente Supabase (singleton)
+    rememberedAccounts.ts     — emails usados con éxito en este equipo (solo email, nunca credenciales)
     axios.ts                  — interceptor con renovación proactiva del token (5 min antes de
                                 expirar), serializa refreshes paralelos en un único POST /auth/token/refresh
 

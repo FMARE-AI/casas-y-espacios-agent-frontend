@@ -4,7 +4,6 @@ import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
 import { ROUTES } from '../../constants/routes'
 import Sidebar from './Sidebar'
-import SessionExpiredModal from '../shared/SessionExpiredModal'
 import ToastStack from '../shared/ToastStack'
 import EscalationToast from '../shared/EscalationToast'
 import { useWebSocket } from '../../hooks/useWebSocket'
@@ -15,7 +14,7 @@ interface Props {
 }
 
 export default function ProtectedRoute({ requiredRole }: Props) {
-  const { token, role, isFirstLogin, sessionExpired } = useAuthStore()
+  const { token, role, isFirstLogin } = useAuthStore()
   const [mobileOpen, setMobileOpen] = useState(false)
   const { reconnect } = useWebSocket()
   const location = useLocation()
@@ -41,7 +40,6 @@ export default function ProtectedRoute({ requiredRole }: Props) {
         </main>
       </div>
 
-      {sessionExpired && <SessionExpiredModal />}
       <EscalationToast />
       <ToastStack />
     </div>
