@@ -142,11 +142,15 @@ export default function HistorialPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const PAGE_SIZE = 200;
+    // GET /conversations caps `limit` server-side at 100 (le=100) — anything
+    // above that 422s. That 422 was silently swallowed by the per-page catch
+    // below, breaking the loop on page 0 with zero rows collected (incident:
+    // "no hay conversaciones cerradas" right after this pagination shipped).
+    const PAGE_SIZE = 100;
     // Hard cap so a wrong/stale `total` from the backend can never turn this
-    // into a runaway loop — 40 pages already covers 8,000 closed
+    // into a runaway loop — 80 pages already covers 8,000 closed
     // conversations, far beyond what this page needs to handle today.
-    const MAX_PAGES = 40;
+    const MAX_PAGES = 80;
 
     async function loadAllClosed() {
       const all: Conversation[] = [];
@@ -160,10 +164,14 @@ export default function HistorialPage() {
             limit: PAGE_SIZE,
             offset,
           });
-        } catch {
+        } catch (err) {
           // A later page failing (network blip, timeout) shouldn't discard
           // the pages already fetched — show what loaded so far instead of
-          // silently emptying the whole table.
+          // silently emptying the whole table. Logged (not swallowed
+          // entirely) so a request-shape bug like PAGE_SIZE exceeding the
+          // backend's `limit` cap shows up in the console instead of just
+          // rendering an empty table with no trace of why.
+          console.error("HistorialPage: failed to load a page of closed conversations", err);
           break;
         }
         if (cancelled) return;
