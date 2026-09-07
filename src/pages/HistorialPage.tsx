@@ -100,7 +100,7 @@ function resolutorLabel(conv: Conversation): string | null {
 
 function TableSkeleton() {
   return (
-    <div className="w-full bg-bg-secondary border border-border-default rounded-xl overflow-hidden animate-pulse">
+    <div className="flex-1 min-h-0 w-full bg-bg-secondary border border-border-default rounded-xl overflow-hidden animate-pulse">
       <div className="h-10 bg-bg-tertiary/60 border-b border-border-default" />
       {[0, 1, 2].map((i) => (
         <div
@@ -141,17 +141,52 @@ export default function HistorialPage() {
   };
 
   useEffect(() => {
-    conversationsService
-      .list({ status: "cerrada", limit: 100, offset: 0 })
-      .then((result) => {
-        setConversations(result.conversations);
-      })
-      .catch(() => {
-        // silently fail — table stays empty
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    let cancelled = false;
+    const PAGE_SIZE = 200;
+    // Hard cap so a wrong/stale `total` from the backend can never turn this
+    // into a runaway loop — 40 pages already covers 8,000 closed
+    // conversations, far beyond what this page needs to handle today.
+    const MAX_PAGES = 40;
+
+    async function loadAllClosed() {
+      const all: Conversation[] = [];
+      let offset = 0;
+
+      for (let page = 0; page < MAX_PAGES; page++) {
+        let result;
+        try {
+          result = await conversationsService.list({
+            status: "cerrada",
+            limit: PAGE_SIZE,
+            offset,
+          });
+        } catch {
+          // A later page failing (network blip, timeout) shouldn't discard
+          // the pages already fetched — show what loaded so far instead of
+          // silently emptying the whole table.
+          break;
+        }
+        if (cancelled) return;
+
+        all.push(...result.conversations);
+        // Kept fewer than limit or already have everything the backend
+        // reports — nothing left to page through.
+        if (result.conversations.length < PAGE_SIZE || all.length >= result.total) {
+          break;
+        }
+        offset += PAGE_SIZE;
+      }
+
+      if (!cancelled) setConversations(all);
+    }
+
+    loadAllClosed().finally(() => {
+      if (!cancelled) setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredConversations = useMemo(() => {
@@ -253,10 +288,10 @@ export default function HistorialPage() {
   return (
     <section
       id="screen-historial"
-      className="flex-1 flex flex-col p-4 md:p-6 space-y-4"
+      className="flex-1 min-h-0 flex flex-col p-4 md:p-6 space-y-4"
     >
       {/* ── Header ── */}
-      <div className="w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border-default pb-4">
+      <div className="shrink-0 w-full flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border-default pb-4">
         <div>
           <h2 className="text-h2 text-text-primary">
             Historial de Conversaciones Cerradas
@@ -289,7 +324,7 @@ export default function HistorialPage() {
       </div>
 
       {/* ── Filter panel ── */}
-      <div className="w-full bg-bg-secondary p-4 border border-border-default rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
+      <div className="shrink-0 w-full bg-bg-secondary p-4 border border-border-default rounded-xl grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-center">
         <div className="relative sm:col-span-2">
           <input
             id="history-search-input"
@@ -341,12 +376,16 @@ export default function HistorialPage() {
       {isLoading ? (
         <TableSkeleton />
       ) : (
-        <div className="app-scroll w-full bg-bg-secondary border border-border-default rounded-xl overflow-x-auto">
+        <div className="app-scroll flex-1 min-h-0 w-full bg-bg-secondary border border-border-default rounded-xl overflow-auto">
           <table
             id="history-table"
             className="w-full text-left text-xs text-text-primary"
           >
-            <thead className="bg-bg-tertiary/60 border-b border-border-default text-text-secondary text-label uppercase">
+            {/* Sticky so the header stays put while rows scroll vertically
+                inside this box — without it, the horizontal scrollbar for a
+                wide table only reached the bottom of an unbounded-height
+                container, forcing a full scroll-to-bottom just to see it. */}
+            <thead className="sticky top-0 z-10 bg-bg-tertiary border-b border-border-default text-text-secondary text-label uppercase">
               <tr>
                 <th className="p-4 whitespace-nowrap">N° de Caso</th>
                 <th className="p-4 whitespace-nowrap">Cliente</th>
