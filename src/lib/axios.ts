@@ -9,6 +9,7 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean
   _networkRetry?: boolean
   _sessionEpoch?: number
+  _hadSession?: boolean
 }
 
 const apiClient = axios.create({
@@ -198,6 +199,16 @@ apiClient.interceptors.request.use(async (config) => {
   // showing "tu sesión expiró" right after a deliberate, manual logout.
   const retryableConfig = config as RetryableRequestConfig
   retryableConfig._sessionEpoch = useAuthStore.getState().sessionEpoch
+  // Whether a session actually existed when this request was DISPATCHED, not
+  // just when its response arrives — the epoch check above only tells apart
+  // an old session from the current one, but a request fired from a
+  // component's unmount cleanup (e.g. ChatPage's markAsSeen()) can be created
+  // in the CURRENT (already-logged-out) epoch, with no refresh_token to begin
+  // with. Its 401 then passed the epoch check (same epoch) and fell into the
+  // "no refresh_token" branch below, which called endSession() — showing "tu
+  // sesión expiró" right after a deliberate logout, even though no session
+  // ended as a RESULT of this response; it just never had one.
+  retryableConfig._hadSession = useAuthStore.getState().refresh_token !== null
 
   // Skip auth injection for auth endpoints to avoid loops
   if (config.url?.includes('/auth/token')) return config
@@ -311,7 +322,15 @@ apiClient.interceptors.response.use(
         // instead of posting a null refresh_token (the backend requires a string
         // and would just reject it with a 422).
         if (!refresh_token) {
-          useAuthStore.getState().endSession()
+          // Only a session that existed when this request was SENT can be said
+          // to have just ended. A request dispatched with no refresh_token to
+          // begin with (an unmount-cleanup call firing after a deliberate
+          // logout, say) isn't reporting a new death — there was nothing left
+          // to kill, and calling endSession() again would show a bogus "tu
+          // sesión expiró" on top of the logout that already happened.
+          if (originalRequest._hadSession) {
+            useAuthStore.getState().endSession()
+          }
           return Promise.reject(error)
         }
 

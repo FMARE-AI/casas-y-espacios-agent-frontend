@@ -262,6 +262,39 @@ describe('axios interceptors', () => {
     })
   })
 
+  // Regression: distinct from "manual logout races with an in-flight request"
+  // above — there the request was SENT while the session was still live and
+  // its 401 arrived late. Here the request is created AFTER logout already
+  // completed (e.g. ChatPage's unmount cleanup calling markAsSeen() once
+  // Sidebar's "Cerrar Sesión" already cleared the store) — same sessionEpoch
+  // as the current (empty) one, so the epoch guard alone does not catch it;
+  // it fell into the "no refresh_token" branch and called endSession() again,
+  // showing "tu sesión expiró" right after the deliberate logout it followed.
+  describe('a request dispatched with no session to begin with', () => {
+    it('does not show an expiry notice for a 401 when there was no session at request time', async () => {
+      useAuthStore.setState({
+        token: 'live-at',
+        refresh_token: 'live-rt',
+        expires_at: Date.now() + 3600 * 1000,
+      })
+      useAuthStore.getState().clearSession()
+
+      apiClient.defaults.adapter = async (config) => {
+        const err = new axios.AxiosError('Unauthorized')
+        err.config = config
+        err.response = { status: 401, statusText: 'Unauthorized', data: {}, headers: {}, config }
+        throw err
+      }
+
+      dispatchEventSpy.mockClear()
+      await apiClient.get('/test').catch(() => undefined)
+
+      expect(useAuthStore.getState().sessionExpired).toBe(false)
+      expect(useAuthStore.getState().sessionNotice).toBeNull()
+      expect(sessionExpiredCalls(dispatchEventSpy)).toHaveLength(0)
+    })
+  })
+
   // Regression: the refresh catch used to treat ANY response as proof the
   // session was invalid. The backend documents a 503 on this endpoint when it
   // cannot reach Supabase Auth, so a backend hiccup (or a Railway cold start)
