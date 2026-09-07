@@ -305,10 +305,21 @@ function handleAuthRejection(): void {
   }
   lastAuthRecoveryAt = now
 
+  // Captured before the request goes out — mirrors refreshSession()'s own
+  // guard in lib/axios.ts. If the session ends (logout, expiry, a deactivated
+  // account — all bump sessionEpoch) while this recovery refresh is in
+  // flight, its outcome belongs to a session that no longer exists: treating
+  // "no refresh_token" as a dead session then re-fires endSession() on top of
+  // an already-handled, deliberate logout ("Tu sesión ha expirado" right
+  // after the user signed out on purpose).
+  const epoch = useAuthStore.getState().sessionEpoch
+  const isCurrent = () => useAuthStore.getState().sessionEpoch === epoch
+
   isResolvingToken = true
   forceRefreshToken()
     .then((token) => {
       isResolvingToken = false
+      if (!isCurrent()) return
       if (token) {
         connect(token)
         return
@@ -322,6 +333,7 @@ function handleAuthRejection(): void {
     })
     .catch(() => {
       isResolvingToken = false
+      if (!isCurrent()) return
       if (useAuthStore.getState().refresh_token) scheduleReconnect()
       else expireSession()
     })
