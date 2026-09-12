@@ -77,8 +77,26 @@ export function useAuth() {
             navigate(ROUTES.FIRST_LOGIN);
           }
         })
-        .catch(() => {
-          useAuthStore.getState().clearSession();
+        .catch((error) => {
+          // Only a genuine auth rejection (401/403) means the session itself
+          // is invalid. Anything else — a transient 500/503 from a backend/DB
+          // hiccup, or no response at all (network failure) — is not evidence
+          // of that, and wiping the refresh token here would force a real
+          // re-login for a problem that has nothing to do with the advisor's
+          // credentials. Same reasoning axios.ts's own refreshSession()
+          // already applies to its failures. Real incident, 2026-09-11: a
+          // Supabase Gateway Timeout during a page reload logged an active
+          // advisor out for the rest of their shift, even after the backend
+          // was fixed to stop reporting that SAME hiccup as an auth failure
+          // on regular in-app requests — this bootstrap path was the one spot
+          // that never looked at the status code at all.
+          const status = (error as AxiosLike)?.response?.status;
+          if (status === 401 || status === 403) {
+            useAuthStore.getState().clearSession();
+          }
+          // Otherwise: refresh_token/expires_at stay as already synced into
+          // the store above, so the next reload (or a manual retry) can pick
+          // the session back up once the backend recovers.
         })
         .finally(() => {
           useAuthStore.getState().setLoading(false);

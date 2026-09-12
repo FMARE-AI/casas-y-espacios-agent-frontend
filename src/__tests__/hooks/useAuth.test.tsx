@@ -255,10 +255,12 @@ describe('useAuth', () => {
       unmount()
     })
 
-    it('resets store when getMe fails during restore (expired token)', async () => {
+    it('resets store when getMe fails during restore with a genuine 401 (expired token)', async () => {
       localStorage.setItem('panel_refresh_token', 'expired-refresh-jwt')
       localStorage.setItem('panel_expires_at', '0')
-      mockGetMe.mockRejectedValue(new Error('401'))
+      mockGetMe.mockRejectedValue({
+        response: { status: 401, data: { detail: { code: 'INVALID_TOKEN', message: 'Expired' } } },
+      })
 
       const { unmount } = renderUseAuth()
 
@@ -266,6 +268,42 @@ describe('useAuth', () => {
 
       expect(useAuthStore.getState().token).toBeNull()
       expect(localStorage.getItem('panel_refresh_token')).toBeNull()
+      unmount()
+    })
+
+    // Real incident, 2026-09-11: a transient Supabase Gateway Timeout made
+    // get_current_advisor/get_my_profile fail with a 500/503 during a page
+    // reload, and this catch used to wipe the refresh token unconditionally —
+    // logging an active advisor out for a problem that had nothing to do with
+    // their session. A 500/503/network failure must NOT clear the session, so
+    // the next reload (or a manual retry) can recover once the backend does.
+    it('keeps the session when getMe fails with a transient 500 during restore', async () => {
+      localStorage.setItem('panel_refresh_token', 'still-good-refresh-jwt')
+      localStorage.setItem('panel_expires_at', '0')
+      mockGetMe.mockRejectedValue({
+        response: { status: 500, data: { detail: { code: 'SUPABASE_ERROR', message: 'DB hiccup' } } },
+      })
+
+      const { unmount } = renderUseAuth()
+
+      await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+
+      expect(localStorage.getItem('panel_refresh_token')).toBe('still-good-refresh-jwt')
+      expect(useAuthStore.getState().isLoading).toBe(false)
+      unmount()
+    })
+
+    it('keeps the session when getMe fails with a network error during restore', async () => {
+      localStorage.setItem('panel_refresh_token', 'still-good-refresh-jwt')
+      localStorage.setItem('panel_expires_at', '0')
+      mockGetMe.mockRejectedValue(new Error('Network Error'))
+
+      const { unmount } = renderUseAuth()
+
+      await act(async () => { await new Promise((r) => setTimeout(r, 0)) })
+
+      expect(localStorage.getItem('panel_refresh_token')).toBe('still-good-refresh-jwt')
+      expect(useAuthStore.getState().isLoading).toBe(false)
       unmount()
     })
 
