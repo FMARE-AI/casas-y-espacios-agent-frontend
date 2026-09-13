@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import axios from "axios";
 import { clientsService } from "../services/clients";
+import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import type { ClientDirectoryEntry, ClientType, CommercialClassification } from "../types";
 
 // The backend GET /clients endpoint only supports `q` — client_type and
@@ -65,17 +67,19 @@ function TableSkeleton() {
   );
 }
 
-async function fetchAllClients(q: string): Promise<ClientDirectoryEntry[]> {
+async function fetchAllClients(q: string, signal?: AbortSignal): Promise<ClientDirectoryEntry[]> {
   const collected: ClientDirectoryEntry[] = [];
   let offset = 0;
   let total = Infinity;
 
   while (offset < total) {
+    // An aborted page rejects, which exits this loop — the remaining pages of a
+    // directory nobody is looking at any more are never requested.
     const result = await clientsService.list({
       q: q || undefined,
       limit: BACKEND_PAGE_SIZE,
       offset,
-    });
+    }, signal);
 
     collected.push(...result.clients);
     total = result.total;
@@ -88,6 +92,8 @@ async function fetchAllClients(q: string): Promise<ClientDirectoryEntry[]> {
 }
 
 export default function ContactosPage() {
+  // Cancels this page's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad();
   const [clients, setClients] = useState<ClientDirectoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -114,24 +120,24 @@ export default function ContactosPage() {
     setIsLoading(true);
     setLoadError(false);
 
-    fetchAllClients(searchQuery)
+    fetchAllClients(searchQuery, getSignal())
       .then((all) => {
-        if (cancelled) return;
+        if (cancelled || !isMounted()) return;
         setClients(all);
       })
-      .catch(() => {
-        if (cancelled) return;
+      .catch((err) => {
+        if (cancelled || !isMounted() || axios.isCancel(err)) return;
         setClients([]);
         setLoadError(true);
       })
       .finally(() => {
-        if (!cancelled) setIsLoading(false);
+        if (!cancelled && isMounted()) setIsLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, retryToken]);
+  }, [searchQuery, retryToken, getSignal, isMounted]);
 
   // Reset to page 1 whenever the query or a filter changes
   useEffect(() => {

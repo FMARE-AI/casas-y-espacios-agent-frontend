@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import {
   format,
   parseISO,
@@ -9,6 +10,7 @@ import {
   subDays,
 } from "date-fns";
 import { conversationsService } from "../services/conversations";
+import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { CaseNumberTag } from "../components/shared/CaseNumberTag";
 import type { Conversation, ConversationIntent } from "../types";
 
@@ -124,6 +126,8 @@ function TableSkeleton() {
 
 export default function HistorialPage() {
   const navigate = useNavigate();
+  // Cancels this page's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -163,8 +167,11 @@ export default function HistorialPage() {
             status: "cerrada",
             limit: PAGE_SIZE,
             offset,
-          });
+          }, getSignal());
         } catch (err) {
+          // Cancelled by unmount: stop paging and stay silent — there is no
+          // table left to render into, and it is not a backend failure.
+          if (axios.isCancel(err) || !isMounted()) return;
           // A later page failing (network blip, timeout) shouldn't discard
           // the pages already fetched — show what loaded so far instead of
           // silently emptying the whole table. Logged (not swallowed
@@ -185,16 +192,17 @@ export default function HistorialPage() {
         offset += PAGE_SIZE;
       }
 
-      if (!cancelled) setConversations(all);
+      if (!cancelled && isMounted()) setConversations(all);
     }
 
     loadAllClosed().finally(() => {
-      if (!cancelled) setIsLoading(false);
+      if (!cancelled && isMounted()) setIsLoading(false);
     });
 
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredConversations = useMemo(() => {

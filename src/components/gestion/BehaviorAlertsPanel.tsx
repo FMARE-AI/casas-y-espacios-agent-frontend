@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { format, parseISO } from 'date-fns'
 import { alertsService } from '../../services/alerts'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
 import { useWebSocket } from '../../hooks/useWebSocket'
+import { useAbortableLoad } from '../../hooks/useAbortableLoad'
 import type { Advisor, BehaviorAlert, AlertType, AlertSeverity } from '../../types'
 import { ROUTES } from '../../constants/routes'
 
@@ -77,6 +79,8 @@ interface BehaviorAlertsPanelProps {
 export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelProps) {
   const navigate = useNavigate()
   const role = useAuthStore((s) => s.role)
+  // Cancels this panel's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad()
 
   const [alerts, setAlerts] = useState<BehaviorAlert[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -94,19 +98,24 @@ export default function BehaviorAlertsPanel({ advisors }: BehaviorAlertsPanelPro
       setIsLoading(true)
     }
     try {
-      const result = await alertsService.list({ reviewed: false, limit: 50 })
+      const result = await alertsService.list({ reviewed: false, limit: 50 }, getSignal())
+      if (!isMounted()) return
       setAlerts(result?.alerts || [])
       setLoadError(false)
-    } catch {
+    } catch (err) {
+      // A cancelled request means the panel is gone, not that the queue failed.
+      if (axios.isCancel(err) || !isMounted()) return
       // Keep whatever alerts are already on screen — a failed request must
       // never render as "0 alertas pendientes", which looks identical to a
       // genuinely clean queue and hid every past fetch failure from the admin.
       setLoadError(true)
     } finally {
-      setIsLoading(false)
-      setIsRefreshing(false)
+      if (isMounted()) {
+        setIsLoading(false)
+        setIsRefreshing(false)
+      }
     }
-  }, [role])
+  }, [role, getSignal, isMounted])
 
   useEffect(() => {
     if (role === 'admin') {

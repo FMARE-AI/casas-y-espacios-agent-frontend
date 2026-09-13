@@ -1,4 +1,5 @@
 import apiClient from '../lib/axios'
+import { withSignal } from './requestConfig'
 import type { Advisor, AdvisorOnline, AvailabilityStatus } from '../types'
 
 type UpdateMeData = { full_name?: string; current_password?: string; new_password?: string; avatar_url?: string; must_change_password?: boolean }
@@ -25,8 +26,8 @@ type UpdateAdvisorData = {
 
 export const advisorsService = {
 
-  async getMe(): Promise<{ advisor: Advisor }> {
-    const { data } = await apiClient.get('/api/v1/panel/advisors/me')
+  async getMe(signal?: AbortSignal): Promise<{ advisor: Advisor }> {
+    const { data } = await apiClient.get('/api/v1/panel/advisors/me', withSignal({}, signal))
     return data.data
   },
 
@@ -43,13 +44,13 @@ export const advisorsService = {
     return data.data
   },
 
-  async list(params?: AdvisorListParams): Promise<{ advisors: Advisor[] }> {
-    const { data } = await apiClient.get('/api/v1/panel/advisors', { params })
+  async list(params?: AdvisorListParams, signal?: AbortSignal): Promise<{ advisors: Advisor[] }> {
+    const { data } = await apiClient.get('/api/v1/panel/advisors', withSignal({ params }, signal))
     return data.data
   },
 
-  async getOnline(): Promise<AdvisorOnline[]> {
-    const { data } = await apiClient.get('/api/v1/panel/advisors/online')
+  async getOnline(signal?: AbortSignal): Promise<AdvisorOnline[]> {
+    const { data } = await apiClient.get('/api/v1/panel/advisors/online', withSignal({}, signal))
     return data.data.advisors
   },
 

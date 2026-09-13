@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
@@ -9,6 +10,7 @@ import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
 import { useWebSocket, setMyAssignedConversations } from '../hooks/useWebSocket'
+import { useAbortableLoad } from '../hooks/useAbortableLoad'
 
 export const BANDEJA_STATUS_FILTER_KEY = 'bandeja_status_filter'
 
@@ -179,6 +181,8 @@ function TakeModal({
 
 export default function BandejaPage() {
   const navigate = useNavigate()
+  // Cancels this page's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad()
   const advisor = useAuthStore((s) => s.advisor)
   const role = useAuthStore((s) => s.role)
 
@@ -211,33 +215,37 @@ export default function BandejaPage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await advisorsService.getMe()
+        const res = await advisorsService.getMe(getSignal())
+        if (!isMounted()) return
         useAuthStore.getState().setAdvisor(res.advisor)
       } catch (err) {
+        if (axios.isCancel(err)) return
         console.error('Error fetching advisor profile:', {
           message: err instanceof Error ? err.message : 'unknown',
         })
       }
     }
     fetchProfile()
-  }, [])
+  }, [getSignal, isMounted])
 
   // Load online advisors indicator on mount (available to all roles)
   useEffect(() => {
     const loadOnlineAdvisors = async () => {
       try {
-        const advisors = await advisorsService.getOnline()
+        const advisors = await advisorsService.getOnline(getSignal())
+        if (!isMounted()) return
         useWSStore.getState().setAdvisors(advisors)
       } catch {
         // fail silently — indicator stays empty, panel is not broken
       }
     }
     loadOnlineAdvisors()
-  }, [])
+  }, [getSignal, isMounted])
 
   const refreshCounts = async (channel?: string) => {
     try {
-      const result = await conversationsService.list({ channel, limit: 100, offset: 0 })
+      const result = await conversationsService.list({ channel, limit: 100, offset: 0 }, getSignal())
+      if (!isMounted()) return
       const all = result.conversations || []
       const escaladas = all.filter(c => c.status === 'escalada').length
       const activas = all.filter(c => c.status === 'activa').length
@@ -250,6 +258,7 @@ export default function BandejaPage() {
         mine: all.filter(c => c.status !== 'cerrada' && c.escalation?.advisor?.id === currentAdvisorId).length,
       })
     } catch (err) {
+      if (axios.isCancel(err)) return
       console.error('Error fetching counts:', {
         message: err instanceof Error ? err.message : 'unknown',
       })
@@ -264,7 +273,8 @@ export default function BandejaPage() {
         channel: channelFilter ?? undefined,
         limit: 50,
         offset: 0,
-      })
+      }, getSignal())
+      if (!isMounted()) return
       let convs = result.conversations || []
       // "Todas" and "mine" tabs never show closed conversations — those live in /historial
       if (!statusFilter || statusFilter === 'mine') {
@@ -281,25 +291,30 @@ export default function BandejaPage() {
         .map(c => c.id)
       setMyAssignedConversations(myIds)
     } catch (err) {
-      console.error('Error loading conversations:', {
-        message: err instanceof Error ? err.message : 'unknown',
-      })
+      if (!axios.isCancel(err)) {
+        console.error('Error loading conversations:', {
+          message: err instanceof Error ? err.message : 'unknown',
+        })
+      }
     } finally {
-      setIsLoading(false)
+      if (isMounted()) setIsLoading(false)
     }
+    if (!isMounted()) return
     refreshCounts(channelFilter ?? undefined)
 
     if (role === 'admin') {
       try {
-        const res = await metricsService.getMetrics()
+        const res = await metricsService.getMetrics(getSignal())
+        if (!isMounted()) return
         setDashboardMetrics(res)
       } catch (err) {
+        if (axios.isCancel(err)) return
         console.error('Error loading metrics:', {
           message: err instanceof Error ? err.message : 'unknown',
         })
       }
     }
-  }, [statusFilter, channelFilter, role])
+  }, [statusFilter, channelFilter, role, getSignal, isMounted])
 
   useEffect(() => {
     let ignore = false
