@@ -255,6 +255,16 @@ const LOCAL_ERROR_CODES = new Set([
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // A request aborted by its caller (page unmounted, newer load superseded it)
+    // is not a failure anyone needs to hear about. It must exit BEFORE the
+    // network-error branch below, which would otherwise read the missing
+    // `error.response` as "the user is offline", silently replay the GET 800ms
+    // later — resurrecting the very request that was just cancelled — and show
+    // a bogus "Sin conexión" toast.
+    if (axios.isCancel(error)) {
+      return Promise.reject(error)
+    }
+
     const isLoginEndpoint = error.config?.url?.includes('/auth/token') &&
       !error.config?.url?.includes('/auth/token/refresh')
 

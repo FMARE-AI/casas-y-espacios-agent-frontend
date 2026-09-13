@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { usePasswordStrength, type PasswordStrength } from "../hooks/usePasswordStrength";
 import { advisorsService } from "../services/advisors";
+import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { useAuthStore } from "../store/authStore";
 import { supabase } from "../lib/supabase";
 import { getValidToken } from "../lib/axios";
@@ -304,6 +305,8 @@ function PasswordStrengthBar({ strength }: { strength: PasswordStrength }) {
 // ── Page ──────────────────────────────────────────────────
 
 export default function PerfilPage() {
+  // Cancels this page's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad();
   const storeAdvisor = useAuthStore((s) => s.advisor);
   const setStoreAdvisor = useAuthStore((s) => s.setAdvisor);
 
@@ -355,7 +358,8 @@ export default function PerfilPage() {
     if (!delayMs || delayMs <= 0) return;
     statusTimerRef.current = setTimeout(async () => {
       try {
-        const { advisor: refreshed } = await advisorsService.getMe();
+        const { advisor: refreshed } = await advisorsService.getMe(getSignal());
+        if (!isMounted()) return;
         setAdvisor(refreshed);
         setStoreAdvisor(refreshed);
         setSelectedStatus(refreshed.availability_status);
@@ -386,7 +390,8 @@ export default function PerfilPage() {
     async function loadProfile() {
       setIsLoading(true);
       try {
-        const { advisor: fetched } = await advisorsService.getMe();
+        const { advisor: fetched } = await advisorsService.getMe(getSignal());
+        if (!isMounted()) return;
         setAdvisor(fetched);
         setNameValue(fetched.full_name);
         setSelectedStatus(fetched.availability_status);
@@ -403,7 +408,7 @@ export default function PerfilPage() {
       } catch {
         // silently fail
       } finally {
-        setIsLoading(false);
+        if (isMounted()) setIsLoading(false);
       }
     }
     loadProfile();

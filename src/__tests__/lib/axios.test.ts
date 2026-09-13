@@ -107,6 +107,51 @@ describe('axios interceptors', () => {
       expect(calls).toHaveLength(0)
     })
 
+    // Regression: pages now abort their in-flight reads on unmount. A cancelled
+    // request has no `error.response`, which the network-error branch below used
+    // to read as "the user is offline" — silently replaying the GET 800ms later
+    // (resurrecting the request that was just cancelled) and popping a bogus
+    // "Sin conexión" toast on a page the user had already left.
+    it('does NOT retry or toast a request cancelled by its caller', async () => {
+      let attempts = 0
+      const controller = new AbortController()
+      // Aborted mid-flight (the shape a page unmount produces) rather than
+      // before dispatch, so the request actually reaches the interceptor.
+      apiClient.defaults.adapter = async (config) => {
+        attempts++
+        controller.abort()
+        const err = new axios.CanceledError('canceled')
+        err.config = config
+        throw err
+      }
+
+      await expect(apiClient.get('/test', { signal: controller.signal })).rejects.toSatisfy(
+        (err: unknown) => axios.isCancel(err)
+      )
+
+      expect(attempts).toBe(1)
+      const toastCalls = (dispatchEventSpy as Mock).mock.calls.filter(
+        (args: unknown[]) => args[0] instanceof CustomEvent && (args[0] as CustomEvent).type === 'api-toast'
+      )
+      expect(toastCalls).toHaveLength(0)
+    })
+
+    // A genuine network failure must keep its existing behaviour: one silent
+    // retry, then the offline toast.
+    it('still retries a GET that failed with a real network error', async () => {
+      let attempts = 0
+      apiClient.defaults.adapter = async (config) => {
+        attempts++
+        const err = new axios.AxiosError('Network Error')
+        err.config = config
+        throw err
+      }
+
+      try { await apiClient.get('/test') } catch { /* expected after the retry */ }
+
+      expect(attempts).toBe(2)
+    })
+
     it('still rejects the promise on 401 (does not swallow errors)', async () => {
       apiClient.defaults.adapter = async (config) => {
         const err = new axios.AxiosError('Unauthorized')

@@ -19,6 +19,7 @@ import TransferModal from "../components/chat/TransferModal";
 import CloseConversationModal, { type CloseData } from "../components/modals/CloseConversationModal";
 import ReturnBotModal from "../components/modals/ReturnBotModal";
 import { useWebSocket, consumePendingTransferReason } from "../hooks/useWebSocket";
+import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { ROUTES } from "../constants/routes";
 
 function getInitials(name: string): string {
@@ -50,6 +51,8 @@ export default function ChatPage() {
   const location = useLocation();
   const advisor = useAuthStore((s) => s.advisor);
   const role = useAuthStore((s) => s.role);
+  // Cancels this page's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad();
 
   const fromAlert: boolean = location.state?.fromAlert ?? false;
   const alertAdvisorName: string | undefined = location.state?.advisorName;
@@ -87,7 +90,8 @@ export default function ChatPage() {
         conversation: conv,
         messages: msgs,
         total_messages: total,
-      } = await conversationsService.getById(conversationId, limit);
+      } = await conversationsService.getById(conversationId, limit, getSignal());
+      if (!isMounted()) return;
       // offset=0 returns the most recent `limit` messages (server orders DESC
       // internally, then reverses to ASC for display) — no extra fetch needed.
 
@@ -139,11 +143,11 @@ export default function ChatPage() {
         : msgs.length;
       initializedRef.current = true;
     } catch {
-      // interceptor already showed the error toast
+      // interceptor already showed the error toast (a cancelled request shows none)
     } finally {
-      setIsLoading(false);
+      if (isMounted()) setIsLoading(false);
     }
-  }, [conversationId, fromAlert]);
+  }, [conversationId, fromAlert, getSignal, isMounted]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -207,7 +211,9 @@ export default function ChatPage() {
       const { messages: older } = await conversationsService.getMessages(
         conversationId!,
         { limit: 100, offset: apiOffsetRef.current },
+        getSignal(),
       );
+      if (!isMounted()) return;
       apiOffsetRef.current += older.length;
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
@@ -222,7 +228,7 @@ export default function ChatPage() {
     } catch {
       // silently fail
     } finally {
-      setIsLoadingMore(false);
+      if (isMounted()) setIsLoadingMore(false);
     }
   }
 

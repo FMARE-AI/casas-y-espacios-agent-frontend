@@ -1,4 +1,5 @@
 import apiClient from '../lib/axios'
+import { withSignal } from './requestConfig'
 import type { PaginatedConversations, PaginatedMessages, Message, Conversation } from '../types'
 
 type ConversationListParams = { status?: string; channel?: string; limit?: number; offset?: number }
@@ -13,15 +14,15 @@ type TransferResponse = {
 
 export const conversationsService = {
 
-  async list(params?: ConversationListParams): Promise<PaginatedConversations> {
-    const { data } = await apiClient.get('/api/v1/panel/conversations/', { params })
+  async list(params?: ConversationListParams, signal?: AbortSignal): Promise<PaginatedConversations> {
+    const { data } = await apiClient.get('/api/v1/panel/conversations/', withSignal({ params }, signal))
     return data.data
   },
 
-  async getById(id: string, limit = 50): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {
-    const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}`, {
+  async getById(id: string, limit = 50, signal?: AbortSignal): Promise<{ conversation: Conversation; messages: Message[]; total_messages: number }> {
+    const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}`, withSignal({
       params: { limit, offset: 0 },
-    })
+    }, signal))
     const conversation = data.data.conversation
     return {
       conversation,
@@ -30,8 +31,8 @@ export const conversationsService = {
     }
   },
 
-  async getMessages(id: string, params?: PaginationParams): Promise<PaginatedMessages> {
-    const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}/messages`, { params })
+  async getMessages(id: string, params?: PaginationParams, signal?: AbortSignal): Promise<PaginatedMessages> {
+    const { data } = await apiClient.get(`/api/v1/panel/conversations/${id}/messages`, withSignal({ params }, signal))
     return data.data
   },
 

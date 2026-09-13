@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import axios from 'axios'
 import { advisorsService } from '../services/advisors'
+import { useAbortableLoad } from '../hooks/useAbortableLoad'
 import type { Advisor } from '../types'
 import { AdvisorsTable } from '../components/management/AdvisorsTable'
 import { AdvisorModal } from '../components/management/AdvisorModal'
@@ -44,6 +46,8 @@ function extractErrorCode(error: unknown): string | undefined {
 }
 
 export const GestionPage: React.FC = () => {
+  // Cancels this page's reads on unmount and gates every write that follows one.
+  const { getSignal, isMounted } = useAbortableLoad()
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState(false)
@@ -58,7 +62,8 @@ export const GestionPage: React.FC = () => {
   const loadAdvisors = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true)
     try {
-      const { advisors: fetched } = await advisorsService.list()
+      const { advisors: fetched } = await advisorsService.list(undefined, getSignal())
+      if (!isMounted()) return
 
       // The admin does not see themselves in the table
       // — they must edit their profile from /perfil
@@ -69,16 +74,19 @@ export const GestionPage: React.FC = () => {
 
       setAdvisors(filtered)
       setLoadError(false)
-    } catch {
+    } catch (err) {
+      // A cancelled request says nothing about the backend — the page is simply
+      // gone. Only a real failure gets the error state.
+      if (axios.isCancel(err) || !isMounted()) return
       // Keep whatever data is already on screen — a failed request (timeout,
       // network drop) is not the same as "0 asesores", and wiping the table
       // to empty here is what made the panel look like "no encontró nada"
       // when the real cause was a request failure. Surface it instead.
       setLoadError(true)
     } finally {
-      setIsLoading(false)
+      if (isMounted()) setIsLoading(false)
     }
-  }, [])
+  }, [getSignal, isMounted])
 
   useEffect(() => {
     let ignore = false
