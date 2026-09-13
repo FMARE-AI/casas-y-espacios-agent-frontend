@@ -46,6 +46,12 @@ const NavItem = memo(function NavItem({ to, active, label, icon, badge, badgeId 
   return (
     <Link
       to={to}
+      // Anchors are natively draggable. When switching pages quickly, the few
+      // pixels the mouse travels while pressed start a link drag instead of a
+      // click: the navigation never happens, and on Windows the OS drag loop
+      // can keep swallowing mouse input, leaving the panel painted but
+      // unclickable until a reload. Sidebar links are never meant to be dragged.
+      draggable={false}
       className={[
         'flex items-center justify-between pr-3.5 py-2.5 rounded-md text-xs font-semibold transition w-full',
         active
