@@ -389,8 +389,12 @@ export default function PerfilPage() {
     }
     async function loadProfile() {
       setIsLoading(true);
+      // Captured per run: StrictMode aborts the first mount's request and then
+      // remounts, so isMounted() alone is true again by the time that aborted
+      // request settles — it must not clear the loading state of the live run.
+      const signal = getSignal();
       try {
-        const { advisor: fetched } = await advisorsService.getMe(getSignal());
+        const { advisor: fetched } = await advisorsService.getMe(signal);
         if (!isMounted()) return;
         setAdvisor(fetched);
         setNameValue(fetched.full_name);
@@ -408,7 +412,7 @@ export default function PerfilPage() {
       } catch {
         // silently fail
       } finally {
-        if (isMounted()) setIsLoading(false);
+        if (isMounted() && !signal.aborted) setIsLoading(false);
       }
     }
     loadProfile();
