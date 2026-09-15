@@ -44,6 +44,12 @@ const STATUS_DOT: Record<ChatVariant, string> = {
   monitoring: "bg-warning",
 };
 
+// Generic farewell sent when the advisor closes a conversation without
+// having said goodbye themselves — must stay neutral since it's used across
+// every resolution type, not just successfully resolved cases.
+const FAREWELL_MESSAGE =
+  "¡Gracias por contactarnos! Damos por finalizada esta conversación. Si necesitas algo más, no dudes en escribirnos de nuevo. ¡Que tengas un excelente día! 👋";
+
 // ── Page ──────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -280,6 +286,7 @@ export default function ChatPage() {
       if (event.conversation_id !== conversationId) return;
       const selfId = useAuthStore.getState().advisor?.id;
       if (event.advisor_id === selfId) return;
+      setShowReturnedPill(false);
       setConversation((prev) =>
         prev
           ? {
@@ -504,6 +511,10 @@ export default function ChatPage() {
     setIsTakingControl(true);
     try {
       const result = await conversationsService.takeControl(conversationId);
+      // A manual take-control is the opposite of a bot return — clear the
+      // "returned to bot" pill so it doesn't render alongside the new
+      // escalation banner below (stale otherwise until the next full reload).
+      setShowReturnedPill(false);
       setConversation((prev) =>
         prev
           ? {
@@ -565,7 +576,16 @@ export default function ChatPage() {
     if (!conversationId) return;
     setIsClosing(true);
     try {
-      await conversationsService.close(conversationId, data);
+      // Best-effort farewell — a send failure must never block the close itself.
+      if (!data.alreadySaidGoodbye) {
+        try {
+          await conversationsService.replyText(conversationId, FAREWELL_MESSAGE);
+        } catch {
+          // interceptor already showed the error toast; closing continues regardless
+        }
+      }
+      const { alreadySaidGoodbye: _alreadySaidGoodbye, ...closePayload } = data;
+      await conversationsService.close(conversationId, closePayload);
       setShowCloseModal(false);
       navigate("/");
     } catch (err: unknown) {
@@ -666,12 +686,12 @@ export default function ChatPage() {
                   id="take-control-button"
                   onClick={handleTakeControl}
                   disabled={isTakingControl}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control text-[10px] font-bold transition disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control text-xs font-bold shadow-md shadow-brand-blue/30 transition disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
                 >
                   {isTakingControl ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -700,7 +720,11 @@ export default function ChatPage() {
                         d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                       />
                     </svg>
-                    <span>Control manual — {conversation.escalation.advisor.full_name}</span>
+                    <span>
+                      {conversation.escalation.reason === "control_manual_directo"
+                        ? `Control manual — ${conversation.escalation.advisor.full_name}`
+                        : `Asignada — ${conversation.escalation.advisor.full_name}`}
+                    </span>
                   </div>
                 )
               )

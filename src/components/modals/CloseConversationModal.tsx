@@ -4,6 +4,7 @@ export interface CloseData {
   resolution_type: string
   resolution_notes: string | null
   client_satisfied: string
+  alreadySaidGoodbye: boolean
 }
 
 const RESOLUTION_OPTIONS: { value: string; label: string }[] = [
@@ -55,6 +56,7 @@ export default function CloseConversationModal({
   const [resolutionType, setResolutionType] = useState('otro')
   const [resolutionNotes, setResolutionNotes] = useState('')
   const [clientSatisfied, setClientSatisfied] = useState('sin_confirmar')
+  const [alreadySaidGoodbye, setAlreadySaidGoodbye] = useState(false)
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -72,6 +74,7 @@ export default function CloseConversationModal({
       resolution_type: resolutionType,
       resolution_notes: resolutionNotes.trim() || null,
       client_satisfied: clientSatisfied,
+      alreadySaidGoodbye,
     })
   }
 
@@ -159,6 +162,22 @@ export default function CloseConversationModal({
             ))}
           </div>
         </div>
+
+        {/* Despedida automática */}
+        <label className="flex items-start gap-2.5 px-3 py-2.5 bg-bg-tertiary/60 border border-border-default rounded-control cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={alreadySaidGoodbye}
+            onChange={(e) => setAlreadySaidGoodbye(e.target.checked)}
+            className="mt-0.5 w-3.5 h-3.5 accent-brand-blue shrink-0"
+          />
+          <span className="text-xs text-text-secondary leading-relaxed">
+            Ya me despedí del cliente
+            <span className="block text-[10px] text-text-secondary/70">
+              Si no marcas esto, se enviará un mensaje de despedida automático por WhatsApp.
+            </span>
+          </span>
+        </label>
 
         {/* Botones */}
         <div className="flex gap-2 pt-1">
