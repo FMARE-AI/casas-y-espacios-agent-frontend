@@ -584,8 +584,8 @@ export default function ChatPage() {
           // interceptor already showed the error toast; closing continues regardless
         }
       }
-      const { alreadySaidGoodbye: _alreadySaidGoodbye, ...closePayload } = data;
-      await conversationsService.close(conversationId, closePayload);
+      const { resolution_type, resolution_notes, client_satisfied } = data;
+      await conversationsService.close(conversationId, { resolution_type, resolution_notes, client_satisfied });
       setShowCloseModal(false);
       navigate("/");
     } catch (err: unknown) {
