@@ -1,12 +1,16 @@
 import apiClient from '../lib/axios'
 import { withSignal } from './requestConfig'
-import type { PaginatedConversations, PaginatedMessages, Message, Conversation } from '../types'
+import type { PaginatedConversations, PaginatedMessages, Message, Conversation, ConversationStatus } from '../types'
 
 type ConversationListParams = { status?: string; channel?: string; limit?: number; offset?: number }
 type PaginationParams = { limit?: number; offset?: number }
 type CloseConversationData = { resolution_type?: string; resolution_notes?: string | null; client_satisfied?: string }
 type AssignResponse = { escalation: { id: string; advisor_id: string; advisor_name: string } }
 type ReturnToBotResponse = { conversation: Conversation }
+type TakeControlResponse = {
+  conversation: { id: string; bot_activo: boolean; status: ConversationStatus }
+  escalation: { id: string; advisor_id: string; advisor_name: string }
+}
 type CloseResponse = { conversation: Conversation }
 type TransferResponse = {
   escalation: { id: string; advisor_id: string; advisor_name: string; transfer_reason?: string | null }
@@ -80,6 +84,11 @@ export const conversationsService = {
 
   async returnToBot(id: string): Promise<ReturnToBotResponse> {
     const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/return-bot`)
+    return data.data
+  },
+
+  async takeControl(id: string): Promise<TakeControlResponse> {
+    const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/take-control`)
     return data.data
   },
 
