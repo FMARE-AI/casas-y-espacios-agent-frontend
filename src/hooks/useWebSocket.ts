@@ -10,6 +10,7 @@ import type {
   WSEscalationAssigned,
   WSMessageNew,
   WSConversationReturned,
+  WSConversationControlTaken,
   WSConversationClosed,
   WSConversationTransferred,
   WSConversationPriorityUpdated,
@@ -27,6 +28,7 @@ interface WSHandlers {
   onEscalationAssigned?: (data: WSEscalationAssigned) => void
   onMessageNew?: (data: WSMessageNew) => void
   onConversationReturned?: (data: WSConversationReturned) => void
+  onConversationControlTaken?: (data: WSConversationControlTaken) => void
   onConversationClosed?: (data: WSConversationClosed) => void
   onConversationTransferred?: (data: WSConversationTransferred) => void
   onConversationPriorityUpdated?: (data: WSConversationPriorityUpdated) => void
@@ -572,6 +574,19 @@ function connect(token: string): void {
         break
       }
 
+      case 'conversation.control_taken': {
+        const takenData = data as WSConversationControlTaken
+        useWSStore.getState().incrementAdvisorConversations(takenData.advisor_id)
+        const selfId = useAuthStore.getState().advisor?.id
+        if (selfId && takenData.advisor_id === selfId) {
+          myAssignedConversationIds.add(takenData.conversation_id)
+        }
+        if (_handlers.onConversationControlTaken) {
+          _handlers.onConversationControlTaken(takenData)
+        }
+        break
+      }
+
       case 'conversation.closed': {
         const closedData = data as WSConversationClosed
         if (closedData.advisor_id) {
@@ -764,6 +779,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     onEscalationAssigned,
     onMessageNew,
     onConversationReturned,
+    onConversationControlTaken,
     onConversationClosed,
     onConversationTransferred,
     onConversationPriorityUpdated,
@@ -777,6 +793,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onEscalationAssigned) _handlers.onEscalationAssigned = onEscalationAssigned
     if (onMessageNew)         _handlers.onMessageNew         = onMessageNew
     if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
+    if (onConversationControlTaken) _handlers.onConversationControlTaken = onConversationControlTaken
     if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
     if (onConversationTransferred) _handlers.onConversationTransferred = onConversationTransferred
     if (onConversationPriorityUpdated) _handlers.onConversationPriorityUpdated = onConversationPriorityUpdated
@@ -789,6 +806,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onEscalationAssigned && _handlers.onEscalationAssigned === onEscalationAssigned) delete _handlers.onEscalationAssigned
       if (onMessageNew         && _handlers.onMessageNew         === onMessageNew)         delete _handlers.onMessageNew
       if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
+      if (onConversationControlTaken && _handlers.onConversationControlTaken === onConversationControlTaken) delete _handlers.onConversationControlTaken
       if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
       if (onConversationTransferred && _handlers.onConversationTransferred === onConversationTransferred) delete _handlers.onConversationTransferred
       if (onConversationPriorityUpdated && _handlers.onConversationPriorityUpdated === onConversationPriorityUpdated) delete _handlers.onConversationPriorityUpdated
@@ -798,8 +816,8 @@ export function useWebSocket(handlers?: WSHandlers) {
     }
   }, [
     onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
-    onConversationClosed, onConversationTransferred, onConversationPriorityUpdated,
-    onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
+    onConversationControlTaken, onConversationClosed, onConversationTransferred,
+    onConversationPriorityUpdated, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 
   // Open the connection when a session exists; close it whenever there is no

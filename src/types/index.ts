@@ -125,12 +125,20 @@ export interface Message {
   _fileName?: string;
 }
 
+// Only the fields every escalation.advisor payload actually carries (detail,
+// list, and every WS event) — never the full Advisor shape (email, role,
+// max_conversations, etc.), which the backend never sends on this field.
+export interface EscalationAdvisorRef {
+  id: string;
+  full_name: string;
+}
+
 export interface Escalation {
   id: string;
   reason: string;
   summary: string | null;
   escalated_at: string;
-  advisor: Advisor | null;
+  advisor: EscalationAdvisorRef | null;
   wait_seconds?: number | null;
   transfer_reason?: string | null;
 }
@@ -292,6 +300,15 @@ export interface WSEscalationAssigned {
 
 export interface WSConversationReturned {
   conversation_id: string;
+  advisor_id: string;
+  advisor_name: string;
+}
+
+// Emitted only on a real take-control (PW-24) — never on the idempotent
+// "you already had it" path.
+export interface WSConversationControlTaken {
+  conversation_id: string;
+  escalation_id: string;
   advisor_id: string;
   advisor_name: string;
 }
