@@ -428,7 +428,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
           <video
             src={msg.media_url ?? undefined}
             controls
-            preload="none"
+            preload="metadata"
             playsInline
             className="w-full min-h-[135px] max-h-[320px] object-contain bg-black"
             onError={(e) => {
