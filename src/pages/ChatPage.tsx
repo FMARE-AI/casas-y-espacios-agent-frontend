@@ -12,6 +12,7 @@ import type {
   WSEscalationAssigned,
   WSConversationTransferred,
   WSConversationControlTaken,
+  WSMessageMediaUpdated,
 } from "../types";
 import MessageFeed from "../components/chat/MessageFeed";
 import ChatInput from "../components/chat/ChatInput";
@@ -267,6 +268,26 @@ export default function ChatPage() {
     [conversationId, role],
   );
 
+  // Backfill for video/document/image/audio messages: describe_image/
+  // transcribe_audio/handle_unsupported_media's background download finishes
+  // AFTER the message was already rendered with the raw Meta media_id (real
+  // incident 2026-09-15 — a video only played after a manual reload because
+  // nothing patched the already-open chat's stale bubble). Match by wam_id,
+  // the one stable identifier shared between the WS event and Message.
+  const onMessageMediaUpdated = useCallback(
+    (event: WSMessageMediaUpdated) => {
+      if (event.conversation_id !== conversationId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.wam_id === event.wam_id
+            ? { ...m, media_url: event.media_url, media_mime_type: event.media_mime_type }
+            : m,
+        ),
+      );
+    },
+    [conversationId],
+  );
+
   const onConversationReturned = useCallback(
     (event: { conversation_id: string }) => {
       if (event.conversation_id === conversationId) {
@@ -381,6 +402,7 @@ export default function ChatPage() {
   const wsHandlers = useMemo(
     () => ({
       onMessageNew: onNewMessage,
+      onMessageMediaUpdated: onMessageMediaUpdated,
       onEscalationNew: onEscalationNew,
       onConversationReturned: onConversationReturned,
       onConversationControlTaken: onConversationControlTaken,
@@ -390,6 +412,7 @@ export default function ChatPage() {
     }),
     [
       onNewMessage,
+      onMessageMediaUpdated,
       onEscalationNew,
       onConversationReturned,
       onConversationControlTaken,

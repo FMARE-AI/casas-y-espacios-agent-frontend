@@ -350,3 +350,15 @@ export interface WSConversationPriorityUpdated {
   priority: ConversationPriority;
   updated_by: "bot";
 }
+
+// Emitted after a video/document/image/audio message's media_url is backfilled
+// from the raw Meta media_id to a real Storage URL — happens after message.new
+// already delivered the original row, since the media must be persisted before
+// the download even starts. Lets an already-open chat fix the bubble live
+// instead of only after a reload.
+export interface WSMessageMediaUpdated {
+  conversation_id: string;
+  wam_id: string;
+  media_url: string;
+  media_mime_type: string | null;
+}

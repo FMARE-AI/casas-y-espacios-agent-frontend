@@ -14,6 +14,7 @@ import type {
   WSConversationClosed,
   WSConversationTransferred,
   WSConversationPriorityUpdated,
+  WSMessageMediaUpdated,
   WSQueuePending,
   WSAdvisorStatusChanged,
   WSAdvisorConnected,
@@ -27,6 +28,7 @@ interface WSHandlers {
   onEscalationNew?: (data: WSEscalationNew) => void
   onEscalationAssigned?: (data: WSEscalationAssigned) => void
   onMessageNew?: (data: WSMessageNew) => void
+  onMessageMediaUpdated?: (data: WSMessageMediaUpdated) => void
   onConversationReturned?: (data: WSConversationReturned) => void
   onConversationControlTaken?: (data: WSConversationControlTaken) => void
   onConversationClosed?: (data: WSConversationClosed) => void
@@ -526,6 +528,12 @@ function connect(token: string): void {
         break
       }
 
+      case 'message.media_updated':
+        if (_handlers.onMessageMediaUpdated) {
+          _handlers.onMessageMediaUpdated(data as WSMessageMediaUpdated)
+        }
+        break
+
       case 'escalation.new': {
         const escData = data as WSEscalationNew
         const advisor = useAuthStore.getState().advisor
@@ -778,6 +786,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     onEscalationNew,
     onEscalationAssigned,
     onMessageNew,
+    onMessageMediaUpdated,
     onConversationReturned,
     onConversationControlTaken,
     onConversationClosed,
@@ -792,6 +801,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onEscalationNew)      _handlers.onEscalationNew      = onEscalationNew
     if (onEscalationAssigned) _handlers.onEscalationAssigned = onEscalationAssigned
     if (onMessageNew)         _handlers.onMessageNew         = onMessageNew
+    if (onMessageMediaUpdated) _handlers.onMessageMediaUpdated = onMessageMediaUpdated
     if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
     if (onConversationControlTaken) _handlers.onConversationControlTaken = onConversationControlTaken
     if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
@@ -805,6 +815,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onEscalationNew      && _handlers.onEscalationNew      === onEscalationNew)      delete _handlers.onEscalationNew
       if (onEscalationAssigned && _handlers.onEscalationAssigned === onEscalationAssigned) delete _handlers.onEscalationAssigned
       if (onMessageNew         && _handlers.onMessageNew         === onMessageNew)         delete _handlers.onMessageNew
+      if (onMessageMediaUpdated && _handlers.onMessageMediaUpdated === onMessageMediaUpdated) delete _handlers.onMessageMediaUpdated
       if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
       if (onConversationControlTaken && _handlers.onConversationControlTaken === onConversationControlTaken) delete _handlers.onConversationControlTaken
       if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
@@ -815,7 +826,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
   }, [
-    onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
+    onEscalationNew, onEscalationAssigned, onMessageNew, onMessageMediaUpdated, onConversationReturned,
     onConversationControlTaken, onConversationClosed, onConversationTransferred,
     onConversationPriorityUpdated, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
