@@ -174,6 +174,13 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     // Remove UUID prefix (e.g.: f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd_ or f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd-)
     cleanBase = cleanBase.replace(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[_-]/, '')
 
+    // Remove WhatsApp wam_id prefix (e.g.: wamid.HBgMNTczMTM1ODIwOTc1...EIA___). Inbound
+    // Storage paths are "{wam_id}_{real filename or media type}" — without stripping
+    // this, the real filename after it (or the bare "document"/"image"/... when Meta
+    // sent none) never surfaces, because the whole string still contains "wamid" and
+    // trips the isWamid generic-fallback check below.
+    cleanBase = cleanBase.replace(/^wamid\.[a-zA-Z0-9+/=]+[_-]+/i, '')
+
     // Remove timestamp suffix (e.g.: _1719543592 or -1719543592)
     cleanBase = cleanBase.replace(/[_-]\d{10,15}$/, '')
 
@@ -183,7 +190,10 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBase)
     const isHash = /^[0-9a-f]{24,}$/i.test(cleanBase) || /^[a-zA-Z0-9]{30,}$/.test(cleanBase) || /[a-zA-Z0-9]{20,}/.test(cleanBase)
     const isDigits = /^\d+$/.test(cleanBase)
-    const isGenericDocument = cleanLower.includes('_document') || cleanLower.includes('_image') || cleanLower.includes('_video') || cleanLower.includes('_audio')
+    // Matches both the legacy "{wam_id}_document" shape (leftover "_document" when
+    // no real filename made it to Storage) and the wamid-stripped bare "document"
+    // (nothing left after the prefix strip above).
+    const isGenericDocument = /(?:^|_)(document|image|video|audio)$/.test(cleanLower)
 
     if (!cleanBase || isWamid || isUuid || isHash || isDigits || isGenericDocument) {
       const standardNames: Record<string, string> = {
@@ -209,13 +219,13 @@ function getFileName(url: string | null, mimeType: string | null = null): string
       // Deducir el nombre si no coincide con las extensiones directas
       let defaultName = standardNames[ext]
       if (!defaultName) {
-        if (cleanLower.includes('_document') || (mimeType && mimeType.toLowerCase().includes('pdf'))) {
+        if (/(?:^|_)document$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().includes('pdf'))) {
           defaultName = 'Documento'
-        } else if (cleanLower.includes('_image') || (mimeType && mimeType.toLowerCase().startsWith('image/'))) {
+        } else if (/(?:^|_)image$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().startsWith('image/'))) {
           defaultName = 'Imagen'
-        } else if (cleanLower.includes('_video') || (mimeType && mimeType.toLowerCase().startsWith('video/'))) {
+        } else if (/(?:^|_)video$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().startsWith('video/'))) {
           defaultName = 'Video'
-        } else if (cleanLower.includes('_audio') || (mimeType && mimeType.toLowerCase().startsWith('audio/'))) {
+        } else if (/(?:^|_)audio$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().startsWith('audio/'))) {
           defaultName = 'Audio'
         } else {
           defaultName = 'Archivo'
