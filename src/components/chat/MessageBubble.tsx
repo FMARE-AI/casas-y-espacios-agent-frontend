@@ -410,19 +410,40 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
 
 const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [playbackFailed, setPlaybackFailed] = useState(false)
   const isAdvisor = msg.direction === 'outbound_advisor'
+  const hasPlayableUrl = !!msg.media_url && /^https?:\/\//i.test(msg.media_url)
 
-  if (msg.media_url) {
+  if (msg.media_url && !hasPlayableUrl) {
+    console.error('[VideoBubble] media_url is not a valid URL — backend likely returned a raw Meta media ID instead of a signed Storage URL', {
+      msg_id: msg.id,
+      media_url: msg.media_url,
+    })
+  }
+
+  if (hasPlayableUrl && !playbackFailed) {
     return (
       <div className="flex flex-col gap-1.5 max-w-[240px]">
         <div className="rounded-xl overflow-hidden border border-border-default/60 shadow-md bg-black w-full max-h-[320px] flex items-center justify-center relative group/video">
           <video
+            src={msg.media_url}
             controls
             preload="none"
             playsInline
             className="w-full min-h-[135px] max-h-[320px] object-contain bg-black"
+            onError={(e) => {
+              const el = e.currentTarget
+              console.error('[VideoBubble] failed to load', {
+                msg_id: msg.id,
+                media_url: msg.media_url,
+                media_mime_type: msg.media_mime_type,
+                error_code: el.error?.code,
+                error_message: el.error?.message,
+                network_state: el.networkState,
+              })
+              setPlaybackFailed(true)
+            }}
           >
-            <source src={msg.media_url} type={msg.media_mime_type ?? 'video/mp4'} />
             Tu navegador no soporta la reproducción de video.
           </video>
 
@@ -503,6 +524,19 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
                 autoPlay
                 playsInline
                 className="max-w-full max-h-full rounded-lg object-contain shadow-2xl bg-black"
+                onError={(e) => {
+                  const el = e.currentTarget
+                  console.error('[VideoBubble] failed to load (expanded view)', {
+                    msg_id: msg.id,
+                    media_url: msg.media_url,
+                    media_mime_type: msg.media_mime_type,
+                    error_code: el.error?.code,
+                    error_message: el.error?.message,
+                    network_state: el.networkState,
+                  })
+                  setPlaybackFailed(true)
+                  setIsExpanded(false)
+                }}
               />
             </div>
 
@@ -519,11 +553,11 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   }
   return (
     <div className="flex flex-col gap-1.5 max-w-[240px]">
-      <div className="w-48 h-32 bg-border-default rounded-xl flex items-center justify-center border border-border-default/60 shadow-md">
-        <svg className="w-10 h-10 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div className="w-48 h-32 bg-border-default rounded-xl flex flex-col items-center justify-center gap-1.5 border border-border-default/60 shadow-md">
+        <svg className="w-8 h-8 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636a9 9 0 010 12.728m-3.536-9.192a5 5 0 010 7.072M12 12h.01M4.222 4.222l15.556 15.556" />
         </svg>
+        <span className="text-[10px] text-text-secondary font-medium px-2 text-center">Video no disponible</span>
       </div>
       {msg.content && (
         <p className="text-sm text-text-primary px-1 whitespace-pre-wrap leading-relaxed">
