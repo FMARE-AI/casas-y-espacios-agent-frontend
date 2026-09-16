@@ -1,6 +1,16 @@
 import { memo, useState } from 'react'
 import { format, parseISO } from 'date-fns'
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import type { Message } from '../../types'
+import { downloadMedia, downloadRotatedImage } from '../../lib/mediaDownload'
+
+type Rotation = 0 | 90 | 180 | 270
+
+function nextRotation(current: Rotation, direction: 1 | -1): Rotation {
+  const steps: Rotation[] = [0, 90, 180, 270]
+  const index = steps.indexOf(current)
+  return steps[(index + direction + steps.length) % steps.length]
+}
 
 interface MessageBubbleProps {
   message: Message
@@ -164,6 +174,13 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     // Remove UUID prefix (e.g.: f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd_ or f48ea92a-3b32-4d7a-b280-9a2c1b82fbcd-)
     cleanBase = cleanBase.replace(/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}[_-]/, '')
 
+    // Remove WhatsApp wam_id prefix (e.g.: wamid.HBgMNTczMTM1ODIwOTc1...EIA___). Inbound
+    // Storage paths are "{wam_id}_{real filename or media type}" — without stripping
+    // this, the real filename after it (or the bare "document"/"image"/... when Meta
+    // sent none) never surfaces, because the whole string still contains "wamid" and
+    // trips the isWamid generic-fallback check below.
+    cleanBase = cleanBase.replace(/^wamid\.[a-zA-Z0-9+/=]+[_-]+/i, '')
+
     // Remove timestamp suffix (e.g.: _1719543592 or -1719543592)
     cleanBase = cleanBase.replace(/[_-]\d{10,15}$/, '')
 
@@ -173,7 +190,10 @@ function getFileName(url: string | null, mimeType: string | null = null): string
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanBase)
     const isHash = /^[0-9a-f]{24,}$/i.test(cleanBase) || /^[a-zA-Z0-9]{30,}$/.test(cleanBase) || /[a-zA-Z0-9]{20,}/.test(cleanBase)
     const isDigits = /^\d+$/.test(cleanBase)
-    const isGenericDocument = cleanLower.includes('_document') || cleanLower.includes('_image') || cleanLower.includes('_video') || cleanLower.includes('_audio')
+    // Matches both the legacy "{wam_id}_document" shape (leftover "_document" when
+    // no real filename made it to Storage) and the wamid-stripped bare "document"
+    // (nothing left after the prefix strip above).
+    const isGenericDocument = /(?:^|_)(document|image|video|audio)$/.test(cleanLower)
 
     if (!cleanBase || isWamid || isUuid || isHash || isDigits || isGenericDocument) {
       const standardNames: Record<string, string> = {
@@ -199,13 +219,13 @@ function getFileName(url: string | null, mimeType: string | null = null): string
       // Deducir el nombre si no coincide con las extensiones directas
       let defaultName = standardNames[ext]
       if (!defaultName) {
-        if (cleanLower.includes('_document') || (mimeType && mimeType.toLowerCase().includes('pdf'))) {
+        if (/(?:^|_)document$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().includes('pdf'))) {
           defaultName = 'Documento'
-        } else if (cleanLower.includes('_image') || (mimeType && mimeType.toLowerCase().startsWith('image/'))) {
+        } else if (/(?:^|_)image$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().startsWith('image/'))) {
           defaultName = 'Imagen'
-        } else if (cleanLower.includes('_video') || (mimeType && mimeType.toLowerCase().startsWith('video/'))) {
+        } else if (/(?:^|_)video$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().startsWith('video/'))) {
           defaultName = 'Video'
-        } else if (cleanLower.includes('_audio') || (mimeType && mimeType.toLowerCase().startsWith('audio/'))) {
+        } else if (/(?:^|_)audio$/.test(cleanLower) || (mimeType && mimeType.toLowerCase().startsWith('audio/'))) {
           defaultName = 'Audio'
         } else {
           defaultName = 'Archivo'
@@ -242,19 +262,171 @@ function formatFileSize(bytes: number): string {
 
 // ── Media placeholders ────────────────────────────────────
 
+function DownloadIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+    </svg>
+  )
+}
+
+// Floating icon-only download button, meant to sit over a thumbnail (image/video).
+function FloatingDownloadButton({ onClick, title = 'Descargar' }: { onClick: () => void; title?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="absolute top-2 left-2 p-1.5 bg-black/60 hover:bg-black/85 rounded-control text-white/95 opacity-0 group-hover/video:opacity-100 transition duration-200 shadow-lg border border-white/10 z-10 flex items-center justify-center cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+    >
+      <DownloadIcon />
+    </button>
+  )
+}
+
+function LightboxToolButton({
+  onClick,
+  title,
+  children,
+}: {
+  onClick: (e: React.MouseEvent) => void
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+    >
+      {children}
+    </button>
+  )
+}
+
+// Fullscreen image viewer: pan/zoom (react-zoom-pan-pinch) for inspecting
+// detail, plus 90°-step rotation baked into the file on download (the CSS
+// rotation here is preview-only — downloadRotatedImage re-renders the pixels
+// on a canvas so the saved file actually comes out rotated).
+function ImageLightbox({
+  src,
+  alt,
+  caption,
+  filename,
+  onClose,
+}: {
+  src: string
+  alt: string
+  caption: string | null
+  filename: string
+  onClose: () => void
+}) {
+  const [rotation, setRotation] = useState<Rotation>(0)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div className="absolute top-4 right-4 flex items-center gap-2 z-50">
+        <LightboxToolButton
+          title="Descargar"
+          onClick={(e) => {
+            e.stopPropagation()
+            downloadRotatedImage(src, filename, rotation)
+          }}
+        >
+          <DownloadIcon className="w-5 h-5" />
+        </LightboxToolButton>
+        <LightboxToolButton title="Cerrar" onClick={onClose}>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </LightboxToolButton>
+      </div>
+
+      <div
+        className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center cursor-default"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <TransformWrapper initialScale={1} minScale={1} maxScale={4} centerOnInit doubleClick={{ mode: 'toggle' }}>
+          {({ zoomIn, zoomOut }) => (
+            <>
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-2 z-50 mb-1">
+                <LightboxToolButton title="Alejar" onClick={() => zoomOut()}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM13.5 10.5h-6" />
+                  </svg>
+                </LightboxToolButton>
+                <LightboxToolButton
+                  title="Girar 90°"
+                  onClick={() => setRotation((r) => nextRotation(r, 1))}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </LightboxToolButton>
+                <LightboxToolButton title="Acercar" onClick={() => zoomIn()}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+                  </svg>
+                </LightboxToolButton>
+              </div>
+              <TransformComponent
+                wrapperStyle={{ width: '100%', height: '100%' }}
+                contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <img
+                  src={src}
+                  alt={alt}
+                  className="max-w-full max-h-[75vh] object-contain shadow-2xl"
+                  style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 200ms ease' }}
+                />
+              </TransformComponent>
+            </>
+          )}
+        </TransformWrapper>
+      </div>
+
+      {caption && (
+        <p className="mt-4 text-sm text-text-primary bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
+          {caption}
+        </p>
+      )}
+    </div>
+  )
+}
+
 const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [imageFailed, setImageFailed] = useState(false)
+  const fileName = msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type)
 
-  if (msg.media_url) {
+  const handleDownload = () => {
+    downloadMedia(msg.media_url, fileName)
+  }
+
+  if (msg.media_url && !imageFailed) {
     return (
       <div className="flex flex-col gap-1.5 max-w-[240px]">
-        <img
-          src={msg.media_url}
-          alt={decodeMessageContent(msg.content) ?? 'Imagen'}
-          loading="lazy"
-          className="rounded-lg w-full h-auto max-h-[300px] object-cover cursor-pointer hover:opacity-90 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
-          onClick={() => setIsExpanded(true)}
-        />
+        <div className="relative group/video rounded-lg overflow-hidden">
+          <img
+            src={msg.media_url}
+            alt={decodeMessageContent(msg.content) ?? 'Imagen'}
+            loading="lazy"
+            className="rounded-lg w-full h-auto max-h-[300px] object-cover cursor-pointer hover:opacity-90 hover:scale-[1.01] active:scale-[0.98] transition-all duration-200"
+            onClick={() => setIsExpanded(true)}
+            onError={() => {
+              console.error('[ImageBubble] failed to load', {
+                msg_id: msg.id,
+                media_url: msg.media_url,
+              })
+              setImageFailed(true)
+            }}
+          />
+          <FloatingDownloadButton onClick={handleDownload} />
+        </div>
         {msg.content && (
           <p className="text-sm text-text-primary px-1 whitespace-pre-wrap">
             {decodeMessageContent(msg.content)}
@@ -262,37 +434,13 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
         )}
 
         {isExpanded && (
-          <div
-            className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 cursor-zoom-out animate-fade-in"
-            onClick={() => setIsExpanded(false)}
-          >
-            {/* Botón Cerrar */}
-            <button
-              type="button"
-              className="absolute top-4 right-4 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 z-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
-              onClick={() => setIsExpanded(false)}
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-
-            {/* Contenedor imagen grande */}
-            <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
-              <img
-                src={msg.media_url}
-                alt={decodeMessageContent(msg.content) ?? 'Imagen'}
-                className="max-w-full max-h-full rounded-lg object-contain shadow-2xl cursor-default"
-              />
-            </div>
-
-            {/* Caption */}
-            {msg.content && (
-              <p className="mt-4 text-sm text-text-primary bg-black/60 px-4 py-2 rounded-xl border border-white/5 max-w-xl text-center shadow-lg">
-                {decodeMessageContent(msg.content)}
-              </p>
-            )}
-          </div>
+          <ImageLightbox
+            src={msg.media_url}
+            alt={decodeMessageContent(msg.content) ?? 'Imagen'}
+            caption={decodeMessageContent(msg.content)}
+            filename={fileName}
+            onClose={() => setIsExpanded(false)}
+          />
         )}
       </div>
     )
@@ -317,49 +465,58 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
 
 const DocumentBubble = memo(function DocumentBubble({ msg }: { msg: Message }) {
   const isAdvisor = msg.direction === 'outbound_advisor'
+  const fileName = msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type)
   return (
     <div className="flex flex-col gap-2.5 min-w-[220px] p-2">
-      <a
-        href={msg.media_url ?? '#'}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={`flex items-center gap-3 border rounded-xl p-3 transition duration-200 no-underline group shadow-inner ${
-          isAdvisor 
-            ? 'bg-black/10 border-white/20 hover:bg-black/20 hover:border-white/30' 
+      <div
+        className={`flex items-center gap-3 border rounded-xl p-3 transition duration-200 group shadow-inner ${
+          isAdvisor
+            ? 'bg-black/10 border-white/20 hover:bg-black/20 hover:border-white/30'
             : 'bg-black/15 border-white/5 hover:border-white/10 hover:bg-black/25'
         }`}
       >
-        <div
-          className="w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0 shadow-sm transition group-hover:scale-105"
-          style={{
-            backgroundColor: `${getFileIcon(msg.media_mime_type).color}20`
-          }}
+        <a
+          href={msg.media_url ?? '#'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 flex-1 min-w-0 no-underline"
+          title="Abrir en pestaña nueva"
         >
-          {getFileIcon(msg.media_mime_type).icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-semibold truncate transition ${
-            isAdvisor ? 'text-white group-hover:text-white' : 'text-text-primary group-hover:text-white'
-          }`}>
-            {msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type)}
-          </p>
-          <p className={`text-[10px] mt-0.5 font-medium ${
-            isAdvisor ? 'text-white/70' : 'text-text-secondary'
-          }`}>
-            {getFileTypeLabel(msg.media_mime_type)}
-            {msg.media_size_bytes && ` • ${formatFileSize(msg.media_size_bytes)}`}
-          </p>
-        </div>
-        <div className={`w-7 h-7 rounded-full border flex items-center justify-center transition duration-200 flex-shrink-0 shadow-sm animate-fade-in ${
-          isAdvisor 
-            ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30' 
-            : 'bg-white/5 border-white/5 text-text-secondary group-hover:text-text-primary group-hover:border-white/10'
-        }`}>
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-          </svg>
-        </div>
-      </a>
+          <div
+            className="w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0 shadow-sm transition group-hover:scale-105"
+            style={{
+              backgroundColor: `${getFileIcon(msg.media_mime_type).color}20`
+            }}
+          >
+            {getFileIcon(msg.media_mime_type).icon}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-semibold truncate transition ${
+              isAdvisor ? 'text-white group-hover:text-white' : 'text-text-primary group-hover:text-white'
+            }`}>
+              {fileName}
+            </p>
+            <p className={`text-[10px] mt-0.5 font-medium ${
+              isAdvisor ? 'text-white/70' : 'text-text-secondary'
+            }`}>
+              {getFileTypeLabel(msg.media_mime_type)}
+              {msg.media_size_bytes && ` • ${formatFileSize(msg.media_size_bytes)}`}
+            </p>
+          </div>
+        </a>
+        <button
+          type="button"
+          onClick={() => downloadMedia(msg.media_url, fileName)}
+          title="Descargar"
+          className={`w-7 h-7 rounded-full border flex items-center justify-center transition duration-200 flex-shrink-0 shadow-sm cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 ${
+            isAdvisor
+              ? 'bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30'
+              : 'bg-white/5 border-white/5 text-text-secondary hover:text-text-primary hover:border-white/10'
+          }`}
+        >
+          <DownloadIcon className="w-3.5 h-3.5" />
+        </button>
+      </div>
       {msg.content && (
         <p className={`mt-2 px-1 text-sm whitespace-pre-wrap leading-relaxed ${
           isAdvisor ? 'text-white font-medium animate-fade-in' : 'text-text-primary'
@@ -375,13 +532,23 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
   if (msg.media_url) {
     return (
       <div className="p-1.5 min-w-[220px] flex flex-col items-stretch gap-2.5">
-        <audio
-          src={msg.media_url}
-          controls
-          preload="none"
-          className="h-8 w-full max-w-[240px] shadow-sm rounded-lg"
-          style={{ accentColor: 'var(--color-brand-blue)' }}
-        />
+        <div className="flex items-center gap-2">
+          <audio
+            src={msg.media_url}
+            controls
+            preload="none"
+            className="h-8 w-full max-w-[240px] shadow-sm rounded-lg"
+            style={{ accentColor: 'var(--color-brand-blue)' }}
+          />
+          <button
+            type="button"
+            onClick={() => downloadMedia(msg.media_url, msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type))}
+            title="Descargar audio"
+            className="p-1.5 rounded-full text-text-secondary hover:text-text-primary hover:bg-white/10 transition duration-200 shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+          >
+            <DownloadIcon className="w-4 h-4" />
+          </button>
+        </div>
         {msg.transcription && (
           <details className="text-[10px] text-text-secondary cursor-pointer select-none">
             <summary className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/10 transition outline-none font-bold">
@@ -410,21 +577,46 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
 
 const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [playbackFailed, setPlaybackFailed] = useState(false)
   const isAdvisor = msg.direction === 'outbound_advisor'
+  const hasPlayableUrl = !!msg.media_url && /^https?:\/\//i.test(msg.media_url)
 
-  if (msg.media_url) {
+  if (msg.media_url && !hasPlayableUrl) {
+    console.error('[VideoBubble] media_url is not a valid URL — backend likely returned a raw Meta media ID instead of a signed Storage URL', {
+      msg_id: msg.id,
+      media_url: msg.media_url,
+    })
+  }
+
+  if (hasPlayableUrl && !playbackFailed) {
     return (
       <div className="flex flex-col gap-1.5 max-w-[240px]">
         <div className="rounded-xl overflow-hidden border border-border-default/60 shadow-md bg-black w-full max-h-[320px] flex items-center justify-center relative group/video">
           <video
+            src={msg.media_url ?? undefined}
             controls
-            preload="none"
+            preload="metadata"
             playsInline
             className="w-full min-h-[135px] max-h-[320px] object-contain bg-black"
+            onError={(e) => {
+              const el = e.currentTarget
+              console.error('[VideoBubble] failed to load', {
+                msg_id: msg.id,
+                media_url: msg.media_url,
+                media_mime_type: msg.media_mime_type,
+                error_code: el.error?.code,
+                error_message: el.error?.message,
+                network_state: el.networkState,
+              })
+              setPlaybackFailed(true)
+            }}
           >
-            <source src={msg.media_url} type={msg.media_mime_type ?? 'video/mp4'} />
             Tu navegador no soporta la reproducción de video.
           </video>
+
+          <FloatingDownloadButton
+            onClick={() => downloadMedia(msg.media_url, msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type))}
+          />
 
           {/* Botón flotante para expandir */}
           <button
@@ -455,19 +647,16 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
               <span>Ver en grande</span>
             </button>
             <span className={isAdvisor ? 'text-white/25' : 'text-white/10'}>•</span>
-            <a
-              href={msg.media_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`font-bold flex items-center gap-1 transition ${
+            <button
+              type="button"
+              onClick={() => downloadMedia(msg.media_url, msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type))}
+              className={`font-bold flex items-center gap-1 transition cursor-pointer ${
                 isAdvisor ? 'text-white hover:text-white/80' : 'text-brand-blue hover:text-brand-blue-light'
-              }`}
+              } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90`}
             >
               <span>Descargar</span>
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-            </a>
+              <DownloadIcon className="w-3.5 h-3.5" />
+            </button>
           </div>
         </div>
 
@@ -484,6 +673,19 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
             className="fixed inset-0 z-50 bg-black/95 flex flex-col items-center justify-center p-4 animate-fade-in"
             onClick={() => setIsExpanded(false)}
           >
+            {/* Botón Descargar */}
+            <button
+              type="button"
+              className="absolute top-4 right-16 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition duration-200 z-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+              onClick={(e) => {
+                e.stopPropagation()
+                downloadMedia(msg.media_url, msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type))
+              }}
+              title="Descargar"
+            >
+              <DownloadIcon className="w-5 h-5" />
+            </button>
+
             {/* Botón Cerrar */}
             <button
               type="button"
@@ -498,11 +700,24 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
             {/* Contenedor del video expandido */}
             <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <video
-                src={msg.media_url}
+                src={msg.media_url ?? undefined}
                 controls
                 autoPlay
                 playsInline
                 className="max-w-full max-h-full rounded-lg object-contain shadow-2xl bg-black"
+                onError={(e) => {
+                  const el = e.currentTarget
+                  console.error('[VideoBubble] failed to load (expanded view)', {
+                    msg_id: msg.id,
+                    media_url: msg.media_url,
+                    media_mime_type: msg.media_mime_type,
+                    error_code: el.error?.code,
+                    error_message: el.error?.message,
+                    network_state: el.networkState,
+                  })
+                  setPlaybackFailed(true)
+                  setIsExpanded(false)
+                }}
               />
             </div>
 
@@ -519,11 +734,11 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   }
   return (
     <div className="flex flex-col gap-1.5 max-w-[240px]">
-      <div className="w-48 h-32 bg-border-default rounded-xl flex items-center justify-center border border-border-default/60 shadow-md">
-        <svg className="w-10 h-10 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <div className="w-48 h-32 bg-border-default rounded-xl flex flex-col items-center justify-center gap-1.5 border border-border-default/60 shadow-md">
+        <svg className="w-8 h-8 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 5.636a9 9 0 010 12.728m-3.536-9.192a5 5 0 010 7.072M12 12h.01M4.222 4.222l15.556 15.556" />
         </svg>
+        <span className="text-[10px] text-text-secondary font-medium px-2 text-center">Video no disponible</span>
       </div>
       {msg.content && (
         <p className="text-sm text-text-primary px-1 whitespace-pre-wrap leading-relaxed">

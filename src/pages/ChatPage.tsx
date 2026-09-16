@@ -11,6 +11,8 @@ import type {
   WSEscalationNew,
   WSEscalationAssigned,
   WSConversationTransferred,
+  WSConversationControlTaken,
+  WSMessageMediaUpdated,
 } from "../types";
 import MessageFeed from "../components/chat/MessageFeed";
 import ChatInput from "../components/chat/ChatInput";
@@ -43,6 +45,12 @@ const STATUS_DOT: Record<ChatVariant, string> = {
   monitoring: "bg-warning",
 };
 
+// Generic farewell sent when the advisor closes a conversation without
+// having said goodbye themselves — must stay neutral since it's used across
+// every resolution type, not just successfully resolved cases.
+const FAREWELL_MESSAGE =
+  "¡Gracias por contactarnos! Damos por finalizada esta conversación. Si necesitas algo más, no dudes en escribirnos de nuevo. ¡Que tengas un excelente día! 👋";
+
 // ── Page ──────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -67,6 +75,7 @@ export default function ChatPage() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
+  const [isTakingControl, setIsTakingControl] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [showReturnedPill, setShowReturnedPill] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -259,6 +268,26 @@ export default function ChatPage() {
     [conversationId, role],
   );
 
+  // Backfill for video/document/image/audio messages: describe_image/
+  // transcribe_audio/handle_unsupported_media's background download finishes
+  // AFTER the message was already rendered with the raw Meta media_id (real
+  // incident 2026-09-15 — a video only played after a manual reload because
+  // nothing patched the already-open chat's stale bubble). Match by wam_id,
+  // the one stable identifier shared between the WS event and Message.
+  const onMessageMediaUpdated = useCallback(
+    (event: WSMessageMediaUpdated) => {
+      if (event.conversation_id !== conversationId) return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.wam_id === event.wam_id
+            ? { ...m, media_url: event.media_url, media_mime_type: event.media_mime_type }
+            : m,
+        ),
+      );
+    },
+    [conversationId],
+  );
+
   const onConversationReturned = useCallback(
     (event: { conversation_id: string }) => {
       if (event.conversation_id === conversationId) {
@@ -267,6 +296,35 @@ export default function ChatPage() {
       }
     },
     [conversationId, loadConversation],
+  );
+
+  // Another advisor/admin took control while this chat is open. Our own
+  // take-control action is already reflected via the HTTP response (see
+  // handleTakeControl) — patch directly from the event payload instead of
+  // refetching, same reasoning as onEscalationAssigned not needing one.
+  const onConversationControlTaken = useCallback(
+    (event: WSConversationControlTaken) => {
+      if (event.conversation_id !== conversationId) return;
+      const selfId = useAuthStore.getState().advisor?.id;
+      if (event.advisor_id === selfId) return;
+      setShowReturnedPill(false);
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              bot_activo: false,
+              escalation: {
+                id: event.escalation_id,
+                reason: "control_manual_directo",
+                summary: null,
+                escalated_at: new Date().toISOString(),
+                advisor: { id: event.advisor_id, full_name: event.advisor_name },
+              },
+            }
+          : prev,
+      );
+    },
+    [conversationId],
   );
 
   const onConversationClosed = useCallback(
@@ -344,16 +402,20 @@ export default function ChatPage() {
   const wsHandlers = useMemo(
     () => ({
       onMessageNew: onNewMessage,
+      onMessageMediaUpdated: onMessageMediaUpdated,
       onEscalationNew: onEscalationNew,
       onConversationReturned: onConversationReturned,
+      onConversationControlTaken: onConversationControlTaken,
       onConversationClosed: onConversationClosed,
       onEscalationAssigned: onEscalationAssigned,
       onConversationTransferred: onConversationTransferred,
     }),
     [
       onNewMessage,
+      onMessageMediaUpdated,
       onEscalationNew,
       onConversationReturned,
+      onConversationControlTaken,
       onConversationClosed,
       onEscalationAssigned,
       onConversationTransferred,
@@ -467,6 +529,53 @@ export default function ChatPage() {
     }
   }
 
+  async function handleTakeControl() {
+    if (!conversationId) return;
+    setIsTakingControl(true);
+    try {
+      const result = await conversationsService.takeControl(conversationId);
+      // A manual take-control is the opposite of a bot return — clear the
+      // "returned to bot" pill so it doesn't render alongside the new
+      // escalation banner below (stale otherwise until the next full reload).
+      setShowReturnedPill(false);
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              bot_activo: result.conversation.bot_activo,
+              status: result.conversation.status,
+              escalation: {
+                id: result.escalation.id,
+                reason: "control_manual_directo",
+                summary: null,
+                // The PATCH response doesn't echo escalated_at — close enough,
+                // it only matters for the queued/unassigned wait indicator,
+                // which never shows once escalation.advisor is set.
+                escalated_at: new Date().toISOString(),
+                advisor: { id: result.escalation.advisor_id, full_name: result.escalation.advisor_name },
+              },
+            }
+          : prev,
+      );
+    } catch (err: unknown) {
+      const code = extractErrorCode(err);
+      if (code === "CONTROL_ALREADY_TAKEN") {
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ?? "Otro asesor ya tiene el control de esta conversación.",
+          'error',
+        );
+        await loadConversation();
+      } else if (code === "CONVERSATION_NOT_ACTIVE") {
+        useToastStore.getState().showToast("Esta conversación ya está cerrada.", 'error');
+        await loadConversation();
+      } else if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
+      }
+    } finally {
+      setIsTakingControl(false);
+    }
+  }
+
   async function handleReturnBot() {
     if (!conversationId) return;
     setIsReturning(true);
@@ -490,7 +599,16 @@ export default function ChatPage() {
     if (!conversationId) return;
     setIsClosing(true);
     try {
-      await conversationsService.close(conversationId, data);
+      // Best-effort farewell — a send failure must never block the close itself.
+      if (!data.alreadySaidGoodbye) {
+        try {
+          await conversationsService.replyText(conversationId, FAREWELL_MESSAGE);
+        } catch {
+          // interceptor already showed the error toast; closing continues regardless
+        }
+      }
+      const { resolution_type, resolution_notes, client_satisfied } = data;
+      await conversationsService.close(conversationId, { resolution_type, resolution_notes, client_satisfied });
       setShowCloseModal(false);
       navigate("/");
     } catch (err: unknown) {
@@ -504,10 +622,17 @@ export default function ChatPage() {
   }
 
   function getChatVariant(): ChatVariant {
-    if (role === "admin") return "monitoring";
     if (!conversation) return "unassigned";
-    if (conversation.escalation?.advisor?.id === advisor?.id) return "assigned";
-    if (conversation.bot_activo) return "bot";
+    const { bot_activo, escalation } = conversation;
+    const isAdmin = role === "admin";
+    const yoTengoControl = !bot_activo && escalation?.advisor?.id === advisor?.id;
+    if (yoTengoControl) return "assigned";
+    // Admin bypass: the backend lets any admin act (reply/return-bot/close) on
+    // a conversation someone else manually controls — mirror that here so the
+    // UI doesn't lock admins out of a permission they actually have.
+    if (isAdmin && !bot_activo && !!escalation?.advisor) return "assigned";
+    if (bot_activo) return "bot";
+    if (!bot_activo && escalation?.advisor) return "monitoring";
     return "unassigned";
   }
 
@@ -576,33 +701,56 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Monitoring pill */}
-            {variant === "monitoring" && (
-              <div
-                id="monitoring-mode-pill"
-                className="bg-warning/15 text-warning text-[10px] px-2.5 py-1 rounded font-black border border-warning/30 flex items-center gap-1 animate-pulse"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {/* Control toggle — hidden on closed conversations (no action makes sense there) */}
+            {conversation && conversation.status !== "cerrada" && (
+              conversation.bot_activo ? (
+                <button
+                  type="button"
+                  id="take-control-button"
+                  onClick={handleTakeControl}
+                  disabled={isTakingControl}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control text-xs font-bold shadow-md shadow-brand-blue/30 transition disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                  />
-                </svg>
-                <span>Monitoreo</span>
-              </div>
+                  {isTakingControl ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                  )}
+                  <span>Tomar control manual</span>
+                </button>
+              ) : (
+                conversation.escalation?.advisor && (
+                  <div
+                    id="control-status-pill"
+                    className={`text-[10px] px-2.5 py-1 rounded font-black border flex items-center gap-1 ${
+                      conversation.escalation.advisor.id === advisor?.id
+                        ? "bg-success/15 text-success border-success/30"
+                        : "bg-warning/15 text-warning border-warning/30"
+                    }`}
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
+                    </svg>
+                    <span>
+                      {conversation.escalation.reason === "control_manual_directo"
+                        ? `Control manual — ${conversation.escalation.advisor.full_name}`
+                        : `Asignada — ${conversation.escalation.advisor.full_name}`}
+                    </span>
+                  </div>
+                )
+              )
             )}
 
             {/* Mobile details toggle */}
@@ -669,7 +817,9 @@ export default function ChatPage() {
                 id="chat-banner-monitoring"
                 className="p-2.5 bg-warning/5 text-center border border-warning/20 rounded text-xs text-warning font-semibold"
               >
-                👁️ Modo Monitoreo • Vista de solo lectura para administradores.
+                {conversation?.escalation?.advisor
+                  ? `🔒 ${conversation.escalation.advisor.full_name} tiene el control manual de esta conversación.`
+                  : "👁️ Modo de solo lectura."}
               </div>
             )}
             {variant === "bot" && (

@@ -125,12 +125,20 @@ export interface Message {
   _fileName?: string;
 }
 
+// Only the fields every escalation.advisor payload actually carries (detail,
+// list, and every WS event) — never the full Advisor shape (email, role,
+// max_conversations, etc.), which the backend never sends on this field.
+export interface EscalationAdvisorRef {
+  id: string;
+  full_name: string;
+}
+
 export interface Escalation {
   id: string;
   reason: string;
   summary: string | null;
   escalated_at: string;
-  advisor: Advisor | null;
+  advisor: EscalationAdvisorRef | null;
   wait_seconds?: number | null;
   transfer_reason?: string | null;
 }
@@ -257,6 +265,13 @@ export interface WSEscalationNew {
   channel: string;
 }
 
+// Emitted once when a brand-new conversation is created (bot-handled, not
+// escalated yet) — bandeja list-view refresh only, never a sound.
+export interface WSConversationNew {
+  conversation_id: string;
+  channel: string;
+}
+
 export interface WSMessageNew {
   message: Message;
   conversation_id?: string;
@@ -292,6 +307,15 @@ export interface WSEscalationAssigned {
 
 export interface WSConversationReturned {
   conversation_id: string;
+  advisor_id: string;
+  advisor_name: string;
+}
+
+// Emitted only on a real take-control (PW-24) — never on the idempotent
+// "you already had it" path.
+export interface WSConversationControlTaken {
+  conversation_id: string;
+  escalation_id: string;
   advisor_id: string;
   advisor_name: string;
 }
@@ -332,4 +356,16 @@ export interface WSConversationPriorityUpdated {
   conversation_id: string;
   priority: ConversationPriority;
   updated_by: "bot";
+}
+
+// Emitted after a video/document/image/audio message's media_url is backfilled
+// from the raw Meta media_id to a real Storage URL — happens after message.new
+// already delivered the original row, since the media must be persisted before
+// the download even starts. Lets an already-open chat fix the bubble live
+// instead of only after a reload.
+export interface WSMessageMediaUpdated {
+  conversation_id: string;
+  wam_id: string;
+  media_url: string;
+  media_mime_type: string | null;
 }

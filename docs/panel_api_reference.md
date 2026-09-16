@@ -708,11 +708,75 @@ msg_type = "document" → render download link using media_url
 
 ---
 
+### PATCH /api/v1/panel/conversations/{conversation_id}/take-control
+
+> ⚠️ **Deployment status:** requires a DB migration (new `escalations.reason` value + a uniqueness constraint) that may not be applied in every environment yet — see `specs/human_handover_direct_control/03-design.md`. If this endpoint 500s specifically on a conversation the bot is still actively handling (not yet `escalada`), check with backend whether the migration has landed in that environment before assuming a frontend bug.
+
+**Auth required:** Yes (any active advisor — see Notes on area restriction)
+
+**Description:** Takes **direct manual control** of any non-closed conversation immediately, without requiring the bot to have escalated it first. Unlike `assign`, this works on a conversation the bot is still actively handling (`status = "activa"`, `bot_activo = true`) as well as on one already `escalada`. No request body — the caller always takes control for themselves.
+
+Internally this creates (or claims) an `escalations` row with `reason = "control_manual_directo"` and `advisor_id` set to the caller, and sets `bot_activo = false` + `status = "escalada"` on the conversation — the same state shape `assign` produces, so every other endpoint and WebSocket event that reads escalation/`bot_activo` state (inbox filters, `GET /conversations/{id}`, etc.) treats a directly-taken conversation identically to a bot-escalated one. The only visible difference is `escalation.reason`.
+
+**Path params:**
+
+| Param             | Type            | Description                         |
+| ----------------- | --------------- | ----------------------------------- |
+| `conversation_id` | `string` (UUID) | The conversation to take control of |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "conversation": {
+      "id": "550e8400-e29b-41d4-a716-446655440010",
+      "bot_activo": false,
+      "status": "escalada"
+    },
+    "escalation": {
+      "id": "550e8400-e29b-41d4-a716-446655440031",
+      "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
+      "advisor_name": "Ana Gómez"
+    }
+  }
+}
+```
+
+Also returned with `200` (unchanged, no new writes) if the caller already had control — see Notes.
+
+**Errors:**
+
+| HTTP | ErrorCode                 | When                                                                                                                         |
+| ---- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| 401  | `INVALID_TOKEN`           | Missing or invalid JWT                                                                                                       |
+| 403  | `ADVISOR_INACTIVE`        | Advisor account is deactivated                                                                                               |
+| 404  | `CONVERSATION_NOT_FOUND`  | No conversation with the given ID                                                                                            |
+| 409  | `CONVERSATION_NOT_ACTIVE` | Conversation `status` is already `cerrada` — control cannot be taken over a closed conversation                              |
+| 409  | `CONTROL_ALREADY_TAKEN`   | Another advisor already has control — `message` names them (e.g. `"Mariana Rojas ya tiene el control de esta conversación"`) |
+
+**Notes:**
+
+- **No area/channel restriction, unlike every other mutating endpoint in this file.** Any active advisor — regardless of `area`/`specialty`, and regardless of the conversation's `channel` — can take control of any non-closed conversation. This is deliberate (see `specs/human_handover_direct_control/02-clarification.md`, Q1): the whole point is letting whoever notices a conversation needs a human step in immediately, not gate it behind routing.
+- **Idempotent for the same caller:** calling this again while you already hold control returns `200` with the existing state, writes nothing new, and emits no new WebSocket event or client-facing message. Safe to retry on a network timeout.
+- **No override — first to take it wins.** If another advisor already has control, this always returns `409 CONTROL_ALREADY_TAKEN`, even for admins. There is no "steal control" action.
+- **Does not count against `max_conversations`.** Unlike `assign`, taking direct control has no capacity limit — an advisor can hold as many directly-taken conversations as they judge necessary.
+- A real-time-safe concurrency guarantee backs this (a DB-level unique constraint, not app-side locking), so two advisors racing to take the same free conversation cannot both succeed — the loser always gets a `409 CONTROL_ALREADY_TAKEN` naming the winner.
+- On success, the client also receives a WhatsApp message announcing a human has taken over — sent best-effort (a WhatsApp delivery failure never blocks the `200` response).
+- To release control, use the **existing** `return-bot` endpoint below — there is no separate "release direct control" endpoint. It already resolves whatever escalation is active (bot-created or directly-taken) and reactivates the bot.
+
+**WebSocket events emitted:**
+
+- `conversation.control_taken` — broadcast to all connected advisors (skipped entirely on the idempotent 200 case)
+- `message.new` — the WhatsApp handover notice, routed the same as any advisor-authored message
+
+---
+
 ### PATCH /api/v1/panel/conversations/{conversation_id}/return-bot
 
 **Auth required:** Yes (assigned advisor or admin)
 
-**Description:** Returns control of the conversation to the bot. Sets `bot_activo = true`, status to `activa`, and resolves the active escalation. No request body.
+**Description:** Returns control of the conversation to the bot. Sets `bot_activo = true`, status to `activa`, and resolves the active escalation. No request body. Works identically whether the active escalation came from a bot escalation + `assign`, or from `take-control` — both leave the same `escalations` row shape, so this endpoint needs no special case for either.
 
 **Path params:**
 
@@ -2034,6 +2098,24 @@ Emitted to **all connected advisors** when an advisor returns a conversation to 
 }
 ```
 
+#### conversation.control_taken
+
+Emitted to **all connected advisors** when an advisor takes direct manual control via `PATCH /conversations/{id}/take-control`. **Not** emitted on the idempotent 200 (caller already had control) — only on an actual state change.
+
+```json
+{
+  "event": "conversation.control_taken",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "escalation_id": "550e8400-e29b-41d4-a716-446655440031",
+    "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
+    "advisor_name": "Ana Gómez"
+  }
+}
+```
+
+Same shape as `escalation.assigned` — handle both with the same card-update logic (update the conversation's assigned advisor, move it out of any "bot handling" view). `escalation.reason` on the conversation will be `"control_manual_directo"` if you need to distinguish it from a bot-initiated escalation in the UI (e.g. a different badge/icon), but no UI behavior should strictly depend on that distinction.
+
 #### conversation.transferred
 
 Emitted when an advisor transfers an active escalation to another advisor via `POST /conversations/{id}/transfer`. Unlike most conversation events, this is **not a broadcast** — it is sent only to: the source advisor (so the conversation disappears from their tray), the target advisor (so it appears as newly assigned), and any connected admins (for audit/monitoring).
@@ -2283,12 +2365,13 @@ Emitted to **admin advisors only** when background moderation detects inappropri
 
 ### EscalationReason
 
-| Value                   | Description                                                            |
-| ----------------------- | ---------------------------------------------------------------------- |
-| `solicitud_usuario`     | Client explicitly requested to speak with a human advisor              |
-| `no_clasificado`        | Bot could not classify the intent after the maximum number of attempts |
-| `error_simi`            | SIMI external service failed the maximum number of times               |
-| `frustracion_detectada` | LLM detected frustration signals in the client's messages              |
+| Value                    | Description                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| `solicitud_usuario`      | Client explicitly requested to speak with a human advisor                                                            |
+| `no_clasificado`         | Bot could not classify the intent after the maximum number of attempts                                               |
+| `error_simi`             | SIMI external service failed the maximum number of times                                                             |
+| `frustracion_detectada`  | LLM detected frustration signals in the client's messages                                                            |
+| `control_manual_directo` | An advisor took direct manual control via `PATCH /conversations/{id}/take-control`, without the bot escalating first |
 
 ### ClientType
 
@@ -2570,7 +2653,34 @@ const response = await fetch(
 ).then((r) => r.json());
 ```
 
+**Taking direct control (any non-closed conversation, no escalation needed):**
+
+Use this instead of `assign` when the conversation is not `escalada` yet (the bot is still handling it) — or any time an advisor wants to step in immediately regardless of who it's routed to. No area/channel check, no `max_conversations` limit. A `409 CONTROL_ALREADY_TAKEN` means someone else got there first — `error.detail.message` already names them, safe to show directly in a toast.
+
+```javascript
+async function takeDirectControl(conversationId) {
+  const response = await fetch(
+    `/api/v1/panel/conversations/${conversationId}/take-control`,
+    { method: "PATCH", headers },
+  );
+
+  if (response.status === 409) {
+    const { detail } = await response.json();
+    if (detail.code === "CONTROL_ALREADY_TAKEN") {
+      showToast(detail.message, "warning"); // "X ya tiene el control..."
+      return null;
+    }
+  }
+
+  return response.json(); // { data: { conversation, escalation } }
+}
+```
+
+Calling it again while you already hold control is safe — it returns `200` unchanged (idempotent), so a UI can call it on every "Take control" click without checking local state first.
+
 **Returning to bot:**
+
+Releases control taken either via `assign` or via `take-control` — same endpoint for both, no branching needed in the frontend.
 
 ```javascript
 const response = await fetch(
@@ -2682,6 +2792,16 @@ ws.onmessage = (event) => {
     case "conversation.returned":
       // Conversation returned to bot control
       markConversationReturnedToBot(data.conversation_id);
+      break;
+
+    case "conversation.control_taken":
+      // An advisor took direct manual control (no prior bot escalation
+      // required) — same card update as escalation.assigned
+      updateConversationAssignment(
+        data.conversation_id,
+        data.advisor_id,
+        data.advisor_name,
+      );
       break;
 
     case "conversation.closed":
@@ -2796,6 +2916,10 @@ async function apiCall(url, options = {}) {
           showToast("Esta alerta ya fue revisada.", "info");
         } else if (code === "CONVERSATION_NOT_ESCALATED") {
           showToast("La conversación no está en estado escalado.", "warning");
+        } else if (code === "CONTROL_ALREADY_TAKEN") {
+          showToast(message, "warning"); // message already names the advisor who has it
+        } else if (code === "CONVERSATION_NOT_ACTIVE") {
+          showToast("Esta conversación está cerrada.", "warning");
         } else {
           showToast(
             message || "Conflicto al procesar la solicitud.",

@@ -221,7 +221,7 @@ export default function ClientPanel({
             <div className="bg-bg-main p-2.5 rounded-lg border border-border-default">
               <p className="text-white/90 font-medium leading-relaxed text-[11.5px]">
                 {escalation.summary ??
-                  "El asesor revisará el historial de la conversación."}
+                  "El asesor ha tomado el control de la conversación, por lo que el resumen de escalado ya no está disponible."}
               </p>
             </div>
 

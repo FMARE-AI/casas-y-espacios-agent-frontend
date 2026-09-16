@@ -6,13 +6,16 @@ import { useToastStore } from '../store/toastStore'
 import { advisorsService } from '../services/advisors'
 import { getValidToken, forceRefreshToken } from '../lib/axios'
 import type {
+  WSConversationNew,
   WSEscalationNew,
   WSEscalationAssigned,
   WSMessageNew,
   WSConversationReturned,
+  WSConversationControlTaken,
   WSConversationClosed,
   WSConversationTransferred,
   WSConversationPriorityUpdated,
+  WSMessageMediaUpdated,
   WSQueuePending,
   WSAdvisorStatusChanged,
   WSAdvisorConnected,
@@ -23,10 +26,13 @@ import type {
 
 // Global handlers registry to allow pages to hook into specific events without duplicate connections
 interface WSHandlers {
+  onConversationNew?: (data: WSConversationNew) => void
   onEscalationNew?: (data: WSEscalationNew) => void
   onEscalationAssigned?: (data: WSEscalationAssigned) => void
   onMessageNew?: (data: WSMessageNew) => void
+  onMessageMediaUpdated?: (data: WSMessageMediaUpdated) => void
   onConversationReturned?: (data: WSConversationReturned) => void
+  onConversationControlTaken?: (data: WSConversationControlTaken) => void
   onConversationClosed?: (data: WSConversationClosed) => void
   onConversationTransferred?: (data: WSConversationTransferred) => void
   onConversationPriorityUpdated?: (data: WSConversationPriorityUpdated) => void
@@ -524,6 +530,22 @@ function connect(token: string): void {
         break
       }
 
+      case 'message.media_updated':
+        if (_handlers.onMessageMediaUpdated) {
+          _handlers.onMessageMediaUpdated(data as WSMessageMediaUpdated)
+        }
+        break
+
+      case 'conversation.new': {
+        // Bot-handled conversation just created — bandeja list-view refresh
+        // only. Never a sound: this is not a personal signal, and unlike
+        // escalation.new it has no advisor/area eligibility to gate on.
+        if (_handlers.onConversationNew) {
+          _handlers.onConversationNew(data as WSConversationNew)
+        }
+        break
+      }
+
       case 'escalation.new': {
         const escData = data as WSEscalationNew
         const advisor = useAuthStore.getState().advisor
@@ -568,6 +590,19 @@ function connect(token: string): void {
         myAssignedConversationIds.delete(returnedData.conversation_id)
         if (_handlers.onConversationReturned) {
           _handlers.onConversationReturned(returnedData)
+        }
+        break
+      }
+
+      case 'conversation.control_taken': {
+        const takenData = data as WSConversationControlTaken
+        useWSStore.getState().incrementAdvisorConversations(takenData.advisor_id)
+        const selfId = useAuthStore.getState().advisor?.id
+        if (selfId && takenData.advisor_id === selfId) {
+          myAssignedConversationIds.add(takenData.conversation_id)
+        }
+        if (_handlers.onConversationControlTaken) {
+          _handlers.onConversationControlTaken(takenData)
         }
         break
       }
@@ -760,10 +795,13 @@ export function useWebSocket(handlers?: WSHandlers) {
   // every render because a new object reference is created each time. Destructuring
   // individual function refs means the effect only fires when a specific handler changes.
   const {
+    onConversationNew,
     onEscalationNew,
     onEscalationAssigned,
     onMessageNew,
+    onMessageMediaUpdated,
     onConversationReturned,
+    onConversationControlTaken,
     onConversationClosed,
     onConversationTransferred,
     onConversationPriorityUpdated,
@@ -773,10 +811,13 @@ export function useWebSocket(handlers?: WSHandlers) {
   } = handlers ?? {}
 
   useEffect(() => {
+    if (onConversationNew)   _handlers.onConversationNew    = onConversationNew
     if (onEscalationNew)      _handlers.onEscalationNew      = onEscalationNew
     if (onEscalationAssigned) _handlers.onEscalationAssigned = onEscalationAssigned
     if (onMessageNew)         _handlers.onMessageNew         = onMessageNew
+    if (onMessageMediaUpdated) _handlers.onMessageMediaUpdated = onMessageMediaUpdated
     if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
+    if (onConversationControlTaken) _handlers.onConversationControlTaken = onConversationControlTaken
     if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
     if (onConversationTransferred) _handlers.onConversationTransferred = onConversationTransferred
     if (onConversationPriorityUpdated) _handlers.onConversationPriorityUpdated = onConversationPriorityUpdated
@@ -785,10 +826,13 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onBehaviorAlert)      _handlers.onBehaviorAlert      = onBehaviorAlert
 
     return () => {
+      if (onConversationNew   && _handlers.onConversationNew    === onConversationNew)    delete _handlers.onConversationNew
       if (onEscalationNew      && _handlers.onEscalationNew      === onEscalationNew)      delete _handlers.onEscalationNew
       if (onEscalationAssigned && _handlers.onEscalationAssigned === onEscalationAssigned) delete _handlers.onEscalationAssigned
       if (onMessageNew         && _handlers.onMessageNew         === onMessageNew)         delete _handlers.onMessageNew
+      if (onMessageMediaUpdated && _handlers.onMessageMediaUpdated === onMessageMediaUpdated) delete _handlers.onMessageMediaUpdated
       if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
+      if (onConversationControlTaken && _handlers.onConversationControlTaken === onConversationControlTaken) delete _handlers.onConversationControlTaken
       if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
       if (onConversationTransferred && _handlers.onConversationTransferred === onConversationTransferred) delete _handlers.onConversationTransferred
       if (onConversationPriorityUpdated && _handlers.onConversationPriorityUpdated === onConversationPriorityUpdated) delete _handlers.onConversationPriorityUpdated
@@ -797,9 +841,9 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
   }, [
-    onEscalationNew, onEscalationAssigned, onMessageNew, onConversationReturned,
-    onConversationClosed, onConversationTransferred, onConversationPriorityUpdated,
-    onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
+    onConversationNew, onEscalationNew, onEscalationAssigned, onMessageNew, onMessageMediaUpdated, onConversationReturned,
+    onConversationControlTaken, onConversationClosed, onConversationTransferred,
+    onConversationPriorityUpdated, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 
   // Open the connection when a session exists; close it whenever there is no
