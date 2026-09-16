@@ -426,7 +426,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
       <div className="flex flex-col gap-1.5 max-w-[240px]">
         <div className="rounded-xl overflow-hidden border border-border-default/60 shadow-md bg-black w-full max-h-[320px] flex items-center justify-center relative group/video">
           <video
-            src={msg.media_url}
+            src={msg.media_url ?? undefined}
             controls
             preload="none"
             playsInline
@@ -477,7 +477,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
             </button>
             <span className={isAdvisor ? 'text-white/25' : 'text-white/10'}>•</span>
             <a
-              href={msg.media_url}
+              href={msg.media_url ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
               className={`font-bold flex items-center gap-1 transition ${
@@ -519,7 +519,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
             {/* Contenedor del video expandido */}
             <div className="relative max-w-4xl max-h-[85vh] w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <video
-                src={msg.media_url}
+                src={msg.media_url ?? undefined}
                 controls
                 autoPlay
                 playsInline
