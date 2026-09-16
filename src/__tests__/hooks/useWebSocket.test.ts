@@ -95,6 +95,13 @@ describe('useWebSocket', () => {
   })
 
   describe('handler registration', () => {
+    it('should register onConversationNew handler', () => {
+      const handler = vi.fn()
+      const { unmount } = renderHook(() => useWebSocket({ onConversationNew: handler }))
+
+      unmount()
+    })
+
     it('should register onEscalationNew handler', () => {
       const handler = vi.fn()
       const { unmount } = renderHook(() => useWebSocket({ onEscalationNew: handler }))

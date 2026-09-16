@@ -265,6 +265,13 @@ export interface WSEscalationNew {
   channel: string;
 }
 
+// Emitted once when a brand-new conversation is created (bot-handled, not
+// escalated yet) — bandeja list-view refresh only, never a sound.
+export interface WSConversationNew {
+  conversation_id: string;
+  channel: string;
+}
+
 export interface WSMessageNew {
   message: Message;
   conversation_id?: string;

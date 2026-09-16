@@ -6,6 +6,7 @@ import { useToastStore } from '../store/toastStore'
 import { advisorsService } from '../services/advisors'
 import { getValidToken, forceRefreshToken } from '../lib/axios'
 import type {
+  WSConversationNew,
   WSEscalationNew,
   WSEscalationAssigned,
   WSMessageNew,
@@ -25,6 +26,7 @@ import type {
 
 // Global handlers registry to allow pages to hook into specific events without duplicate connections
 interface WSHandlers {
+  onConversationNew?: (data: WSConversationNew) => void
   onEscalationNew?: (data: WSEscalationNew) => void
   onEscalationAssigned?: (data: WSEscalationAssigned) => void
   onMessageNew?: (data: WSMessageNew) => void
@@ -534,6 +536,16 @@ function connect(token: string): void {
         }
         break
 
+      case 'conversation.new': {
+        // Bot-handled conversation just created — bandeja list-view refresh
+        // only. Never a sound: this is not a personal signal, and unlike
+        // escalation.new it has no advisor/area eligibility to gate on.
+        if (_handlers.onConversationNew) {
+          _handlers.onConversationNew(data as WSConversationNew)
+        }
+        break
+      }
+
       case 'escalation.new': {
         const escData = data as WSEscalationNew
         const advisor = useAuthStore.getState().advisor
@@ -783,6 +795,7 @@ export function useWebSocket(handlers?: WSHandlers) {
   // every render because a new object reference is created each time. Destructuring
   // individual function refs means the effect only fires when a specific handler changes.
   const {
+    onConversationNew,
     onEscalationNew,
     onEscalationAssigned,
     onMessageNew,
@@ -798,6 +811,7 @@ export function useWebSocket(handlers?: WSHandlers) {
   } = handlers ?? {}
 
   useEffect(() => {
+    if (onConversationNew)   _handlers.onConversationNew    = onConversationNew
     if (onEscalationNew)      _handlers.onEscalationNew      = onEscalationNew
     if (onEscalationAssigned) _handlers.onEscalationAssigned = onEscalationAssigned
     if (onMessageNew)         _handlers.onMessageNew         = onMessageNew
@@ -812,6 +826,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onBehaviorAlert)      _handlers.onBehaviorAlert      = onBehaviorAlert
 
     return () => {
+      if (onConversationNew   && _handlers.onConversationNew    === onConversationNew)    delete _handlers.onConversationNew
       if (onEscalationNew      && _handlers.onEscalationNew      === onEscalationNew)      delete _handlers.onEscalationNew
       if (onEscalationAssigned && _handlers.onEscalationAssigned === onEscalationAssigned) delete _handlers.onEscalationAssigned
       if (onMessageNew         && _handlers.onMessageNew         === onMessageNew)         delete _handlers.onMessageNew
@@ -826,7 +841,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
     }
   }, [
-    onEscalationNew, onEscalationAssigned, onMessageNew, onMessageMediaUpdated, onConversationReturned,
+    onConversationNew, onEscalationNew, onEscalationAssigned, onMessageNew, onMessageMediaUpdated, onConversationReturned,
     onConversationControlTaken, onConversationClosed, onConversationTransferred,
     onConversationPriorityUpdated, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])

@@ -5,7 +5,7 @@ import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
 import { conversationsService, advisorsService, metricsService } from '../services'
-import type { Conversation, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew, WSConversationPriorityUpdated } from '../types'
+import type { Conversation, WSConversationNew, WSEscalationNew, WSConversationClosed, WSQueuePending, DashboardMetrics, WSMessageNew, WSConversationPriorityUpdated } from '../types'
 import { ConversationCard } from '../components/bandeja/ConversationCard'
 import { FilterBar } from '../components/bandeja/FilterBar'
 import { MetricsDashboard } from '../components/bandeja/MetricsDashboard'
@@ -425,6 +425,15 @@ export default function BandejaPage() {
   }, [loadConversations])
 
   // Event handlers for Websockets
+  // Brand-new bot-handled conversation — list-view refresh only, no sound
+  // (see useWebSocket.ts). Future FE-10 optimization: append card without reloading.
+  const handleConversationNew = useCallback((data: WSConversationNew) => {
+    if (data) {
+      // Future FE-10 optimization: append card without reloading
+    }
+    loadConversations()
+  }, [loadConversations])
+
   const handleEscalationNew = useCallback((data: WSEscalationNew) => {
     if (data) {
       // Future FE-10 optimization: append card without reloading
@@ -468,6 +477,7 @@ export default function BandejaPage() {
   // Hook up real-time websocket updates
   useWebSocket({
     onMessageNew: handleMessageNew,
+    onConversationNew: handleConversationNew,
     onEscalationNew: handleEscalationNew,
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,
