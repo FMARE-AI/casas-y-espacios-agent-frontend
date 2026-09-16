@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useAuthStore } from '../store/authStore'
@@ -207,6 +207,12 @@ export default function BandejaPage() {
     sessionStorage.setItem(BANDEJA_STATUS_FILTER_KEY, statusFilter ?? 'null')
   }, [statusFilter])
 
+  // Mirrors `conversations` ids so handleMessageNew can tell "known conversation,
+  // patch in place" from "brand-new conversation, not in the current filtered
+  // view yet" without depending on `conversations` itself (which would recreate
+  // the WS handler, and thus re-subscribe it, on every single message).
+  const conversationIdsRef = useRef<Set<string>>(new Set())
+
   // Modal to take conversation
   const [takeTarget, setTakeTarget] = useState<Conversation | null>(null)
   const [isTaking, setIsTaking] = useState(false)
@@ -282,6 +288,7 @@ export default function BandejaPage() {
       }
       setConversations(convs)
       setTotal(convs.length)
+      conversationIdsRef.current = new Set(convs.map((c) => c.id))
 
       // Keep the WS sound-gate in sync: register conversations assigned to the current advisor
       // so they hear notification sounds even when navigated away from the chat.
@@ -393,6 +400,17 @@ export default function BandejaPage() {
     const msg = wsMsg.message
     const convId = msg.conversation_id ?? ''
     if (!convId) return
+
+    // Conversation not in the currently filtered view — either it's brand new
+    // (first message from a client, broadcast_to_area since nothing is escalated
+    // yet) or it just started matching the active filter. Either way, a patch
+    // has nothing to target: reload so it appears without the advisor having to
+    // touch the filter or refresh the page.
+    if (!conversationIdsRef.current.has(convId)) {
+      loadConversations()
+      return
+    }
+
     setConversations((prev) =>
       prev.map((c) => {
         if (c.id !== convId) return c
@@ -404,7 +422,7 @@ export default function BandejaPage() {
         }
       })
     )
-  }, [])
+  }, [loadConversations])
 
   // Event handlers for Websockets
   const handleEscalationNew = useCallback((data: WSEscalationNew) => {
