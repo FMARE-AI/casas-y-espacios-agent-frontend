@@ -3,6 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { conversationsService } from "../services/conversations";
 import { useToastStore } from "../store/toastStore";
 import { useAuthStore } from "../store/authStore";
+import { useWSStore } from "../store/wsStore";
 import type {
   Conversation,
 
@@ -439,6 +440,22 @@ export default function ChatPage() {
       }
     };
   }, [conversationId, role, subscribeConversation, unsubscribeConversation]);
+
+  // Re-send the subscription once the socket is actually 'connected'. The effect
+  // above can fire while the socket is still mid-handshake (just opened this tab,
+  // or a deploy/network drop is mid-reconnect) — sendMessage() drops the
+  // subscribe_conversation frame silently in that state (useWebSocket.ts), and
+  // nothing else in this component would ever retry it, leaving this chat "deaf"
+  // to that client's live messages until a full page reload remounted everything
+  // after the socket was already open. wsStatus flips to 'connected' synchronously
+  // in the same onopen that already resends the LAST subscribed conversation from
+  // module state, so this is a second, React-driven guarantee for the conversation
+  // this specific page instance cares about — a harmless duplicate send at worst.
+  const wsStatus = useWSStore((s) => s.status);
+  useEffect(() => {
+    if (!conversationId || wsStatus !== 'connected') return;
+    subscribeConversation(conversationId);
+  }, [conversationId, wsStatus, subscribeConversation]);
 
   // Auto-scroll when a new message is appended (not when old messages are prepended)
   const lastMessageIdRef = useRef<string | undefined>(undefined);
