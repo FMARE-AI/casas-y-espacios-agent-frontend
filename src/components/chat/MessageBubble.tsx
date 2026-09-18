@@ -400,14 +400,26 @@ function ImageLightbox({
 
 const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [imageFailed, setImageFailed] = useState(false)
+  // Keyed by URL, not a bare boolean: the message.new event for an inbound image
+  // carries the raw Meta media ID as media_url (the backend only has the signed
+  // Storage URL once it finishes downloading, and patches it in via
+  // message.media_updated seconds later). A boolean "this failed" survived that
+  // patch, so the advisor kept the grey placeholder until they reloaded the page
+  // — exactly the turns where the bot is handling the chat and they are only
+  // watching. Storing WHICH url failed makes the retry automatic.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const fileName = msg._fileName ?? getFileName(msg.media_url, msg.media_mime_type)
+  // Same guard VideoBubble already had: a raw media ID is not something an
+  // <img> can load, so don't even try — show the placeholder until the real
+  // URL arrives, without an error in the console.
+  const hasDisplayableUrl = !!msg.media_url && /^https?:\/\//i.test(msg.media_url)
+  const imageFailed = failedUrl !== null && failedUrl === msg.media_url
 
   const handleDownload = () => {
     downloadMedia(msg.media_url, fileName)
   }
 
-  if (msg.media_url && !imageFailed) {
+  if (msg.media_url && hasDisplayableUrl && !imageFailed) {
     return (
       <div className="flex flex-col gap-1.5 max-w-[240px]">
         <div className="relative group/video rounded-lg overflow-hidden">
@@ -422,7 +434,7 @@ const ImageBubble = memo(function ImageBubble({ msg }: { msg: Message }) {
                 msg_id: msg.id,
                 media_url: msg.media_url,
               })
-              setImageFailed(true)
+              setFailedUrl(msg.media_url)
             }}
           />
           <FloatingDownloadButton onClick={handleDownload} />
@@ -577,9 +589,12 @@ const AudioBubble = memo(function AudioBubble({ msg }: { msg: Message }) {
 
 const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const [playbackFailed, setPlaybackFailed] = useState(false)
+  // Keyed by URL for the same reason as ImageBubble: media_url is patched in by
+  // message.media_updated, and a failure against the old value must not outlive it.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const isAdvisor = msg.direction === 'outbound_advisor'
   const hasPlayableUrl = !!msg.media_url && /^https?:\/\//i.test(msg.media_url)
+  const playbackFailed = failedUrl !== null && failedUrl === msg.media_url
 
   if (msg.media_url && !hasPlayableUrl) {
     console.error('[VideoBubble] media_url is not a valid URL — backend likely returned a raw Meta media ID instead of a signed Storage URL', {
@@ -608,7 +623,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
                 error_message: el.error?.message,
                 network_state: el.networkState,
               })
-              setPlaybackFailed(true)
+              setFailedUrl(msg.media_url)
             }}
           >
             Tu navegador no soporta la reproducción de video.
@@ -715,7 +730,7 @@ const VideoBubble = memo(function VideoBubble({ msg }: { msg: Message }) {
                     error_message: el.error?.message,
                     network_state: el.networkState,
                   })
-                  setPlaybackFailed(true)
+                  setFailedUrl(msg.media_url)
                   setIsExpanded(false)
                 }}
               />
