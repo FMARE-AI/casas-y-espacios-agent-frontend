@@ -335,6 +335,13 @@ export interface WSQueuePending {
   message: string;
 }
 
+// Server reply to a subscribe_conversation it did not honor. FORBIDDEN is final
+// (no access); UNAVAILABLE means the access check itself failed — retry.
+export interface WSSubscribeError {
+  code: "FORBIDDEN" | "UNAVAILABLE";
+  conversation_id?: string;
+}
+
 export interface WSBehaviorAlertEvent {
   alert_id: string;
 }

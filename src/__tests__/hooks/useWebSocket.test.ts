@@ -333,3 +333,159 @@ describe('useWebSocket — auth-rejection recovery races a concurrent logout', (
     unmount()
   })
 })
+
+describe('useWebSocket — dead sockets and deaf chats', () => {
+  class MockSocket {
+    static readonly OPEN = 1
+    readyState = MockSocket.OPEN
+    onopen: (() => void) | null = null
+    onclose: ((event: { code: number; reason?: string; wasClean?: boolean }) => void) | null = null
+    onmessage: ((event: MessageEvent) => void) | null = null
+    onerror: (() => void) | null = null
+    close = vi.fn()
+    send = vi.fn()
+  }
+
+  let sockets: MockSocket[] = []
+
+  const sentFrames = (ws: MockSocket) =>
+    ws.send.mock.calls.map(([raw]) => JSON.parse(raw as string) as Record<string, unknown>)
+
+  const serverSends = (ws: MockSocket, payload: object) => {
+    act(() => {
+      ws.onmessage?.({ data: JSON.stringify(payload) } as MessageEvent)
+    })
+  }
+
+  // Dials a fresh socket through reconnect() (see the auth-recovery describe
+  // above for why: the module singleton may hold a leftover backoff timer).
+  async function openSocket(result: { current: ReturnType<typeof useWebSocket> }) {
+    act(() => {
+      result.current.reconnect()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    return sockets[sockets.length - 1]
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    sockets = []
+    vi.stubGlobal(
+      'WebSocket',
+      class extends MockSocket {
+        constructor() {
+          super()
+          sockets.push(this)
+          queueMicrotask(() => this.onopen?.())
+        }
+      }
+    )
+    mockGetValidToken.mockResolvedValue('test-token')
+    useAuthStore.setState({
+      token: 'test-token',
+      refresh_token: 'test-refresh-token',
+      expires_at: Date.now() + 3600000,
+      advisor: { id: 'advisor-1', role: 'asesor' } as unknown as Advisor,
+      sessionExpired: false,
+      sessionNotice: null,
+    })
+    useWSStore.setState({ status: 'disconnected', reconnectAttempt: 0 })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+  })
+
+  it('watchdog drops an unanswered socket immediately instead of waiting for onclose', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
+    const { result, unmount } = renderHook(() => useWebSocket())
+    const ws = await openSocket(result)
+    expect(useWSStore.getState().status).toBe('connected')
+
+    // First ping at 30s goes unanswered (the server vanished without a close
+    // frame); the next ticks find it past PONG_TIMEOUT_MS.
+    act(() => {
+      vi.advanceTimersByTime(90_000)
+    })
+
+    expect(ws.close).toHaveBeenCalled()
+    // No onclose from the browser yet — the UI must not keep saying 'connected'.
+    expect(useWSStore.getState().status).toBe('reconnecting')
+
+    // Backoff fires and a replacement socket is dialed without that onclose.
+    await act(async () => {
+      vi.advanceTimersByTime(1_000)
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    expect(sockets.length).toBeGreaterThanOrEqual(2)
+    const replacement = sockets[sockets.length - 1]
+
+    // The dead socket's late onclose is a stale no-op: it must not tear down
+    // the replacement.
+    act(() => {
+      ws.onclose?.({ code: 1006 })
+    })
+    await act(async () => {
+      await Promise.resolve()
+    })
+    expect(replacement.close).not.toHaveBeenCalled()
+
+    unmount()
+  })
+
+  it('retries subscribe_conversation when the server reports UNAVAILABLE', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const { result, unmount } = renderHook(() => useWebSocket())
+    const ws = await openSocket(result)
+
+    act(() => {
+      result.current.subscribeConversation('conv-1')
+    })
+    ws.send.mockClear()
+
+    serverSends(ws, { event: 'error', data: { code: 'UNAVAILABLE', conversation_id: 'conv-1' } })
+    act(() => {
+      vi.advanceTimersByTime(1_000)
+    })
+
+    expect(sentFrames(ws)).toContainEqual({ type: 'subscribe_conversation', conversation_id: 'conv-1' })
+
+    act(() => {
+      result.current.unsubscribeConversation()
+    })
+    unmount()
+  })
+
+  it('does not retry a FORBIDDEN subscription, nor one for a chat already left', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { result, unmount } = renderHook(() => useWebSocket())
+    const ws = await openSocket(result)
+
+    act(() => {
+      result.current.subscribeConversation('conv-1')
+    })
+    ws.send.mockClear()
+
+    serverSends(ws, { event: 'error', data: { code: 'FORBIDDEN', conversation_id: 'conv-1' } })
+    // A late UNAVAILABLE for a conversation that is no longer open.
+    serverSends(ws, { event: 'error', data: { code: 'UNAVAILABLE', conversation_id: 'conv-old' } })
+    act(() => {
+      vi.advanceTimersByTime(60_000)
+    })
+
+    expect(sentFrames(ws).filter((f) => f.type === 'subscribe_conversation')).toEqual([])
+
+    warn.mockRestore()
+    act(() => {
+      result.current.unsubscribeConversation()
+    })
+    unmount()
+  })
+})
