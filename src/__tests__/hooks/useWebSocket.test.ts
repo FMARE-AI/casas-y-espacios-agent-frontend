@@ -489,3 +489,136 @@ describe('useWebSocket — dead sockets and deaf chats', () => {
     unmount()
   })
 })
+
+// Returning to the panel is exactly when a client message has just arrived — and
+// every WS close observed in DEV on 2026-09-18 landed within seconds of one, one
+// of them a client-initiated 1005. The old handler judged the socket on the ping
+// that was outstanding when the tab was hidden; a throttled or frozen tab queues
+// its pong, so that ping looks unanswered on a perfectly healthy connection.
+describe('useWebSocket — returning to a hidden tab', () => {
+  class MockSocket {
+    static readonly OPEN = 1
+    readyState = MockSocket.OPEN
+    onopen: (() => void) | null = null
+    onclose: ((event: { code: number }) => void) | null = null
+    onmessage: ((event: MessageEvent) => void) | null = null
+    onerror: (() => void) | null = null
+    close = vi.fn()
+    send = vi.fn()
+  }
+
+  let sockets: MockSocket[] = []
+  let visibility = 'visible'
+
+  const sentPings = (ws: MockSocket) =>
+    ws.send.mock.calls.filter(([raw]) => JSON.parse(raw as string).type === 'ping')
+
+  const becomeVisible = () => {
+    visibility = 'visible'
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+  }
+
+  async function openSocket(result: { current: ReturnType<typeof useWebSocket> }) {
+    act(() => {
+      result.current.reconnect()
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    return sockets[sockets.length - 1]
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    sockets = []
+    visibility = 'visible'
+    vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility as DocumentVisibilityState)
+    vi.stubGlobal(
+      'WebSocket',
+      class extends MockSocket {
+        constructor() {
+          super()
+          sockets.push(this)
+          queueMicrotask(() => this.onopen?.())
+        }
+      }
+    )
+    mockGetValidToken.mockResolvedValue('test-token')
+    useAuthStore.setState({
+      token: 'test-token',
+      refresh_token: 'test-refresh-token',
+      expires_at: Date.now() + 3600000,
+      advisor: { id: 'advisor-1', role: 'asesor' } as unknown as Advisor,
+      sessionExpired: false,
+      sessionNotice: null,
+    })
+    useWSStore.setState({ status: 'disconnected', reconnectAttempt: 0 })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('probes instead of dropping a socket whose pong was still queued', async () => {
+    const { result, unmount } = renderHook(() => useWebSocket())
+    const ws = await openSocket(result)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
+
+    // A ping went out and the tab was hidden long enough for it to look stale.
+    act(() => {
+      vi.advanceTimersByTime(30_000)
+    })
+    act(() => {
+      vi.advanceTimersByTime(60_000)
+    })
+    ws.send.mockClear()
+
+    becomeVisible()
+
+    // A fresh probe, not a close.
+    expect(sentPings(ws)).toHaveLength(1)
+    expect(ws.close).not.toHaveBeenCalled()
+    expect(useWSStore.getState().status).toBe('connected')
+
+    // The queued pong lands right after: the socket stays.
+    act(() => {
+      ws.onmessage?.({ data: JSON.stringify({ type: 'pong' }) } as MessageEvent)
+    })
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+
+    expect(ws.close).not.toHaveBeenCalled()
+    expect(useWSStore.getState().status).toBe('connected')
+
+    unmount()
+  })
+
+  it('drops the socket when the probe itself goes unanswered', async () => {
+    const { result, unmount } = renderHook(() => useWebSocket())
+    const ws = await openSocket(result)
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
+
+    // Past the pong recorded when the socket opened, so the probe is newer.
+    act(() => {
+      vi.advanceTimersByTime(1_000)
+    })
+    becomeVisible()
+    expect(ws.close).not.toHaveBeenCalled()
+
+    act(() => {
+      vi.advanceTimersByTime(5_100)
+    })
+
+    expect(ws.close).toHaveBeenCalled()
+    expect(useWSStore.getState().status).toBe('reconnecting')
+
+    unmount()
+  })
+})

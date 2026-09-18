@@ -69,6 +69,11 @@ let lastPongAt = 0
 // past the timeout on perfectly healthy sockets that simply weren't pinged.
 let lastPingSentAt = 0
 const PONG_TIMEOUT_MS = 45000
+// How long a probe sent on returning to the tab gets to be answered before the
+// socket is given up on. Short, because the answer is a round trip on an already
+// open connection — but its own window, never the pre-freeze ping's: see the
+// visibilitychange handler.
+const VISIBILITY_PROBE_TIMEOUT_MS = 5000
 // Tracks which conversation the active advisor has open — used to gate message sounds
 // and suppress unread badge increments for the chat currently visible.
 let currentSubscribedConversationId: string | null = null
@@ -231,15 +236,15 @@ if (typeof window !== 'undefined') {
     if (document.visibilityState !== 'visible') return
 
     if (socket?.readyState === WebSocket.OPEN) {
-      if (lastPingSentAt > lastPongAt) {
-        // A ping is already outstanding — if it's past its deadline the
-        // connection is dead: close now so onclose starts the reconnect chain.
-        if (Date.now() - lastPingSentAt > PONG_TIMEOUT_MS) abandonSocket()
-        return
-      }
-      // Probe the connection right away; the watchdog handles the verdict.
-      lastPingSentAt = Date.now()
-      socket.send(JSON.stringify({ type: 'ping' }))
+      // Always probe fresh, never judge on the ping that was outstanding when the
+      // tab was hidden. A backgrounded (or frozen) tab throttles the ping timer and
+      // queues its message events, so that ping can look unanswered simply because
+      // its pong has not been delivered to us yet — and dropping the socket on that
+      // evidence reconnected a perfectly healthy connection every time the advisor
+      // came back to the panel, which is precisely when a client message had just
+      // arrived (real case 2026-09-18: every close landed within seconds of an
+      // inbound message, one of them a client-initiated 1005).
+      probeOnReturn(socket)
       return
     }
 
@@ -249,6 +254,26 @@ if (typeof window !== 'undefined') {
     clearReconnect()
     dial()
   })
+}
+
+// Ping this socket and give the answer its own short window: if nothing comes
+// back, the connection really is dead and the normal reconnect chain takes over.
+// No timer to clear — a late pong simply makes the check below a no-op, and a
+// socket that was replaced meanwhile fails the identity check.
+function probeOnReturn(ws: WebSocket): void {
+  lastPingSentAt = Date.now()
+  try {
+    ws.send(JSON.stringify({ type: 'ping' }))
+  } catch {
+    abandonSocket()
+    return
+  }
+  setTimeout(() => {
+    if (socket !== ws || ws.readyState !== WebSocket.OPEN) return
+    if (lastPongAt >= lastPingSentAt) return
+    console.info('[WS] no pong after returning to the tab — dropping socket')
+    abandonSocket()
+  }, VISIBILITY_PROBE_TIMEOUT_MS)
 }
 
 // Single teardown path for the module-singleton socket — used both when a
