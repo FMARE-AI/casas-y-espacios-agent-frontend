@@ -739,6 +739,19 @@ function getAudioContext(): AudioContext | null {
   }
 }
 
+// Chrome/Firefox/Safari keep AudioContext 'suspended' until a real user
+// gesture on the page. Without this, the first notification(s) after a
+// reload silently fail to play — resume() is called on demand inside
+// playNotificationSound() but its promise only resolves once a gesture
+// happens, so any sound scheduled before that gesture is lost, not queued.
+// Call this once on a page-wide gesture listener to unlock ahead of time.
+export function unlockAudioContext(): void {
+  const ctx = getAudioContext()
+  if (ctx && ctx.state === 'suspended') {
+    ctx.resume().catch(() => {})
+  }
+}
+
 /**
  * Plays a pleasant double chime notification sound using the Web Audio API.
  * This guarantees a native browser notification chime without requiring external assets.

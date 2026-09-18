@@ -1,10 +1,10 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from './hooks/useAuth'
 import { useAuthStore } from './store/authStore'
 import { useWSStore } from './store/wsStore'
 import { useToastStore } from './store/toastStore'
-import { playNotificationSound } from './hooks/useWebSocket'
+import { playNotificationSound, unlockAudioContext } from './hooks/useWebSocket'
 import { ROUTES } from './constants/routes'
 
 // Debug helpers — available in all non-production environments via window.__debug
@@ -35,6 +35,27 @@ const PerfilPage = lazy(() => import('./pages/PerfilPage'))
 
 function AuthInit() {
   useAuth()
+  return null
+}
+
+// Unlocks the notification AudioContext on the first user gesture after a
+// page load/reload. Without this, incoming WS messages that arrive before
+// the advisor interacts with the page play no sound (browsers keep
+// AudioContext suspended until a real gesture) — see playNotificationSound().
+function AudioUnlock() {
+  useEffect(() => {
+    const unlock = () => {
+      unlockAudioContext()
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+    window.addEventListener('pointerdown', unlock)
+    window.addEventListener('keydown', unlock)
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
   return null
 }
 
@@ -78,6 +99,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthInit />
+      <AudioUnlock />
       <IdleLogoutGuard />
 
       {isLoading ? (
