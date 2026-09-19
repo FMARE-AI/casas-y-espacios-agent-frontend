@@ -21,6 +21,7 @@ import type {
   WSAdvisorConnected,
   WSAdvisorDisconnected,
   WSBehaviorAlertEvent,
+  WSSubscribeError,
   Advisor,
 } from '../types'
 
@@ -68,9 +69,22 @@ let lastPongAt = 0
 // past the timeout on perfectly healthy sockets that simply weren't pinged.
 let lastPingSentAt = 0
 const PONG_TIMEOUT_MS = 45000
+// How long a probe sent on returning to the tab gets to be answered before the
+// socket is given up on. Short, because the answer is a round trip on an already
+// open connection — but its own window, never the pre-freeze ping's: see the
+// visibilitychange handler.
+const VISIBILITY_PROBE_TIMEOUT_MS = 5000
 // Tracks which conversation the active advisor has open — used to gate message sounds
 // and suppress unread badge increments for the chat currently visible.
 let currentSubscribedConversationId: string | null = null
+// Retry for a subscribe_conversation the server could not authorize because its
+// access check failed (error code UNAVAILABLE — e.g. a DB hiccup on a freshly
+// deployed instance). Without it the open chat stayed unsubscribed: bot-handled
+// turns are routed only to subscribed connections, so it went silently deaf
+// while the socket itself looked perfectly healthy.
+const SUBSCRIBE_RETRY_DELAYS = [1000, 2000, 5000, 10000, 30000]
+let subscribeRetryTimeout: ReturnType<typeof setTimeout> | null = null
+let subscribeRetryAttempt = 0
 // Conversation IDs assigned to the current advisor — populated from BandejaPage on load
 // and kept in sync via WS events. Allows sound to fire even when the chat is not open.
 const myAssignedConversationIds = new Set<string>()
@@ -116,6 +130,55 @@ function clearReconnect() {
   }
 }
 
+function clearSubscribeRetry() {
+  if (subscribeRetryTimeout !== null) {
+    clearTimeout(subscribeRetryTimeout)
+    subscribeRetryTimeout = null
+  }
+}
+
+function handleSubscribeError(error: WSSubscribeError): void {
+  const conversationId = error.conversation_id
+  // Only the conversation still open matters — a late reply for a chat the
+  // advisor already left must not resubscribe to it.
+  if (!conversationId || conversationId !== currentSubscribedConversationId) return
+
+  if (error.code !== 'UNAVAILABLE') {
+    console.warn('[WS] subscribe_conversation denied', { code: error.code, conversationId })
+    return
+  }
+  if (subscribeRetryTimeout !== null) return
+
+  const delay = SUBSCRIBE_RETRY_DELAYS[Math.min(subscribeRetryAttempt, SUBSCRIBE_RETRY_DELAYS.length - 1)]
+  subscribeRetryAttempt += 1
+  subscribeRetryTimeout = setTimeout(() => {
+    subscribeRetryTimeout = null
+    if (currentSubscribedConversationId !== conversationId) return
+    sendMessage({ type: 'subscribe_conversation', conversation_id: conversationId })
+  }, delay)
+}
+
+// Gives up on the current socket WITHOUT waiting for the browser to confirm the
+// close. On a half-open connection (peer gone without a FIN/RST — a network
+// drop, a server killed mid-deploy) close() only starts a closing handshake
+// nobody answers, so onclose can take a minute or more to fire. Until then the
+// UI kept saying 'connected' and no reconnect was scheduled. Dropping the
+// reference first also turns that late onclose into a stale no-op
+// (`socket !== ws`), so it cannot tear down the replacement.
+function abandonSocket(): void {
+  const dead = socket
+  if (!dead) return
+  clearPing()
+  socket = null
+  isConnecting = false
+  try {
+    dead.close()
+  } catch {
+    // Already closing — nothing else to release.
+  }
+  scheduleReconnect()
+}
+
 function startPing() {
   clearPing()
   lastPongAt = Date.now()
@@ -130,7 +193,7 @@ function startPing() {
       // of sitting "connected" forever. lastPingSentAt is NOT refreshed here,
       // so the deadline keeps counting from the first unanswered ping.
       if (Date.now() - lastPingSentAt > PONG_TIMEOUT_MS) {
-        socket.close()
+        abandonSocket()
         return
       }
     } else {
@@ -153,8 +216,8 @@ function sendMessage(payload: object): void {
 if (typeof window !== 'undefined') {
   window.addEventListener('offline', () => {
     if (socket) {
-      useWSStore.getState().setStatus('reconnecting')
-      socket.close()
+      console.info('[WS] browser reported offline — dropping socket')
+      abandonSocket()
     }
   })
 
@@ -173,15 +236,15 @@ if (typeof window !== 'undefined') {
     if (document.visibilityState !== 'visible') return
 
     if (socket?.readyState === WebSocket.OPEN) {
-      if (lastPingSentAt > lastPongAt) {
-        // A ping is already outstanding — if it's past its deadline the
-        // connection is dead: close now so onclose starts the reconnect chain.
-        if (Date.now() - lastPingSentAt > PONG_TIMEOUT_MS) socket.close()
-        return
-      }
-      // Probe the connection right away; the watchdog handles the verdict.
-      lastPingSentAt = Date.now()
-      socket.send(JSON.stringify({ type: 'ping' }))
+      // Always probe fresh, never judge on the ping that was outstanding when the
+      // tab was hidden. A backgrounded (or frozen) tab throttles the ping timer and
+      // queues its message events, so that ping can look unanswered simply because
+      // its pong has not been delivered to us yet — and dropping the socket on that
+      // evidence reconnected a perfectly healthy connection every time the advisor
+      // came back to the panel, which is precisely when a client message had just
+      // arrived (real case 2026-09-18: every close landed within seconds of an
+      // inbound message, one of them a client-initiated 1005).
+      probeOnReturn(socket)
       return
     }
 
@@ -193,11 +256,32 @@ if (typeof window !== 'undefined') {
   })
 }
 
+// Ping this socket and give the answer its own short window: if nothing comes
+// back, the connection really is dead and the normal reconnect chain takes over.
+// No timer to clear — a late pong simply makes the check below a no-op, and a
+// socket that was replaced meanwhile fails the identity check.
+function probeOnReturn(ws: WebSocket): void {
+  lastPingSentAt = Date.now()
+  try {
+    ws.send(JSON.stringify({ type: 'ping' }))
+  } catch {
+    abandonSocket()
+    return
+  }
+  setTimeout(() => {
+    if (socket !== ws || ws.readyState !== WebSocket.OPEN) return
+    if (lastPongAt >= lastPingSentAt) return
+    console.info('[WS] no pong after returning to the tab — dropping socket')
+    abandonSocket()
+  }, VISIBILITY_PROBE_TIMEOUT_MS)
+}
+
 // Single teardown path for the module-singleton socket — used both when a
 // session ends (no reconnect wanted) and when swapping to a new token.
 function closeSocket(): void {
   clearPing()
   clearReconnect()
+  clearSubscribeRetry()
   if (socket) socket.close()
   socket = null
   isConnecting = false
@@ -672,6 +756,10 @@ function connect(token: string): void {
         }
         break
 
+      case 'error':
+        handleSubscribeError(data as WSSubscribeError)
+        break
+
       default:
         break
     }
@@ -684,6 +772,11 @@ function connect(token: string): void {
     // schedule a duplicate connection alongside it.
     if (socket !== ws) return
 
+    console.info('[WS] closed', {
+      code: event.code,
+      reason: event.reason,
+      wasClean: event.wasClean,
+    })
     clearPing()
     isConnecting = false
     socket = null
@@ -893,11 +986,15 @@ export function useWebSocket(handlers?: WSHandlers) {
   }, [])
 
   const subscribeConversation = useCallback((conversationId: string) => {
+    if (currentSubscribedConversationId !== conversationId) subscribeRetryAttempt = 0
+    clearSubscribeRetry()
     currentSubscribedConversationId = conversationId
     sendMessage({ type: 'subscribe_conversation', conversation_id: conversationId })
   }, [])
 
   const unsubscribeConversation = useCallback(() => {
+    clearSubscribeRetry()
+    subscribeRetryAttempt = 0
     currentSubscribedConversationId = null
     sendMessage({ type: 'unsubscribe_conversation' })
   }, [])

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useWSStore } from '../../store/wsStore'
@@ -96,7 +96,16 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   )
 }
 
-function WSStatusBanner({ onReconnect }: { onReconnect: () => void }) {
+// A reconnect after a dropped socket normally completes in 1–2s (1s backoff +
+// token + handshake), and the browser drops the socket on its own often enough
+// — a backgrounded/frozen tab, a wifi blip — that flashing a banner for every
+// one of them is noise, right when the advisor is reading the message that just
+// arrived. So the banner waits: if the socket is back before this delay, it
+// never appears; a real outage still shows it, and nothing about the socket's
+// own reconnection logic changes (this is display only).
+const RECONNECTING_BANNER_DELAY_MS = 2500
+
+export function WSStatusBanner({ onReconnect }: { onReconnect: () => void }) {
   const status = useWSStore((s) => s.status)
 
   if (status === 'disconnected') {
@@ -117,17 +126,31 @@ function WSStatusBanner({ onReconnect }: { onReconnect: () => void }) {
     )
   }
 
-  if (status === 'reconnecting') {
-    return (
-      <div
-        id="ws-reconnecting-banner"
-        className="fixed top-0 left-0 right-0 bg-warning/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
-      >
-        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        Reconectando...
-      </div>
-    )
-  }
+  if (status === 'reconnecting') return <ReconnectingBanner />
 
   return null
+}
+
+// Mounted only while the socket is reconnecting, so every drop starts its own
+// wait: it renders nothing until the delay above has passed, and unmounts the
+// moment the socket is back.
+function ReconnectingBanner() {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), RECONNECTING_BANNER_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (!visible) return null
+
+  return (
+    <div
+      id="ws-reconnecting-banner"
+      className="fixed top-0 left-0 right-0 bg-warning/90 backdrop-blur-sm text-white text-xs text-center py-2 z-50 flex items-center justify-center gap-2"
+    >
+      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+      Reconectando...
+    </div>
+  )
 }
