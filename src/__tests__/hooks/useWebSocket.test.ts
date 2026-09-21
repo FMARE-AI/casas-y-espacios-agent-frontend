@@ -462,6 +462,70 @@ describe('useWebSocket — dead sockets and deaf chats', () => {
     unmount()
   })
 
+  // message.new is rebuilt field by field in the handler, not spread from the
+  // raw frame — so a new root-level field is dropped on the floor unless it is
+  // copied over by name. Meta's 24h window rides there (every inbound message
+  // resets it), and losing it means the chat counts its stale expiry down to
+  // zero and disables its own composer on a conversation the client just
+  // reopened.
+  it('carries the 24h window from message.new through to the handler', async () => {
+    const onMessageNew = vi.fn()
+    const { result, unmount } = renderHook(() => useWebSocket({ onMessageNew }))
+    const ws = await openSocket(result)
+
+    const expiresAt = '2026-09-21T18:30:00+00:00'
+    serverSends(ws, {
+      event: 'message.new',
+      data: {
+        conversation_id: 'conv-1',
+        conversation_priority: 'media',
+        whatsapp_window_expires_at: expiresAt,
+        message: {
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          direction: 'inbound',
+          msg_type: 'text',
+          content: 'hola',
+          created_at: '2026-09-20T18:30:00+00:00',
+        },
+      },
+    })
+
+    expect(onMessageNew).toHaveBeenCalledTimes(1)
+    expect(onMessageNew.mock.calls[0][0].whatsapp_window_expires_at).toBe(expiresAt)
+
+    unmount()
+  })
+
+  it('passes a missing window as null rather than omitting the field', async () => {
+    // An older backend, or a lookup the backend could not resolve. Consumers
+    // read null as "no fresh information, keep what is cached" — they must not
+    // have to tell undefined from null to get there.
+    const onMessageNew = vi.fn()
+    const { result, unmount } = renderHook(() => useWebSocket({ onMessageNew }))
+    const ws = await openSocket(result)
+
+    serverSends(ws, {
+      event: 'message.new',
+      data: {
+        conversation_id: 'conv-1',
+        message: {
+          id: 'msg-2',
+          conversation_id: 'conv-1',
+          direction: 'inbound',
+          msg_type: 'text',
+          content: 'hola',
+          created_at: '2026-09-20T18:30:00+00:00',
+        },
+      },
+    })
+
+    expect(onMessageNew).toHaveBeenCalledTimes(1)
+    expect(onMessageNew.mock.calls[0][0]).toHaveProperty('whatsapp_window_expires_at', null)
+
+    unmount()
+  })
+
   it('does not retry a FORBIDDEN subscription, nor one for a chat already left', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})

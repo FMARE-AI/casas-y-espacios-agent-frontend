@@ -946,6 +946,7 @@ export default function ChatInput({
       {isWindowClosed && !sendError && (
         <div
           id="chat-window-expired-banner"
+          role="status"
           className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning shadow-sm"
         >
           <svg className="w-4 h-4 shrink-0 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
