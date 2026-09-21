@@ -2,6 +2,22 @@
 
 Todas las versiones notables de este proyecto se documentan en este archivo.
 
+## [2.5.0] - 2026-09-21
+
+### Added
+- Ventana de 24 h de WhatsApp visible en el panel: estado, contador vivo y bloqueo del composer cuando está vencida.
+
+### Fixed
+- El historial ordena las conversaciones cerradas de la más reciente a la más antigua, siguiendo la columna "Fecha de Cierre".
+- El historial ya no rompe la vista completa cuando una fila trae una fecha de cierre ilegible: muestra un guion en su lugar.
+- La ventana de 24 h se refresca cuando el cliente escribe, en vez de descontar hasta cero sobre una ventana ya reabierta.
+- Se cierra la vía de envío de audio que quedaba abierta cuando responder estaba bloqueado.
+- Recuperación de WebSocket muerto y de suscripciones de chat sordas.
+- Se espera a que pasen las reconexiones rápidas antes de mostrar el banner de "reconectando".
+- Al volver a la pestaña se sondea el socket en vez de descartar una conexión sana.
+- Las imágenes entrantes se muestran una vez que su URL de Storage queda parcheada.
+- Se desbloquea el `AudioContext` en el primer gesto y se reintenta la suscripción WS de la conversación.
+
 ## [2.4.0] - 2026-09-15
 
 ### Added

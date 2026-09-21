@@ -169,6 +169,7 @@ No request body required.
         "unread_count": 0,
         "case_number": "CE-2026-000043",
         "priority": "alta",
+        "whatsapp_window_expires_at": "2026-09-20T20:15:00+00:00",
         "client": {
           "id": "550e8400-e29b-41d4-a716-446655440020",
           "phone_number": "+573001234567",
@@ -221,6 +222,7 @@ No request body required.
 - **`last_message`** is the most recent inbound (client) message of the conversation. It is `null` if the client has not sent any message yet. Only `msg_type` and `content` are included; for non-text messages `content` may be `null`.
 - **`case_number`** is a human-readable, unique case reference in the format `CE-YYYY-NNNNNN` (e.g. `CE-2026-000043`), generated atomically in Postgres when the conversation is created. It is `null` for conversations created before this feature was deployed — render `—` (or similar) in that case. It never changes for the lifetime of the conversation, including when a closed conversation is transparently reused within the grace window (see `CLAUDE.md` §3.6.1) — the reused conversation keeps its original `case_number`.
 - **`priority`** is one of `baja`, `media`, `alta`, `critica` — always present, defaults to `baja` for every conversation. Set **exclusively** by the bot's `evaluate_priority` node based on the client's tone/urgency each turn; there is no endpoint or panel control to set it manually. It is **monotonic**: it only ever increases within a conversation, never decreases. Use it to sort/highlight the inbox (e.g. badge color, default sort by priority then `last_activity`). Real-time updates also arrive via the `conversation.priority_updated` WebSocket event (see below) — no need to re-fetch the list to keep badges current.
+- **`whatsapp_window_expires_at`** is the instant Meta's 24-hour customer service window closes for this conversation, in ISO-8601 UTC — or `null`. See **The 24-hour window** in the Frontend Integration Guide before using it.
 
 ---
 
@@ -271,6 +273,7 @@ No request body required.
       "closed_at": null,
       "case_number": "CE-2026-000043",
       "priority": "alta",
+      "whatsapp_window_expires_at": "2026-09-20T20:15:00+00:00",
       "client": {
         "id": "550e8400-e29b-41d4-a716-446655440020",
         "full_name": "Carlos Rodríguez",
@@ -499,6 +502,7 @@ msg_type = "document" → render download link using media_url
 | 403  | `NOT_ASSIGNED`              | Advisor is not the assigned advisor for this conversation (non-admins only) |
 | 403  | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match the advisor's area                       |
 | 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                                           |
+| 409  | `WINDOW_EXPIRED`            | Meta's 24h customer service window is closed — see below                    |
 | 502  | `META_API_ERROR`            | WhatsApp API call failed or the line record was not found                   |
 
 **Notes:**
@@ -579,6 +583,7 @@ msg_type = "document" → render download link using media_url
 | 403  | `NOT_ASSIGNED`              | Advisor is not the assigned advisor                     |
 | 403  | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match advisor's area       |
 | 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                       |
+| 409  | `WINDOW_EXPIRED`            | Meta's 24h window is closed — see below                 |
 | 502  | `META_API_ERROR`            | WhatsApp API call failed                                |
 | 503  | `STORAGE_ERROR`             | Supabase Storage upload or signed URL generation failed |
 
@@ -649,6 +654,7 @@ msg_type = "document" → render download link using media_url
 | 403  | `NOT_ASSIGNED`              | Advisor is not the assigned advisor                     |
 | 403  | `CONVERSATION_OUTSIDE_AREA` | Conversation channel doesn't match advisor's area       |
 | 404  | `CONVERSATION_NOT_FOUND`    | No conversation with the given ID                       |
+| 409  | `WINDOW_EXPIRED`            | Meta's 24h window is closed — see below                 |
 | 502  | `META_API_ERROR`            | WhatsApp API call failed or line not found              |
 | 502  | `STORAGE_ERROR`             | Supabase Storage upload or signed URL generation failed |
 
@@ -710,7 +716,7 @@ msg_type = "document" → render download link using media_url
 
 ### PATCH /api/v1/panel/conversations/{conversation_id}/take-control
 
-> ⚠️ **Deployment status:** requires a DB migration (new `escalations.reason` value + a uniqueness constraint) that may not be applied in every environment yet — see `specs/human_handover_direct_control/03-design.md`. If this endpoint 500s specifically on a conversation the bot is still actively handling (not yet `escalada`), check with backend whether the migration has landed in that environment before assuming a frontend bug.
+> ⚠️ **Deployment status:** requires a DB migration (new `escalations.reason` value + a uniqueness constraint) — **applied in DEV** (2026-09-14), **still pending in production**. If this endpoint 500s specifically on a conversation the bot is still actively handling (not yet `escalada`), check with backend whether the migration has landed in that environment before assuming a frontend bug. See `specs/human_handover_direct_control/03-design.md`.
 
 **Auth required:** Yes (any active advisor — see Notes on area restriction)
 
@@ -950,6 +956,7 @@ Also returned with `200` (unchanged, no new writes) if the caller already had co
 | `derivado_otro_canal`            | Client redirected to another channel or department |
 | `sin_respuesta_cliente`          | Client stopped responding                          |
 | `consulta_resuelta_confirmada`   | Client explicitly confirmed the issue is resolved  |
+| `ventana_vencida`                | Closed automatically: Meta's 24h window expired    |
 | `otro`                           | Default. Use when no other type fits               |
 
 **Response 200:**
@@ -2175,6 +2182,22 @@ Emitted to **all connected advisors** when a conversation is closed — either b
 }
 ```
 
+**Window expiry** (`closed_by: "bot"`, `reason: "window_expired"`): emitted when the background
+job closes a conversation because Meta's 24h window ran out. **No new event type** — this is the
+same `conversation.closed` you already handle, with a new `reason` value. It can arrive at **any
+hour**, including overnight, unlike the other bot closes which only happen during office hours.
+
+```json
+{
+  "event": "conversation.closed",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "closed_by": "bot",
+    "reason": "window_expired"
+  }
+}
+```
+
 Always handle `conversation.closed` defensively — check for `closed_by` before reading `advisor_id`.
 
 #### escalation.new
@@ -2433,6 +2456,73 @@ detail, and the client directory — whenever we have it, regardless of whether
 ---
 
 ## Frontend Integration Guide
+
+### The 24-hour window
+
+WhatsApp only lets a business send free-form messages within **24 hours of the client's last
+inbound message**. Outside that window nothing but a pre-approved template gets through, and the
+platform rejects the send outright (Meta error `131047`). This is a hard platform rule — there is
+no plan, setting or workaround that extends it.
+
+`whatsapp_window_expires_at` is when that window closes. It is returned by the two endpoints that
+serve a **full** conversation object: `GET /conversations` (inbox) and `GET /conversations/{id}`
+(detail). See rule 7 for the endpoints that do NOT carry it.
+
+**Rules, in order of how easy they are to get wrong:**
+
+1. **`null` means UNKNOWN, never expired.** Conversations that existed before this feature shipped,
+   and any conversation with no inbound message yet, carry `null`. Do **not** grey out the
+   composer, show a warning or block anything on `null` — render it exactly like an open window.
+
+2. **Only the client's messages reset it.** Every inbound message restarts the clock at 24h from
+   _that_ message. Replies from the advisor or from the bot do **not** extend it. This means a
+   conversation with very recent activity can still be minutes from expiring — do not infer the
+   window from `last_activity`, which moves in both directions.
+
+3. **Compute the countdown client-side.** The API deliberately sends only the absolute instant,
+   not `seconds_remaining` or `is_open`: any derived value is already stale by the time it renders.
+   Tick a local timer against `whatsapp_window_expires_at`.
+
+4. **Highlight at 2 hours remaining.** The agreed threshold for warning the advisor that she is
+   running out of time to reach this client. Below zero, show the window as closed.
+
+   Note for DEV: the backend can shorten the whole window (`WHATSAPP_WINDOW_HOURS`) so the
+   cycle is testable in minutes. Against a 15-minute window every conversation reads as
+   "closing", which is expected — the 2h threshold assumes production's 24h.
+
+5. **Handle `409 WINDOW_EXPIRED` on all three reply endpoints.** The backend refuses the send
+   before calling Meta. Show `detail.message` as-is — it is already written for the advisor, in
+   Spanish. Do **not** clear the composer: she may want to copy what she wrote.
+
+6. **Do not promise that templates reopen the conversation.** When template support ships, a
+   template sends _one approved message_; the window reopens only if the client replies to it.
+   Wording like "podrá volver a escribirle" is a promise the platform does not keep.
+
+7. **Merge partial responses — never replace.** `PATCH /take-control`, `PATCH /return-bot` and
+   `PATCH /close` return only the fields they changed (`id`, `status`, `bot_activo`, and for close
+   the resolution fields). They deliberately omit `whatsapp_window_expires_at`, and also
+   `priority`, `case_number`, `last_activity`, `unread_count` and `client`. If the store replaces
+   the cached conversation with that response, the countdown disappears the moment an advisor
+   takes control — along with the priority badge and the case number. Spread the response over the
+   existing object.
+
+**Suggested rendering:**
+
+```js
+const expiresAt = conversation.whatsapp_window_expires_at;
+
+// null = unknown. Never treat it as closed.
+if (expiresAt == null) return { state: "unknown", canReply: true };
+
+const msLeft = new Date(expiresAt) - Date.now();
+if (msLeft <= 0) return { state: "closed", canReply: false };
+if (msLeft <= 2 * 3600e3) return { state: "closing", canReply: true, msLeft };
+return { state: "open", canReply: true, msLeft };
+```
+
+A conversation closed by the job for this reason arrives over the WebSocket as an ordinary
+`conversation.closed` with `reason: "window_expired"` — no new event to handle. Note it can land
+**overnight**, unlike every other bot-initiated close.
 
 ### Authentication Flow
 

@@ -249,6 +249,10 @@ const LOCAL_ERROR_CODES = new Set([
   'BOT_ALREADY_ACTIVE',
   'ALREADY_CLOSED',
   'CONVERSATION_NOT_ESCALATED',
+  // Meta's 24h window is closed. The backend message is already written for the
+  // advisor, in Spanish — ChatInput/AudioRecorder show it verbatim next to the
+  // composer, so the generic 409 toast must not swallow it.
+  'WINDOW_EXPIRED',
   'ADVISOR_NOT_FOUND',
 ])
 

@@ -6,12 +6,14 @@ import {
   parseISO,
   isToday,
   isYesterday,
+  isValid,
   startOfDay,
   subDays,
 } from "date-fns";
 import { conversationsService } from "../services/conversations";
 import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { CaseNumberTag } from "../components/shared/CaseNumberTag";
+import { resolutionLabel } from "../constants/resolutions";
 import type { Conversation, ConversationIntent } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
@@ -20,9 +22,23 @@ import type { Conversation, ConversationIntent } from "../types";
 // even if the conversation is closed. last_activity is used as the fallback.
 function formatClosedDate(iso: string): string {
   const date = parseISO(iso);
+  // format() throws RangeError on an unparseable date, and one bad row inside
+  // the table body takes the whole page down with it — render a dash instead.
+  if (!isValid(date)) return "—";
   if (isToday(date)) return `Hoy, ${format(date, "hh:mm aa")}`;
   if (isYesterday(date)) return `Ayer, ${format(date, "hh:mm aa")}`;
   return format(date, "dd/MM/yyyy");
+}
+
+// Sort key for the "Fecha de Cierre" column. Same source the column renders
+// (closed_at with the last_activity fallback), so the visible order always
+// matches the visible dates. Rows with a missing or unparseable date sink to
+// the bottom instead of poisoning the comparator with NaN.
+function closedTimestamp(conv: Conversation): number {
+  const raw = conv.closed_at ?? conv.last_activity;
+  if (!raw) return 0;
+  const time = parseISO(raw).getTime();
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function formatDuration(seconds: number | null): string {
@@ -206,35 +222,39 @@ export default function HistorialPage() {
   }, []);
 
   const filteredConversations = useMemo(() => {
-    return conversations.filter((conv) => {
-      if (searchText) {
-        const search = searchText.toLowerCase();
-        const matchesName =
-          conv.client.full_name?.toLowerCase().includes(search) ?? false;
-        const matchesDoc =
-          conv.client.document_id?.toLowerCase().includes(search) ?? false;
-        if (!matchesName && !matchesDoc) return false;
-      }
-
-      if (lineFilter !== "todos") {
-        if (conv.channel !== lineFilter.toLowerCase()) return false;
-      }
-
-      if (dateFilter !== "todos") {
-        const closedDateStr = conv.closed_at ?? conv.last_activity;
-        const lastActivity = parseISO(closedDateStr);
-        const today = startOfDay(new Date());
-        if (dateFilter === "hoy") {
-          if (!isToday(lastActivity)) return false;
+    return conversations
+      .filter((conv) => {
+        if (searchText) {
+          const search = searchText.toLowerCase();
+          const matchesName =
+            conv.client.full_name?.toLowerCase().includes(search) ?? false;
+          const matchesDoc =
+            conv.client.document_id?.toLowerCase().includes(search) ?? false;
+          if (!matchesName && !matchesDoc) return false;
         }
-        if (dateFilter === "semana") {
-          const sevenDaysAgo = subDays(today, 7);
-          if (lastActivity < sevenDaysAgo) return false;
-        }
-      }
 
-      return true;
-    });
+        if (lineFilter !== "todos") {
+          if (conv.channel !== lineFilter.toLowerCase()) return false;
+        }
+
+        if (dateFilter !== "todos") {
+          const closedDateStr = conv.closed_at ?? conv.last_activity;
+          const lastActivity = parseISO(closedDateStr);
+          const today = startOfDay(new Date());
+          if (dateFilter === "hoy") {
+            if (!isToday(lastActivity)) return false;
+          }
+          if (dateFilter === "semana") {
+            const sevenDaysAgo = subDays(today, 7);
+            if (lastActivity < sevenDaysAgo) return false;
+          }
+        }
+
+        return true;
+      })
+      // Newest closure first. Safe to sort in place: `filter` already handed
+      // back a fresh array, so the `conversations` state is never mutated.
+      .sort((a, b) => closedTimestamp(b) - closedTimestamp(a));
   }, [conversations, searchText, lineFilter, dateFilter]);
 
   async function exportExcel() {
@@ -263,6 +283,7 @@ export default function HistorialPage() {
         intent: conv.intent ? INTENT_LABEL[conv.intent] : "—",
         closedAt: formattedDate,
         duration: formatDuration(conv.duration_seconds),
+        resolution: resolutionLabel(conv.resolution_type) ?? "—",
         notes: conv.resolution_notes ?? "Sin notas",
         resolutor,
         satisfaction: satisfaccion,
@@ -283,6 +304,7 @@ export default function HistorialPage() {
       { header: "Fecha de Cierre", key: "closedAt", width: 18 },
       { header: "Intención", key: "intent", width: 18 },
       { header: "Duración", key: "duration", width: 14 },
+      { header: "Resolución", key: "resolution", width: 28 },
       { header: "Notas de resolución", key: "notes", width: 50 },
       { header: "Resolutor", key: "resolutor", width: 20 },
       { header: "Cliente satisfecho", key: "satisfaction", width: 16 },
@@ -409,7 +431,7 @@ export default function HistorialPage() {
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
                 <th className="p-4 whitespace-nowrap">Intención</th>
                 <th className="p-4 whitespace-nowrap">Duración</th>
-                <th className="p-4 whitespace-nowrap">Notas de resolución</th>
+                <th className="p-4 whitespace-nowrap">Resolución</th>
                 <th className="p-4 whitespace-nowrap">Resolutor</th>
                 <th className="p-4 whitespace-nowrap text-center">
                   ¿El cliente está satisfecho?
@@ -471,7 +493,18 @@ export default function HistorialPage() {
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatDuration(conv.duration_seconds)}
                     </td>
-                    <td className="p-4 max-w-[250px] min-w-[200px]">
+                    <td className="p-4 max-w-[250px] min-w-[200px] space-y-1">
+                      {resolutionLabel(conv.resolution_type) && (
+                        <span
+                          className={`inline-block text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                            conv.resolution_type === "ventana_vencida"
+                              ? "bg-warning/15 text-warning"
+                              : "bg-bg-tertiary text-text-secondary"
+                          }`}
+                        >
+                          {resolutionLabel(conv.resolution_type)}
+                        </span>
+                      )}
                       {conv.resolution_notes ? (
                         <div
                           className="cursor-pointer text-xs text-text-primary hover:underline break-words"
@@ -485,9 +518,12 @@ export default function HistorialPage() {
                               : conv.resolution_notes}
                         </div>
                       ) : (
-                        <span className="text-xs text-text-secondary italic">
+                        // Block, not inline: `space-y-1` only separates block
+                        // siblings, so an inline span sat on the same line as
+                        // the resolution chip instead of under it.
+                        <div className="text-xs text-text-secondary italic">
                           Sin notas
-                        </span>
+                        </div>
                       )}
                     </td>
                     <td className="p-4 font-bold whitespace-nowrap">
