@@ -419,6 +419,14 @@ export default function BandejaPage() {
           unread_count: msg.direction === 'inbound' ? c.unread_count + 1 : c.unread_count,
           last_message: { msg_type: msg.msg_type, content: msg.content ?? null },
           last_activity: msg.created_at,
+          // The event carries Meta's 24h window as it stands after this message
+          // (every inbound message resets it). Without this the card keeps
+          // showing "Ventana cerrada" on a conversation the client just
+          // reopened, until something else triggers a full reload. A null is
+          // not applied: the window only moves forward, so null means the
+          // backend could not resolve it, not that it became unknown.
+          whatsapp_window_expires_at:
+            wsMsg.whatsapp_window_expires_at ?? c.whatsapp_window_expires_at,
         }
       })
     )

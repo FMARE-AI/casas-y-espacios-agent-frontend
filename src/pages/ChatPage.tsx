@@ -8,6 +8,7 @@ import type {
   Conversation,
 
   Message,
+  WSMessageNew,
   WSConversationClosed,
   WSEscalationNew,
   WSEscalationAssigned,
@@ -246,13 +247,31 @@ export default function ChatPage() {
 
   // WS handlers — called by useWebSocket hook
   const onNewMessage = useCallback(
-    (event: { message: Message & { conversation_id: string } }) => {
+    (event: WSMessageNew) => {
       if (event.message.conversation_id === conversationId) {
         setMessages((prev) => {
           // Guard against duplicates: the HTTP response already appended outbound messages
           if (prev.some((m) => m.id === event.message.id)) return prev;
           return [...prev, event.message];
         });
+
+        // Every INBOUND message restarts Meta's 24h window, and the event
+        // carries the fresh expiry precisely so this page does not fire an HTTP
+        // request per message to learn it. Without this merge the chat keeps
+        // counting down the expiry it loaded with, reaches zero, and disables
+        // its own composer on a conversation the client just reopened for
+        // another 24 hours — fail-closed, on the most common event there is.
+        //
+        // A null is NOT applied: the window only ever moves forward, so null
+        // here means the backend could not resolve it (or an older backend that
+        // does not send the field), and overwriting a known expiry with
+        // "unknown" would throw away a countdown that is still correct.
+        if (event.whatsapp_window_expires_at) {
+          const freshExpiry = event.whatsapp_window_expires_at;
+          setConversation((prev) =>
+            prev ? { ...prev, whatsapp_window_expires_at: freshExpiry } : prev,
+          );
+        }
 
         // If the advisor is in the chat and the message is inbound, mark it as seen immediately
         if (event.message.direction === 'inbound' && role !== 'admin') {

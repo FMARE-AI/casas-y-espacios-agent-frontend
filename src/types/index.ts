@@ -285,6 +285,15 @@ export interface WSMessageNew {
   message: Message;
   conversation_id?: string;
   unread_count?: number;
+  /**
+   * Meta's 24h window as it stands AFTER this message — every inbound message
+   * resets the clock, so the payload carries the fresh expiry and the panel
+   * never has to refetch the conversation to stay correct (same reasoning as
+   * `conversation_priority`). `null` means the backend could not resolve it,
+   * which is UNKNOWN, never expired: keep whatever is already cached rather
+   * than regressing a good countdown to unknown.
+   */
+  whatsapp_window_expires_at?: string | null;
 }
 
 export interface WSAdvisorConnected {
