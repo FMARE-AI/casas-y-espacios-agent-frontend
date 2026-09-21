@@ -26,6 +26,17 @@ function formatClosedDate(iso: string): string {
   return format(date, "dd/MM/yyyy");
 }
 
+// Sort key for the "Fecha de Cierre" column. Same source the column renders
+// (closed_at with the last_activity fallback), so the visible order always
+// matches the visible dates. Rows with a missing or unparseable date sink to
+// the bottom instead of poisoning the comparator with NaN.
+function closedTimestamp(conv: Conversation): number {
+  const raw = conv.closed_at ?? conv.last_activity;
+  if (!raw) return 0;
+  const time = parseISO(raw).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return "—";
   const minutes = Math.floor(seconds / 60);
@@ -207,35 +218,39 @@ export default function HistorialPage() {
   }, []);
 
   const filteredConversations = useMemo(() => {
-    return conversations.filter((conv) => {
-      if (searchText) {
-        const search = searchText.toLowerCase();
-        const matchesName =
-          conv.client.full_name?.toLowerCase().includes(search) ?? false;
-        const matchesDoc =
-          conv.client.document_id?.toLowerCase().includes(search) ?? false;
-        if (!matchesName && !matchesDoc) return false;
-      }
-
-      if (lineFilter !== "todos") {
-        if (conv.channel !== lineFilter.toLowerCase()) return false;
-      }
-
-      if (dateFilter !== "todos") {
-        const closedDateStr = conv.closed_at ?? conv.last_activity;
-        const lastActivity = parseISO(closedDateStr);
-        const today = startOfDay(new Date());
-        if (dateFilter === "hoy") {
-          if (!isToday(lastActivity)) return false;
+    return conversations
+      .filter((conv) => {
+        if (searchText) {
+          const search = searchText.toLowerCase();
+          const matchesName =
+            conv.client.full_name?.toLowerCase().includes(search) ?? false;
+          const matchesDoc =
+            conv.client.document_id?.toLowerCase().includes(search) ?? false;
+          if (!matchesName && !matchesDoc) return false;
         }
-        if (dateFilter === "semana") {
-          const sevenDaysAgo = subDays(today, 7);
-          if (lastActivity < sevenDaysAgo) return false;
-        }
-      }
 
-      return true;
-    });
+        if (lineFilter !== "todos") {
+          if (conv.channel !== lineFilter.toLowerCase()) return false;
+        }
+
+        if (dateFilter !== "todos") {
+          const closedDateStr = conv.closed_at ?? conv.last_activity;
+          const lastActivity = parseISO(closedDateStr);
+          const today = startOfDay(new Date());
+          if (dateFilter === "hoy") {
+            if (!isToday(lastActivity)) return false;
+          }
+          if (dateFilter === "semana") {
+            const sevenDaysAgo = subDays(today, 7);
+            if (lastActivity < sevenDaysAgo) return false;
+          }
+        }
+
+        return true;
+      })
+      // Newest closure first. Safe to sort in place: `filter` already handed
+      // back a fresh array, so the `conversations` state is never mutated.
+      .sort((a, b) => closedTimestamp(b) - closedTimestamp(a));
   }, [conversations, searchText, lineFilter, dateFilter]);
 
   async function exportExcel() {
