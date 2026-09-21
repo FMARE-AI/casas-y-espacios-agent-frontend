@@ -576,6 +576,13 @@ function connect(token: string): void {
             transcription: raw.message.transcription ?? null,
             advisor_name: raw.message.advisor_name ?? null,
           },
+          // Meta's 24h window AFTER this message: every inbound message resets
+          // the clock, and this is what spares the panel a refetch per message.
+          // It travels at the ROOT of the payload, so it has to be copied over
+          // explicitly — this object is rebuilt from scratch, not spread from
+          // `raw`, and anything not named here is dropped before the handlers
+          // ever see it.
+          whatsapp_window_expires_at: raw.whatsapp_window_expires_at ?? null,
         }
 
         // Sound rules:

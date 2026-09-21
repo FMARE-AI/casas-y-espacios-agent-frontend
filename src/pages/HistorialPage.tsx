@@ -12,6 +12,7 @@ import {
 import { conversationsService } from "../services/conversations";
 import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { CaseNumberTag } from "../components/shared/CaseNumberTag";
+import { resolutionLabel } from "../constants/resolutions";
 import type { Conversation, ConversationIntent } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
@@ -263,6 +264,7 @@ export default function HistorialPage() {
         intent: conv.intent ? INTENT_LABEL[conv.intent] : "—",
         closedAt: formattedDate,
         duration: formatDuration(conv.duration_seconds),
+        resolution: resolutionLabel(conv.resolution_type) ?? "—",
         notes: conv.resolution_notes ?? "Sin notas",
         resolutor,
         satisfaction: satisfaccion,
@@ -283,6 +285,7 @@ export default function HistorialPage() {
       { header: "Fecha de Cierre", key: "closedAt", width: 18 },
       { header: "Intención", key: "intent", width: 18 },
       { header: "Duración", key: "duration", width: 14 },
+      { header: "Resolución", key: "resolution", width: 28 },
       { header: "Notas de resolución", key: "notes", width: 50 },
       { header: "Resolutor", key: "resolutor", width: 20 },
       { header: "Cliente satisfecho", key: "satisfaction", width: 16 },
@@ -409,7 +412,7 @@ export default function HistorialPage() {
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
                 <th className="p-4 whitespace-nowrap">Intención</th>
                 <th className="p-4 whitespace-nowrap">Duración</th>
-                <th className="p-4 whitespace-nowrap">Notas de resolución</th>
+                <th className="p-4 whitespace-nowrap">Resolución</th>
                 <th className="p-4 whitespace-nowrap">Resolutor</th>
                 <th className="p-4 whitespace-nowrap text-center">
                   ¿El cliente está satisfecho?
@@ -471,7 +474,18 @@ export default function HistorialPage() {
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatDuration(conv.duration_seconds)}
                     </td>
-                    <td className="p-4 max-w-[250px] min-w-[200px]">
+                    <td className="p-4 max-w-[250px] min-w-[200px] space-y-1">
+                      {resolutionLabel(conv.resolution_type) && (
+                        <span
+                          className={`inline-block text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                            conv.resolution_type === "ventana_vencida"
+                              ? "bg-warning/15 text-warning"
+                              : "bg-bg-tertiary text-text-secondary"
+                          }`}
+                        >
+                          {resolutionLabel(conv.resolution_type)}
+                        </span>
+                      )}
                       {conv.resolution_notes ? (
                         <div
                           className="cursor-pointer text-xs text-text-primary hover:underline break-words"
@@ -485,9 +499,12 @@ export default function HistorialPage() {
                               : conv.resolution_notes}
                         </div>
                       ) : (
-                        <span className="text-xs text-text-secondary italic">
+                        // Block, not inline: `space-y-1` only separates block
+                        // siblings, so an inline span sat on the same line as
+                        // the resolution chip instead of under it.
+                        <div className="text-xs text-text-secondary italic">
                           Sin notas
-                        </span>
+                        </div>
                       )}
                     </td>
                     <td className="p-4 font-bold whitespace-nowrap">

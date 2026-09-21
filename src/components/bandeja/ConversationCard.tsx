@@ -5,6 +5,11 @@ import type {
   ConversationPriority,
 } from "../../types";
 import { CaseNumberTag } from "../shared/CaseNumberTag";
+import {
+  formatWindowCountdown,
+  getWhatsAppWindow,
+  windowCountdownHint,
+} from "../../lib/whatsappWindow";
 
 interface ConversationCardProps {
   conversation: Conversation;
@@ -126,6 +131,16 @@ export const ConversationCard = memo(function ConversationCard({
     [conversation, now],
   );
 
+  // Derived from the card's existing 1-minute ticker — no second interval per
+  // card. A null expiry is UNKNOWN: nothing is highlighted and nothing is shown.
+  const whatsappWindow = useMemo(
+    () => getWhatsAppWindow(conversation.whatsapp_window_expires_at, now),
+    [conversation.whatsapp_window_expires_at, now],
+  );
+  const showWindowChip =
+    variant !== "D" &&
+    (whatsappWindow.state === "closing" || whatsappWindow.state === "closed");
+
   const containerStyles = {
     A: "border-l-[3px] border-l-error hover:bg-bg-tertiary/40",
     A2: "critical-pulse-card hover:bg-bg-tertiary/40",
@@ -205,7 +220,13 @@ export const ConversationCard = memo(function ConversationCard({
 
   return (
     <div
-      className={`relative bg-bg-secondary border border-border-default rounded-r-lg p-4 flex flex-col justify-between transition animate-fade-in ${containerStyles[variant]}`}
+      className={`relative bg-bg-secondary border border-border-default rounded-r-lg p-4 flex flex-col justify-between transition animate-fade-in ${containerStyles[variant]} ${
+        showWindowChip
+          ? whatsappWindow.state === "closed"
+            ? "ring-1 ring-error/40"
+            : "ring-1 ring-warning/40"
+          : ""
+      }`}
     >
       {(conversation.priority === "alta" ||
         conversation.priority === "critica") && (
@@ -234,6 +255,33 @@ export const ConversationCard = memo(function ConversationCard({
             <span className="bg-bg-tertiary text-brand-blue text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase">
               {conversation.channel || "Desconocido"}
             </span>
+            {showWindowChip && (
+              <span
+                className={`inline-flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded font-semibold border ${
+                  whatsappWindow.state === "closed"
+                    ? "bg-error/10 text-error border-error/25"
+                    : "bg-warning/10 text-warning border-warning/25"
+                }`}
+                title={windowCountdownHint(conversation.client?.full_name)}
+              >
+                <svg
+                  className="w-2.5 h-2.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                {whatsappWindow.state === "closed"
+                  ? "Ventana cerrada"
+                  : `Ventana ${formatWindowCountdown(whatsappWindow.msLeft ?? 0)}`}
+              </span>
+            )}
             {isAssignedToMe && (
               <span className="text-[9px] px-1.5 py-0.5 rounded bg-brand-blue/15 text-brand-blue border border-brand-blue/20 font-semibold">
                 Asignada a ti

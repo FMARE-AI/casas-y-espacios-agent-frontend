@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import MicRecorder from 'mic-recorder-to-mp3-fixed'
 import { conversationsService } from '../../services/conversations'
 import type { Message } from '../../types'
+import { windowClosedReason } from '../../lib/whatsappWindow'
 
 interface AudioRecorderProps {
   conversationId: string
@@ -11,6 +12,10 @@ interface AudioRecorderProps {
   onMessageConfirmed: (localId: string, message: Message) => void
   onMessageFailed: (localId: string) => void
   disabled?: boolean
+  /** Display name of the client, used to address them in the window copy. */
+  clientName?: string | null
+  /** The backend refused the send with 409 WINDOW_EXPIRED (Meta's 24h window). */
+  onWindowExpired?: () => void
   onStateChange?: (state: RecorderState) => void
 }
 
@@ -35,6 +40,8 @@ export default function AudioRecorder({
   onMessageConfirmed,
   onMessageFailed,
   disabled = false,
+  clientName,
+  onWindowExpired,
   onStateChange,
 }: AudioRecorderProps) {
   const [state, setState] = useState<RecorderState>('idle')
@@ -105,6 +112,12 @@ export default function AudioRecorder({
 
   async function sendAudio() {
     if (!audioBlob) return
+    // The recorder can already hold a clip when sending becomes impossible —
+    // Meta's 24h window closing mid-preview, or control moving to someone else.
+    // Both the preview and the retry button are disabled for that, this is the
+    // guard behind them. The recording is kept so it can still be discarded,
+    // or sent if the client writes again and reopens the window.
+    if (disabled) return
     setState('sending')
 
     const localId = retryLocalIdRef.current ?? makeLocalId()
@@ -158,6 +171,14 @@ export default function AudioRecorder({
         setErrorMessage('El bot tiene el control de esta conversación.')
       } else if (code === 'NOT_ASSIGNED') {
         setErrorMessage('No estás asignado a esta conversación.')
+      } else if (code === 'WINDOW_EXPIRED') {
+        // Backend message is already written for the advisor — show it verbatim.
+        // The recording itself is kept (cancelRecording is not called), same as
+        // the text composer keeps the typed message.
+        const backendMsg = (error as { response?: { data?: { detail?: { message?: string } } } })
+          .response?.data?.detail?.message
+        setErrorMessage(backendMsg || windowClosedReason(clientName))
+        onWindowExpired?.()
       } else {
         setErrorMessage('No se pudo enviar el audio. Intenta de nuevo.')
       }
@@ -275,8 +296,9 @@ export default function AudioRecorder({
         <button
           type="button"
           onClick={sendAudio}
-          className="p-2 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control transition shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
-          title="Enviar audio"
+          disabled={disabled}
+          className="p-2 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control transition shrink-0 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
+          title={disabled ? 'No se puede enviar en este momento' : 'Enviar audio'}
         >
           <svg className="w-3.5 h-3.5 transform rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -312,7 +334,8 @@ export default function AudioRecorder({
       <button
         type="button"
         onClick={sendAudio}
-        className="text-[10px] text-brand-blue hover:text-brand-blue-hover font-bold uppercase transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+        disabled={disabled}
+        className="text-[10px] text-brand-blue hover:text-brand-blue-hover font-bold uppercase transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-brand-blue focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
       >
         Reintentar
       </button>
