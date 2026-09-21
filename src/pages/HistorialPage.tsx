@@ -6,6 +6,7 @@ import {
   parseISO,
   isToday,
   isYesterday,
+  isValid,
   startOfDay,
   subDays,
 } from "date-fns";
@@ -21,6 +22,9 @@ import type { Conversation, ConversationIntent } from "../types";
 // even if the conversation is closed. last_activity is used as the fallback.
 function formatClosedDate(iso: string): string {
   const date = parseISO(iso);
+  // format() throws RangeError on an unparseable date, and one bad row inside
+  // the table body takes the whole page down with it — render a dash instead.
+  if (!isValid(date)) return "—";
   if (isToday(date)) return `Hoy, ${format(date, "hh:mm aa")}`;
   if (isYesterday(date)) return `Ayer, ${format(date, "hh:mm aa")}`;
   return format(date, "dd/MM/yyyy");
