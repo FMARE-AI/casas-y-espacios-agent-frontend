@@ -246,3 +246,16 @@ Cliente envía `{ "type": "ping" }` cada 30s, servidor responde `{ "type": "pong
 ### 17.7 Quitar mocks progresivamente
 
 Orden: Auth (✅) → `PATCH /advisors/me` (✅) → `GET /conversations/` → `GET /conversations/{id}` → Reply (texto/media/audio, remover guard `id === 'demo'`) → WebSocket (URL real) → resto (alerts, schedules, metrics). Endpoint por endpoint, no todos a la vez, para detectar regresiones.
+
+### 17.8 Ventana de 24 h de WhatsApp
+
+`whatsapp_window_expires_at` (ISO-8601 UTC o `null`) llega **solo** en `GET /conversations/` y `GET /conversations/{id}`. Estado derivado en cliente con `src/lib/whatsappWindow.ts` (`unknown | open | closing | closed`), contador vivo con `useWhatsAppWindow`.
+
+- `null` = **desconocida, nunca vencida**. Toda conversación anterior a la feature llega así: se renderiza igual que una ventana abierta (composer habilitado, sin advertencias).
+- Solo los mensajes **del cliente** reinician el reloj. Nunca derivar la ventana de `last_activity` — ese campo también se mueve con respuestas del bot y de la asesora.
+- El backend manda solo el instante absoluto: el contador se calcula localmente, nunca se pide precalculado.
+- Umbral de resaltado: 2 h (`WINDOW_WARNING_MS`). En DEV el backend usa ventanas de 15 min, así que todo se ve `closing` — es esperado, no bajar el umbral.
+- `409 WINDOW_EXPIRED` en los tres endpoints de reply: `detail.message` se muestra tal cual (ya viene en español) y **no** se limpia el composer. Está en `LOCAL_ERROR_CODES` de `axios.ts` para que el toast genérico de 409 no lo tape.
+- El cierre automático llega como el `conversation.closed` de siempre con `reason: "window_expired"` — no hay evento nuevo, y puede caer **de madrugada** (los demás cierres del bot están gateados por horario de oficina).
+- `PATCH /take-control`, `/return-bot` y `/close` devuelven solo los campos que cambiaron y **omiten** `whatsapp_window_expires_at`, `priority`, `case_number`, `last_activity`, `unread_count` y `client`: siempre mergear sobre el objeto existente, nunca reemplazar.
+- Copy: cuando existan plantillas, una plantilla envía **un** mensaje aprobado y la ventana se reabre solo si el cliente responde. Nunca prometer "podrá volver a escribirle".

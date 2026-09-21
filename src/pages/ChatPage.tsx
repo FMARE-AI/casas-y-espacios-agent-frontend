@@ -23,6 +23,8 @@ import CloseConversationModal, { type CloseData } from "../components/modals/Clo
 import ReturnBotModal from "../components/modals/ReturnBotModal";
 import { useWebSocket, consumePendingTransferReason } from "../hooks/useWebSocket";
 import { useAbortableLoad } from "../hooks/useAbortableLoad";
+import { useWhatsAppWindow } from "../hooks/useWhatsAppWindow";
+import { formatWindowCountdown, windowCountdownHint } from "../lib/whatsappWindow";
 import { ROUTES } from "../constants/routes";
 
 function getInitials(name: string): string {
@@ -330,9 +332,19 @@ export default function ChatPage() {
 
   const onConversationClosed = useCallback(
     (event: WSConversationClosed) => {
-      if (event.conversation_id === conversationId) {
-        navigate(ROUTES.BANDEJA);
+      if (event.conversation_id !== conversationId) return;
+      // The window-expiry job closes conversations at any hour, unlike every
+      // other bot close (which is gated by office hours) — so this can yank the
+      // advisor out of a chat she is reading. Say why instead of just navigating.
+      if (event.reason === "window_expired") {
+        useToastStore
+          .getState()
+          .showToast(
+            "La ventana de 24 horas de WhatsApp venció y la conversación se cerró automáticamente.",
+            "warning",
+          );
       }
+      navigate(ROUTES.BANDEJA);
     },
     [conversationId, navigate],
   );
@@ -659,6 +671,19 @@ export default function ChatPage() {
   const clientName = conversation?.client.full_name ?? "Cliente";
   const channel = conversation?.channel ?? "";
 
+  // Ticks locally against the absolute expiry the backend sent — see
+  // lib/whatsappWindow.ts. `null` renders as an open window, never as closed.
+  const whatsappWindow = useWhatsAppWindow(conversation?.whatsapp_window_expires_at);
+
+  // A 409 WINDOW_EXPIRED means the window closed between our last fetch and this
+  // send. Mark it closed locally (merging, never replacing) so the composer locks
+  // immediately instead of waiting for the next refetch.
+  const handleWindowExpired = useCallback(() => {
+    setConversation((prev) =>
+      prev ? { ...prev, whatsapp_window_expires_at: new Date().toISOString() } : prev,
+    );
+  }, []);
+
   const waitSeconds = conversation?.escalation?.escalated_at
     ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
     : (conversation?.escalation?.wait_seconds ?? null);
@@ -718,6 +743,30 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* 24h window countdown — omitted entirely when the expiry is unknown */}
+            {whatsappWindow.msLeft !== null && conversation?.status !== "cerrada" && (
+              <div
+                id="chat-window-pill"
+                title={windowCountdownHint(clientName)}
+                className={`hidden sm:flex items-center gap-1 text-[10px] px-2.5 py-1 rounded font-black border ${
+                  whatsappWindow.state === "closed"
+                    ? "bg-error/15 text-error border-error/30"
+                    : whatsappWindow.state === "closing"
+                      ? "bg-warning/15 text-warning border-warning/30"
+                      : "bg-bg-tertiary text-text-secondary border-border-default"
+                }`}
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>
+                  {whatsappWindow.state === "closed"
+                    ? "Ventana cerrada"
+                    : `Ventana 24 h · ${formatWindowCountdown(whatsappWindow.msLeft)}`}
+                </span>
+              </div>
+            )}
+
             {/* Control toggle — hidden on closed conversations (no action makes sense there) */}
             {conversation && conversation.status !== "cerrada" && (
               conversation.bot_activo ? (
@@ -802,6 +851,7 @@ export default function ChatPage() {
           showEscalationEvent={conversation?.status === "escalada"}
           showReturnedEvent={showReturnedPill}
           advisorName={fromAlert ? alertAdvisorName : advisor?.full_name}
+          clientName={conversation?.client.full_name}
           onScrollTop={loadMoreMessages}
           feedRef={feedRef}
         />
@@ -817,6 +867,8 @@ export default function ChatPage() {
             onOptimisticMessage={addOptimisticMessage}
             onMessageConfirmed={confirmOptimisticMessage}
             onMessageFailed={failOptimisticMessage}
+            whatsappWindow={whatsappWindow}
+            onWindowExpired={handleWindowExpired}
           />
         ) : (
           <div className="p-3 bg-bg-secondary border-t border-border-default shrink-0">

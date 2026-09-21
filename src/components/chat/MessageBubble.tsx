@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import type { Message } from '../../types'
 import { downloadMedia, downloadRotatedImage } from '../../lib/mediaDownload'
+import { clientDisplayName } from '../../lib/clientName'
 
 type Rotation = 0 | 90 | 180 | 270
 
@@ -15,6 +16,12 @@ function nextRotation(current: Rotation, direction: 1 | -1): Rotation {
 interface MessageBubbleProps {
   message: Message
   advisorName?: string
+  /**
+   * Who the inbound messages are from. Null/unknown (and the generic
+   * placeholders the pages substitute for a missing name) fall back to
+   * "Cliente" — see lib/clientName.ts.
+   */
+  clientName?: string | null
 }
 
 function formatTime(iso: string): string {
@@ -780,7 +787,7 @@ const BubbleContent = memo(function BubbleContent({ msg, isDocument }: { msg: Me
 
 // ── Main component ────────────────────────────────────────
 
-export default memo(function MessageBubble({ message, advisorName }: MessageBubbleProps) {
+export default memo(function MessageBubble({ message, advisorName, clientName }: MessageBubbleProps) {
   const time = formatTime(message.timestamp)
   const isDocument = message.msg_type === 'document'
 
@@ -790,7 +797,9 @@ export default memo(function MessageBubble({ message, advisorName }: MessageBubb
         <div className={`bg-bg-tertiary text-text-primary rounded-xl rounded-tl-none ${isDocument ? '' : 'p-3'} leading-relaxed shadow-sm border border-white/5`}>
           <BubbleContent msg={message} isDocument={isDocument} />
         </div>
-        <span className="text-[9px] text-text-secondary ml-1">{time} • Cliente</span>
+        <span className="text-[9px] text-text-secondary ml-1">
+          {time} • {clientDisplayName(clientName) ?? 'Cliente'}
+        </span>
       </div>
     )
   }

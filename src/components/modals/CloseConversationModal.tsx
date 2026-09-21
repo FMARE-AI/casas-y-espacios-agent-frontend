@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { RESOLUTION_LABELS, SELECTABLE_RESOLUTIONS } from '../../constants/resolutions'
 
 export interface CloseData {
   resolution_type: string
@@ -7,22 +8,14 @@ export interface CloseData {
   alreadySaidGoodbye: boolean
 }
 
-const RESOLUTION_OPTIONS: { value: string; label: string }[] = [
-  { value: 'consulta_cartera_resuelta', label: 'Consulta de cartera resuelta' },
-  { value: 'pago_acordado', label: 'Pago acordado / registrado' },
-  {
-    value: 'orden_mantenimiento_creada',
-    label: 'Orden de mantenimiento creada',
-  },
-  { value: 'queja_pqrs_registrada', label: 'Queja / PQRS registrada' },
-  {
-    value: 'informacion_contrato_entregada',
-    label: 'Información de contrato entregada',
-  },
-  { value: 'derivado_otro_canal', label: 'Derivado a otro canal' },
-  { value: 'sin_respuesta_cliente', label: 'Cliente no respondió' },
-  { value: 'otro', label: 'Otro' },
-]
+// Built from the shared label map so the historial and the export never drift
+// from what the advisor picked here. `ventana_vencida` is intentionally absent:
+// only the backend job sets it, when Meta's 24h window runs out.
+const RESOLUTION_OPTIONS: { value: string; label: string }[] =
+  SELECTABLE_RESOLUTIONS.map((value) => ({
+    value,
+    label: RESOLUTION_LABELS[value],
+  }))
 
 const SATISFACTION_OPTIONS: { value: string; label: string; active: string }[] = [
   {

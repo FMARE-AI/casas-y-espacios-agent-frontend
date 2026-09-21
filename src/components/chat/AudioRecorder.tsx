@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import MicRecorder from 'mic-recorder-to-mp3-fixed'
 import { conversationsService } from '../../services/conversations'
 import type { Message } from '../../types'
+import { windowClosedReason } from '../../lib/whatsappWindow'
 
 interface AudioRecorderProps {
   conversationId: string
@@ -11,6 +12,10 @@ interface AudioRecorderProps {
   onMessageConfirmed: (localId: string, message: Message) => void
   onMessageFailed: (localId: string) => void
   disabled?: boolean
+  /** Display name of the client, used to address them in the window copy. */
+  clientName?: string | null
+  /** The backend refused the send with 409 WINDOW_EXPIRED (Meta's 24h window). */
+  onWindowExpired?: () => void
   onStateChange?: (state: RecorderState) => void
 }
 
@@ -35,6 +40,8 @@ export default function AudioRecorder({
   onMessageConfirmed,
   onMessageFailed,
   disabled = false,
+  clientName,
+  onWindowExpired,
   onStateChange,
 }: AudioRecorderProps) {
   const [state, setState] = useState<RecorderState>('idle')
@@ -158,6 +165,14 @@ export default function AudioRecorder({
         setErrorMessage('El bot tiene el control de esta conversación.')
       } else if (code === 'NOT_ASSIGNED') {
         setErrorMessage('No estás asignado a esta conversación.')
+      } else if (code === 'WINDOW_EXPIRED') {
+        // Backend message is already written for the advisor — show it verbatim.
+        // The recording itself is kept (cancelRecording is not called), same as
+        // the text composer keeps the typed message.
+        const backendMsg = (error as { response?: { data?: { detail?: { message?: string } } } })
+          .response?.data?.detail?.message
+        setErrorMessage(backendMsg || windowClosedReason(clientName))
+        onWindowExpired?.()
       } else {
         setErrorMessage('No se pudo enviar el audio. Intenta de nuevo.')
       }

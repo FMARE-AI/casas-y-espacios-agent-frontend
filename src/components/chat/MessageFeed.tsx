@@ -117,6 +117,8 @@ interface MessageFeedProps {
   showEscalationEvent: boolean
   showReturnedEvent: boolean
   advisorName?: string
+  /** Author label for inbound bubbles; falls back to "Cliente" when unknown. */
+  clientName?: string | null
   onScrollTop: () => void
   feedRef: React.RefObject<HTMLDivElement | null>
   isTyping?: boolean
@@ -129,6 +131,7 @@ export default memo(function MessageFeed({
   showEscalationEvent,
   showReturnedEvent,
   advisorName,
+  clientName,
   onScrollTop,
   feedRef,
   isTyping,
@@ -177,6 +180,7 @@ export default memo(function MessageFeed({
                           ? (msg.advisor_name ?? advisorName)
                           : undefined
                       }
+                      clientName={clientName}
                     />
                   </div>
                 )

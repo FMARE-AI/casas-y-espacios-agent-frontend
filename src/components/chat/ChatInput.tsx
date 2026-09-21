@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import { conversationsService } from '../../services/conversations'
 import AudioRecorder from './AudioRecorder'
 import type { Message } from '../../types'
+import {
+  formatWindowCountdown,
+  WINDOW_CLOSED_REASON,
+  windowClosedReason,
+  windowCountdownHint,
+  type WhatsAppWindowInfo,
+} from '../../lib/whatsappWindow'
 
 const EMOJI_CATEGORIES = [
   {
@@ -46,6 +53,14 @@ interface ChatInputProps {
   onMessageFailed: (localId: string) => void
   variant?: string
   onTypingChange?: (isTyping: boolean) => void
+  /** Live state of Meta's 24h window — see lib/whatsappWindow.ts. */
+  whatsappWindow: WhatsAppWindowInfo
+  /**
+   * The backend refused a send with 409 WINDOW_EXPIRED: the window closed
+   * between the last fetch and this attempt. Lets the page mark the
+   * conversation as closed without waiting for the local timer to notice.
+   */
+  onWindowExpired?: () => void
 }
 
 function makeLocalId(): string {
@@ -470,7 +485,19 @@ function ExcelPreview({ file }: ExcelPreviewProps) {
   )
 }
 
-function getErrorMessage(error: unknown, fallback: string, file?: File): string {
+function isWindowExpired(error: unknown): boolean {
+  const err = error as { response?: { data?: { detail?: { code?: string } } } }
+  return err.response?.data?.detail?.code === 'WINDOW_EXPIRED'
+}
+
+function getErrorMessage(
+  error: unknown,
+  fallback: string,
+  file?: File,
+  // Client-specific wording for a closed window, resolved by the caller (this
+  // helper is module-level and has no client name in scope).
+  windowClosedText: string = WINDOW_CLOSED_REASON,
+): string {
   const err = error as { response?: { data?: { detail?: { code?: string; message?: string } } } }
   const code = err.response?.data?.detail?.code
   const backendMsg = err.response?.data?.detail?.message
@@ -498,6 +525,10 @@ function getErrorMessage(error: unknown, fallback: string, file?: File): string 
       return 'No se pudo enviar el mensaje a WhatsApp. Intenta nuevamente.'
     case 'STORAGE_ERROR':
       return 'Error de almacenamiento al subir el archivo. Intenta de nuevo.'
+    case 'WINDOW_EXPIRED':
+      // The backend message is already written for the advisor, in Spanish and
+      // in "usted" — show it verbatim instead of paraphrasing it here.
+      return backendMsg || windowClosedText
     default:
       return backendMsg || fallback
   }
@@ -514,6 +545,8 @@ export default function ChatInput({
   onMessageFailed,
   variant = 'assigned',
   onTypingChange,
+  whatsappWindow,
+  onWindowExpired,
 }: ChatInputProps) {
   const [text, setText] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -525,6 +558,14 @@ export default function ChatInput({
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
   const [recorderState, setRecorderState] = useState<string>('idle')
+
+  // `unknown` (legacy conversations, no inbound message yet) must behave exactly
+  // like an open window — only a window we KNOW is closed blocks the composer.
+  const isWindowClosed = whatsappWindow.state === 'closed'
+  const canCompose = variant === 'assigned' && !isWindowClosed
+  // `clientName` arrives already defaulted to a generic placeholder when the
+  // contact has no name, so the copy helpers resolve it instead of trusting it.
+  const windowClosedText = windowClosedReason(clientName)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const attachMenuRef = useRef<HTMLDivElement>(null)
@@ -538,14 +579,14 @@ export default function ChatInput({
 
   // Auto-focus textarea when switching conversations, loading, or when recording ends
   useEffect(() => {
-    if (variant === 'assigned' && recorderState === 'idle') {
+    if (canCompose && recorderState === 'idle') {
       const timer = setTimeout(() => {
         textareaRef.current?.focus()
       }, 100)
       return () => clearTimeout(timer)
     }
     return undefined
-  }, [conversationId, variant, recorderState])
+  }, [conversationId, canCompose, recorderState])
 
   // Release the preview URL when unmounting
   useEffect(() => {
@@ -685,7 +726,7 @@ export default function ChatInput({
   }
 
   function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
-    if (variant !== 'assigned' || selectedFile) return
+    if (!canCompose || selectedFile) return
     const items = e.clipboardData?.items
     if (!items) return
     for (const item of items) {
@@ -768,8 +809,19 @@ export default function ChatInput({
     } catch (error) {
       onMessageFailed(localId)
       textRetryLocalIdRef.current = localId
+      // The text goes back into the composer on every failure — explicitly
+      // including WINDOW_EXPIRED, where the advisor may want to copy what she
+      // wrote before the window closed on her.
       setText(trimmed)
-      setSendError(getErrorMessage(error, 'No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.'))
+      setSendError(
+        getErrorMessage(
+          error,
+          'No pudimos enviar el mensaje. Revisa tu conexión e intenta de nuevo.',
+          undefined,
+          windowClosedText,
+        ),
+      )
+      if (isWindowExpired(error)) onWindowExpired?.()
     } finally {
       setSending(false)
     }
@@ -777,6 +829,12 @@ export default function ChatInput({
 
   async function handleSend() {
     updateTypingStatus(false)
+    // Belt and braces: every entry point is disabled while the window is closed,
+    // but a stale keydown must not slip a doomed request past it either.
+    if (isWindowClosed) {
+      setSendError(windowClosedText)
+      return
+    }
     if (selectedFile) {
       // PW-5 — enviar multimedia
       const file = selectedFile
@@ -827,7 +885,10 @@ export default function ChatInput({
       } catch (error) {
         onMessageFailed(localId)
         mediaRetryLocalIdRef.current = localId
-        setSendError(getErrorMessage(error, 'No se pudo enviar el archivo.', file))
+        setSendError(
+          getErrorMessage(error, 'No se pudo enviar el archivo.', file, windowClosedText),
+        )
+        if (isWindowExpired(error)) onWindowExpired?.()
       } finally {
         setSending(false)
       }
@@ -861,7 +922,38 @@ export default function ChatInput({
             <span>⚠️ Esperando respuesta hace {waitMinutes} m</span>
           </div>
         )}
+        {/* Countdown only when we actually know the expiry: a null window is
+            UNKNOWN, and showing nothing is the correct render for it. */}
+        {whatsappWindow.msLeft !== null && !isWindowClosed && (
+          <div
+            id="chat-window-countdown"
+            className={`flex items-center gap-1 font-semibold ${
+              whatsappWindow.state === 'closing' ? 'text-warning' : 'text-text-secondary'
+            }`}
+            title={windowCountdownHint(clientName)}
+          >
+            <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Ventana de 24 h: {formatWindowCountdown(whatsappWindow.msLeft)}</span>
+          </div>
+        )}
       </div>
+
+      {/* Window closed — the composer is disabled and this says why. Suppressed
+          while a send error is on screen: that banner already carries the
+          backend's own WINDOW_EXPIRED message. */}
+      {isWindowClosed && !sendError && (
+        <div
+          id="chat-window-expired-banner"
+          className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning shadow-sm"
+        >
+          <svg className="w-4 h-4 shrink-0 mt-px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <span>{windowClosedText}</span>
+        </div>
+      )}
 
       {/* Send error banner */}
       {sendError && (
@@ -950,7 +1042,7 @@ export default function ChatInput({
             <button
               type="button"
               onClick={toggleAttachMenu}
-              disabled={variant !== 'assigned' || sending || selectedFile !== null}
+              disabled={!canCompose || sending || selectedFile !== null}
               className="p-2.5 text-text-secondary hover:text-white hover:bg-border-default rounded-control transition active:scale-[0.98] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               title="Adjuntar archivo"
             >
@@ -1005,7 +1097,7 @@ export default function ChatInput({
             <button
               type="button"
               onClick={() => setEmojiMenuOpen((open) => !open)}
-              disabled={variant !== 'assigned' || sending}
+              disabled={!canCompose || sending}
               className="p-2.5 text-text-secondary hover:text-white hover:bg-border-default rounded-control transition active:scale-[0.98] disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
               title="Insertar emoji"
             >
@@ -1074,7 +1166,9 @@ export default function ChatInput({
           onOptimisticMessage={onOptimisticMessage}
           onMessageConfirmed={onMessageConfirmed}
           onMessageFailed={onMessageFailed}
-          disabled={variant !== 'assigned'}
+          disabled={!canCompose}
+          clientName={clientName}
+          onWindowExpired={onWindowExpired}
           onStateChange={setRecorderState}
         />
 
@@ -1084,7 +1178,7 @@ export default function ChatInput({
             <textarea
               ref={textareaRef}
               value={text}
-              disabled={sending || variant !== 'assigned'}
+              disabled={sending || !canCompose}
               onChange={(e) => {
                 const val = e.target.value
                 if (val.length > 2000) {
@@ -1109,9 +1203,11 @@ export default function ChatInput({
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
               placeholder={
-                selectedFile
-                  ? 'Añade una descripción opcional...'
-                  : 'Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)'
+                isWindowClosed
+                  ? 'Ventana de 24 h cerrada — no se pueden enviar mensajes.'
+                  : selectedFile
+                    ? 'Añade una descripción opcional...'
+                    : 'Escribe tu respuesta... (Enter para enviar, Shift+Enter para nueva línea)'
               }
               className="flex-1 bg-transparent outline-none border-none text-xs text-white placeholder-text-secondary/70 resize-none h-11 px-1 py-1 max-h-32 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             />
@@ -1122,7 +1218,7 @@ export default function ChatInput({
               <button
                 type="button"
                 onClick={handleSend}
-                disabled={sending || variant !== 'assigned' || (!text.trim() && !selectedFile)}
+                disabled={sending || !canCompose || (!text.trim() && !selectedFile)}
                 className="bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white p-2.5 rounded-control transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
               >
                 {sending ? (
@@ -1263,7 +1359,7 @@ export default function ChatInput({
                 <button
                   type="button"
                   onClick={handleSend}
-                  disabled={sending}
+                  disabled={sending || isWindowClosed}
                   className="bg-brand-blue hover:bg-brand-blue-hover active:scale-[0.98] text-white text-xs font-bold px-5 py-2.5 rounded-control transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
                 >
                   {sending ? (
