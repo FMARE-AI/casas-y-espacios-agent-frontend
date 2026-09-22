@@ -778,6 +778,67 @@ Also returned with `200` (unchanged, no new writes) if the caller already had co
 
 ---
 
+### PATCH /api/v1/panel/conversations/{conversation_id}/reopen
+
+**Auth required:** Yes (any active advisor — same no-restriction rule as `take-control`)
+
+**Description:** Reopens a **closed** (`status = "cerrada"`) conversation while the WhatsApp 24h customer-service window (`whatsapp_window_expires_at`) is still open, so the advisor can reply with a free-form message instead of a Meta-approved template. Works identically regardless of why the conversation was closed — a normal close or a night inactivity auto-close (`resolution_type`/`closed_by` are never inspected). No request body.
+
+Internally this is the same state transition as `take-control`: creates an `escalations` row with `reason = "control_manual_directo"` and `advisor_id` set to the caller, then sets `bot_activo = false` + `status = "escalada"` via the same atomic update. The original close fields (`closed_at`, `resolution_type`, `resolution_notes`, `closed_by`) are left untouched as history of the previous cycle — reopening does not erase or overwrite them, and `case_number` stays the same (this is the same conversation continuing, not a new case).
+
+**Path params:**
+
+| Param             | Type            | Description                       |
+| ----------------- | --------------- | --------------------------------- |
+| `conversation_id` | `string` (UUID) | The closed conversation to reopen |
+
+**Response 200:**
+
+```json
+{
+  "data": {
+    "conversation": {
+      "id": "550e8400-e29b-41d4-a716-446655440010",
+      "bot_activo": false,
+      "status": "escalada",
+      "case_number": "CE-2026-000029"
+    },
+    "escalation": {
+      "id": "550e8400-e29b-41d4-a716-446655440031",
+      "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
+      "advisor_name": "Ana Gómez",
+      "reason": "control_manual_directo"
+    }
+  }
+}
+```
+
+**Errors:**
+
+| HTTP | ErrorCode                 | When                                                                                                       |
+| ---- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 401  | `INVALID_TOKEN`           | Missing or invalid JWT                                                                                     |
+| 403  | `ADVISOR_INACTIVE`        | Advisor account is deactivated                                                                             |
+| 404  | `CONVERSATION_NOT_FOUND`  | No conversation with the given ID                                                                          |
+| 409  | `CONVERSATION_NOT_CLOSED` | Conversation `status` is not `cerrada` — use `take-control` instead for a non-closed conversation          |
+| 409  | `WINDOW_EXPIRED`          | `whatsapp_window_expires_at` is `null` (unknown) or already in the past — use an approved template instead |
+| 409  | `CONTROL_ALREADY_TAKEN`   | Another advisor already holds an active escalation on this conversation (rare race) — `message` names them |
+
+**Notes:**
+
+- **Fail-closed on an unknown window**, unlike the fail-open read `GET`/`reply` endpoints use for §3.43 (that one exists so an unrelated bug never blocks a reply to an already-incoming message). Here the advisor is initiating contact proactively, so a `null`/unknown window is always treated as expired — sending outside a real window triggers Meta error `131047`.
+- **No area/channel restriction**, same as `take-control` — any active advisor or admin can reopen any closed conversation.
+- **No capacity check.** Does not count against `max_conversations`, same rule as `take-control`.
+- **No automatic client-facing message.** Unlike `take-control`, reopening sends nothing to the client — the advisor writes the first message manually via `reply`. This is deliberate: the "control taken" announcement on `take-control` makes sense when a bot conversation is being interrupted; reopening a conversation the client hasn't heard from doesn't have an equivalent moment to announce.
+- Only reaches this endpoint's happy path when the window is genuinely still open — a conversation auto-closed by the `ventana_vencida` pass (§3.43) will always fail the window check here, so no separate filtering by `resolution_type` is needed on the frontend either.
+- To release control again, use the **existing** `close` endpoint below (or `return-bot`, if the intent is to hand it back to the bot instead of closing).
+
+**WebSocket events emitted:**
+
+- `conversation.reopened` — broadcast to all connected advisors
+
+---
+
 ### PATCH /api/v1/panel/conversations/{conversation_id}/return-bot
 
 **Auth required:** Yes (assigned advisor or admin)
@@ -2123,6 +2184,24 @@ Emitted to **all connected advisors** when an advisor takes direct manual contro
 
 Same shape as `escalation.assigned` — handle both with the same card-update logic (update the conversation's assigned advisor, move it out of any "bot handling" view). `escalation.reason` on the conversation will be `"control_manual_directo"` if you need to distinguish it from a bot-initiated escalation in the UI (e.g. a different badge/icon), but no UI behavior should strictly depend on that distinction.
 
+#### conversation.reopened
+
+Emitted to **all connected advisors** when an advisor reopens a closed conversation via `PATCH /conversations/{id}/reopen`.
+
+```json
+{
+  "event": "conversation.reopened",
+  "data": {
+    "conversation_id": "550e8400-e29b-41d4-a716-446655440010",
+    "escalation_id": "550e8400-e29b-41d4-a716-446655440031",
+    "advisor_id": "550e8400-e29b-41d4-a716-446655440001",
+    "advisor_name": "Ana Gómez"
+  }
+}
+```
+
+Same shape as `conversation.control_taken` — handle with the same card-update logic (move the conversation out of the "closed" view and into the advisor's active tray). The conversation's `status` goes from `"cerrada"` to `"escalada"` and `bot_activo` to `false`; `case_number` is unchanged. No automatic message is sent to the client on this transition — don't expect a matching `message.new` event.
+
 #### conversation.transferred
 
 Emitted when an advisor transfers an active escalation to another advisor via `POST /conversations/{id}/transfer`. Unlike most conversation events, this is **not a broadcast** — it is sent only to: the source advisor (so the conversation disappears from their tray), the target advisor (so it appears as newly assigned), and any connected admins (for audit/monitoring).
@@ -2897,6 +2976,17 @@ ws.onmessage = (event) => {
     case "conversation.closed":
       // Remove from inbox or update status indicator
       markConversationClosed(data.conversation_id);
+      break;
+
+    case "conversation.reopened":
+      // A closed conversation was reopened (still within the WhatsApp 24h
+      // window) — move it out of the closed view, same card update as
+      // conversation.control_taken. No message.new follows automatically.
+      updateConversationAssignment(
+        data.conversation_id,
+        data.advisor_id,
+        data.advisor_name,
+      );
       break;
 
     case "advisor.status_changed":
