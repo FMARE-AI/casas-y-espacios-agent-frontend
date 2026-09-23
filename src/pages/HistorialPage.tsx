@@ -630,7 +630,7 @@ export default function HistorialPage() {
                       )}
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-3">
+                      <div className="flex flex-col items-center justify-center gap-0.5">
                         <button
                           type="button"
                           onClick={() =>
@@ -638,7 +638,7 @@ export default function HistorialPage() {
                               state: { readonly: true },
                             })
                           }
-                          className="text-brand-blue hover:underline font-bold px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
+                          className="text-brand-blue hover:underline font-bold px-2 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
                         >
                           Auditar
                         </button>
@@ -656,7 +656,7 @@ export default function HistorialPage() {
                                     ? "Ventana desconocida — no se puede reabrir sin template"
                                     : "Ventana vencida"
                                 }
-                                className="text-text-secondary/50 font-bold px-2 py-1 cursor-not-allowed select-none"
+                                className="text-text-secondary/50 font-bold px-2 py-0.5 cursor-not-allowed select-none"
                               >
                                 Reabrir
                               </span>
@@ -673,7 +673,7 @@ export default function HistorialPage() {
                                   ? `Ventana vence en ${formatWindowCountdown(win.msLeft)}`
                                   : undefined
                               }
-                              className="text-success hover:underline font-bold px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                              className="text-success hover:underline font-bold px-2 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
                             >
                               {isReopening ? "Reabriendo…" : "Reabrir"}
                             </button>
