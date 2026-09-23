@@ -338,6 +338,15 @@ export interface WSConversationControlTaken {
   advisor_name: string;
 }
 
+// Broadcast to every connected advisor (not just the one who reopened) so a
+// stale "cerrada" row in someone else's history view disappears in real time.
+export interface WSConversationReopened {
+  conversation_id: string;
+  escalation_id: string;
+  advisor_id: string;
+  advisor_name: string;
+}
+
 export interface WSConversationClosed {
   conversation_id: string;
   closed_by: "asesor" | "bot";

@@ -11,6 +11,10 @@ type TakeControlResponse = {
   conversation: { id: string; bot_activo: boolean; status: ConversationStatus }
   escalation: { id: string; advisor_id: string; advisor_name: string }
 }
+type ReopenResponse = {
+  conversation: { id: string; bot_activo: boolean; status: ConversationStatus; case_number: string | null }
+  escalation: { id: string; advisor_id: string; advisor_name: string; reason: string }
+}
 type CloseResponse = { conversation: Conversation }
 type TransferResponse = {
   escalation: { id: string; advisor_id: string; advisor_name: string; transfer_reason?: string | null }
@@ -89,6 +93,11 @@ export const conversationsService = {
 
   async takeControl(id: string): Promise<TakeControlResponse> {
     const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/take-control`)
+    return data.data
+  },
+
+  async reopen(id: string): Promise<ReopenResponse> {
+    const { data } = await apiClient.patch(`/api/v1/panel/conversations/${id}/reopen`)
     return data.data
   },
 

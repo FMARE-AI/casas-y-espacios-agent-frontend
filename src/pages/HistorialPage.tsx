@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -14,7 +14,10 @@ import { conversationsService } from "../services/conversations";
 import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { CaseNumberTag } from "../components/shared/CaseNumberTag";
 import { resolutionLabel } from "../constants/resolutions";
-import type { Conversation, ConversationIntent } from "../types";
+import { useToastStore } from "../store/toastStore";
+import { getWhatsAppWindow, formatWindowCountdown } from "../lib/whatsappWindow";
+import { useWebSocket } from "../hooks/useWebSocket";
+import type { Conversation, ConversationIntent, WSConversationReopened } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -152,13 +155,32 @@ export default function HistorialPage() {
   const [lineFilter, setLineFilter] = useState<string>("todos");
   const [dateFilter, setDateFilter] = useState<string>("todos");
 
+  const [reopeningIds, setReopeningIds] = useState<Record<string, boolean>>({});
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>(
     {},
   );
 
+  // Ticks the "Reabrir" eligibility check against the wall clock, same 30s
+  // cadence as useWhatsAppWindow — without this, a row computed once at mount
+  // or the last filter change would keep showing an enabled button past the
+  // real expiry until something else happened to force a re-render.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+
   const toggleNote = (id: string) => {
     setExpandedNotes((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
+  // Another advisor may have this history view open when a third one reopens a
+  // conversation from her own chat/history — without this, that row would sit
+  // here as "cerrada" even though it no longer is. Broadcast, not self-only.
+  const onConversationReopened = useCallback((event: WSConversationReopened) => {
+    setConversations((prev) => prev.filter((c) => c.id !== event.conversation_id));
+  }, []);
+  useWebSocket({ onConversationReopened });
 
   useEffect(() => {
     let cancelled = false;
@@ -256,6 +278,56 @@ export default function HistorialPage() {
       // back a fresh array, so the `conversations` state is never mutated.
       .sort((a, b) => closedTimestamp(b) - closedTimestamp(a));
   }, [conversations, searchText, lineFilter, dateFilter]);
+
+  function extractErrorCode(err: unknown): string | undefined {
+    const e = err as { response?: { data?: { detail?: { code?: string } } } };
+    return e.response?.data?.detail?.code;
+  }
+
+  function extractErrorMessage(err: unknown): string | undefined {
+    const e = err as { response?: { data?: { detail?: { message?: string } } } };
+    return e.response?.data?.detail?.message;
+  }
+
+  async function handleReopen(id: string) {
+    setReopeningIds((prev) => ({ ...prev, [id]: true }));
+    try {
+      await conversationsService.reopen(id);
+      // Reopened conversation is no longer "cerrada" — drop it from this view
+      // instead of refetching; it now lives in the advisor's active inbox.
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      useToastStore.getState().showToast("Conversación reabierta.", "success");
+      // Send the advisor straight into the chat she just reopened, so she can
+      // write the first message without a second click to find the conversation.
+      navigate(`/chat/${id}`);
+    } catch (err: unknown) {
+      const code = extractErrorCode(err);
+      if (code === "CONTROL_ALREADY_TAKEN") {
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ?? "Otro asesor ya tiene el control de esta conversación.",
+          "error",
+        );
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+      } else if (code === "CONVERSATION_NOT_CLOSED") {
+        useToastStore.getState().showToast("Esta conversación ya no está cerrada.", "error");
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+      } else if (code === "WINDOW_EXPIRED") {
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ?? "La ventana de WhatsApp ya venció — hay que usar un template.",
+          "error",
+        );
+      } else if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", "error");
+        setConversations((prev) => prev.filter((c) => c.id !== id));
+      }
+    } finally {
+      setReopeningIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  }
 
   async function exportExcel() {
     const rows = filteredConversations.map((conv) => {
@@ -558,17 +630,56 @@ export default function HistorialPage() {
                       )}
                     </td>
                     <td className="p-4 text-center whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          navigate(`/chat/${conv.id}`, {
-                            state: { readonly: true },
-                          })
-                        }
-                        className="text-brand-blue hover:underline font-bold px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
-                      >
-                        Auditar
-                      </button>
+                      <div className="flex items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(`/chat/${conv.id}`, {
+                              state: { readonly: true },
+                            })
+                          }
+                          className="text-brand-blue hover:underline font-bold px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 transition"
+                        >
+                          Auditar
+                        </button>
+                        {(() => {
+                          // Fail-closed on purpose (opposite of the composer's
+                          // fail-open): an unknown expiry means we can't confirm
+                          // the window is alive, so the button stays disabled.
+                          const win = getWhatsAppWindow(conv.whatsapp_window_expires_at, now);
+                          const canReopen = win.state === "open" || win.state === "closing";
+                          if (!canReopen) {
+                            return (
+                              <span
+                                title={
+                                  win.state === "unknown"
+                                    ? "Ventana desconocida — no se puede reabrir sin template"
+                                    : "Ventana vencida"
+                                }
+                                className="text-text-secondary/50 font-bold px-2 py-1 cursor-not-allowed select-none"
+                              >
+                                Reabrir
+                              </span>
+                            );
+                          }
+                          const isReopening = !!reopeningIds[conv.id];
+                          return (
+                            <button
+                              type="button"
+                              disabled={isReopening}
+                              onClick={() => handleReopen(conv.id)}
+                              title={
+                                win.msLeft != null
+                                  ? `Ventana vence en ${formatWindowCountdown(win.msLeft)}`
+                                  : undefined
+                              }
+                              className="text-success hover:underline font-bold px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success/90 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                            >
+                              {isReopening ? "Reabriendo…" : "Reabrir"}
+                            </button>
+                          );
+                        })()}
+                      </div>
                     </td>
                   </tr>
                 ))

@@ -14,6 +14,7 @@ import type {
   WSEscalationAssigned,
   WSConversationTransferred,
   WSConversationControlTaken,
+  WSConversationReopened,
   WSMessageMediaUpdated,
 } from "../types";
 import MessageFeed from "../components/chat/MessageFeed";
@@ -80,6 +81,7 @@ export default function ChatPage() {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isTakingControl, setIsTakingControl] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const [showReturnedPill, setShowReturnedPill] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -349,6 +351,35 @@ export default function ChatPage() {
     [conversationId],
   );
 
+  // Another advisor reopened this closed conversation while it was open here
+  // (e.g. from HistorialPage in another tab). Same merge shape as control-taken,
+  // plus status flips to "escalada" — reopen is the only action that changes it.
+  const onConversationReopened = useCallback(
+    (event: WSConversationReopened) => {
+      if (event.conversation_id !== conversationId) return;
+      const selfId = useAuthStore.getState().advisor?.id;
+      if (event.advisor_id === selfId) return;
+      setShowReturnedPill(false);
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              bot_activo: false,
+              status: "escalada",
+              escalation: {
+                id: event.escalation_id,
+                reason: "control_manual_directo",
+                summary: null,
+                escalated_at: new Date().toISOString(),
+                advisor: { id: event.advisor_id, full_name: event.advisor_name },
+              },
+            }
+          : prev,
+      );
+    },
+    [conversationId],
+  );
+
   const onConversationClosed = useCallback(
     (event: WSConversationClosed) => {
       if (event.conversation_id !== conversationId) return;
@@ -438,6 +469,7 @@ export default function ChatPage() {
       onEscalationNew: onEscalationNew,
       onConversationReturned: onConversationReturned,
       onConversationControlTaken: onConversationControlTaken,
+      onConversationReopened: onConversationReopened,
       onConversationClosed: onConversationClosed,
       onEscalationAssigned: onEscalationAssigned,
       onConversationTransferred: onConversationTransferred,
@@ -448,6 +480,7 @@ export default function ChatPage() {
       onEscalationNew,
       onConversationReturned,
       onConversationControlTaken,
+      onConversationReopened,
       onConversationClosed,
       onEscalationAssigned,
       onConversationTransferred,
@@ -624,6 +657,52 @@ export default function ChatPage() {
     }
   }
 
+  async function handleReopen() {
+    if (!conversationId) return;
+    setIsReopening(true);
+    try {
+      const result = await conversationsService.reopen(conversationId);
+      setConversation((prev) =>
+        prev
+          ? {
+              ...prev,
+              bot_activo: result.conversation.bot_activo,
+              status: result.conversation.status,
+              escalation: {
+                id: result.escalation.id,
+                reason: result.escalation.reason,
+                summary: null,
+                escalated_at: new Date().toISOString(),
+                advisor: { id: result.escalation.advisor_id, full_name: result.escalation.advisor_name },
+              },
+            }
+          : prev,
+      );
+      useToastStore.getState().showToast("Conversación reabierta.", "success");
+    } catch (err: unknown) {
+      const code = extractErrorCode(err);
+      if (code === "CONTROL_ALREADY_TAKEN") {
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ?? "Otro asesor ya tiene el control de esta conversación.",
+          'error',
+        );
+        await loadConversation();
+      } else if (code === "CONVERSATION_NOT_CLOSED") {
+        useToastStore.getState().showToast("Esta conversación ya no está cerrada.", 'error');
+        await loadConversation();
+      } else if (code === "WINDOW_EXPIRED") {
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ?? "La ventana de WhatsApp ya venció — hay que usar un template.",
+          'error',
+        );
+      } else if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
+      }
+    } finally {
+      setIsReopening(false);
+    }
+  }
+
   async function handleReturnBot() {
     if (!conversationId) return;
     setIsReturning(true);
@@ -703,6 +782,18 @@ export default function ChatPage() {
     );
   }, []);
 
+  // Reopen is fail-closed on the window, the opposite of reply's fail-open: an
+  // "unknown" (null) expiry means we cannot tell the window is still alive, so
+  // the button stays disabled instead of defaulting to enabled like the composer
+  // does. The backend re-validates on click regardless — this only avoids a
+  // click we already know will fail.
+  const canReopenNow = conversation?.status === "cerrada" &&
+    (whatsappWindow.state === "open" || whatsappWindow.state === "closing");
+  const reopenDisabledReason =
+    whatsappWindow.state === "unknown"
+      ? "Ventana desconocida — no se puede reabrir sin template"
+      : "Ventana vencida";
+
   const waitSeconds = conversation?.escalation?.escalated_at
     ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
     : (conversation?.escalation?.wait_seconds ?? null);
@@ -762,8 +853,10 @@ export default function ChatPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* 24h window countdown — omitted entirely when the expiry is unknown */}
-            {whatsappWindow.msLeft !== null && conversation?.status !== "cerrada" && (
+            {/* 24h window countdown — omitted entirely when the expiry is unknown.
+                Shown on closed conversations too, so the advisor can see whether
+                "Reabrir" is worth clicking before she does. */}
+            {whatsappWindow.msLeft !== null && (
               <div
                 id="chat-window-pill"
                 title={windowCountdownHint(clientName)}
@@ -784,6 +877,47 @@ export default function ChatPage() {
                     : `Ventana 24 h · ${formatWindowCountdown(whatsappWindow.msLeft)}`}
                 </span>
               </div>
+            )}
+
+            {/* Reabrir — closed conversations only. No template needed while the
+                24h WhatsApp window is still alive; the backend re-validates it
+                on click regardless of what this button shows. */}
+            {conversation && conversation.status === "cerrada" && (
+              canReopenNow ? (
+                <button
+                  type="button"
+                  id="reopen-button"
+                  onClick={handleReopen}
+                  disabled={isReopening}
+                  title={windowCountdownHint(clientName)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-brand-blue hover:bg-brand-blue-hover text-white rounded-control text-xs font-bold shadow-md shadow-brand-blue/30 transition disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-text-primary/90"
+                >
+                  {isReopening ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
+                    </svg>
+                  )}
+                  <span>Reabrir</span>
+                </button>
+              ) : (
+                <div
+                  id="reopen-disabled-pill"
+                  title={reopenDisabledReason}
+                  className="text-[10px] px-2.5 py-1 rounded font-black border bg-bg-tertiary text-text-secondary border-border-default flex items-center gap-1 cursor-not-allowed"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span>Reabrir</span>
+                </div>
+              )
             )}
 
             {/* Control toggle — hidden on closed conversations (no action makes sense there) */}
