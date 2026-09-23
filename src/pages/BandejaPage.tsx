@@ -373,6 +373,12 @@ export default function BandejaPage() {
         useToastStore.getState().showToast('Otro asesor ya tomó esta conversación primero.', 'error')
         setTakeTarget(null)
         await loadConversations()
+      } else if (code === 'CONVERSATION_NOT_FOUND') {
+        // Shared with take-control/reopen (see LOCAL_ERROR_CODES in lib/axios.ts) —
+        // suppressed globally, so this action must show its own toast.
+        useToastStore.getState().showToast('Esta conversación ya no existe.', 'error')
+        setTakeTarget(null)
+        await loadConversations()
       }
     } finally {
       setIsTaking(false)
@@ -464,6 +470,13 @@ export default function BandejaPage() {
     loadConversations()
   }, [loadConversations])
 
+  // A reopened conversation becomes an active, escalated item assigned to
+  // whoever reopened it — reload so it shows up in the tray immediately,
+  // whether it was this advisor or a teammate who reopened it elsewhere.
+  const handleConversationReopened = useCallback(() => {
+    loadConversations()
+  }, [loadConversations])
+
   const handleConversationTransferred = useCallback(() => {
     loadConversations()
   }, [loadConversations])
@@ -490,6 +503,7 @@ export default function BandejaPage() {
     onEscalationAssigned: handleEscalationAssigned,
     onConversationClosed: handleConversationClosed,
     onConversationReturned: handleConversationReturned,
+    onConversationReopened: handleConversationReopened,
     onConversationTransferred: handleConversationTransferred,
     onConversationPriorityUpdated: handleConversationPriorityUpdated,
     onQueuePending: handleQueuePending,
