@@ -12,6 +12,7 @@ import type {
   WSMessageNew,
   WSConversationReturned,
   WSConversationControlTaken,
+  WSConversationReopened,
   WSConversationClosed,
   WSConversationTransferred,
   WSConversationPriorityUpdated,
@@ -34,6 +35,7 @@ interface WSHandlers {
   onMessageMediaUpdated?: (data: WSMessageMediaUpdated) => void
   onConversationReturned?: (data: WSConversationReturned) => void
   onConversationControlTaken?: (data: WSConversationControlTaken) => void
+  onConversationReopened?: (data: WSConversationReopened) => void
   onConversationClosed?: (data: WSConversationClosed) => void
   onConversationTransferred?: (data: WSConversationTransferred) => void
   onConversationPriorityUpdated?: (data: WSConversationPriorityUpdated) => void
@@ -698,6 +700,21 @@ function connect(token: string): void {
         break
       }
 
+      // Same shape and bookkeeping as control_taken — reopening also flips
+      // bot_activo=false/status=escalada and assigns the reopening advisor.
+      case 'conversation.reopened': {
+        const reopenedData = data as WSConversationReopened
+        useWSStore.getState().incrementAdvisorConversations(reopenedData.advisor_id)
+        const selfId = useAuthStore.getState().advisor?.id
+        if (selfId && reopenedData.advisor_id === selfId) {
+          myAssignedConversationIds.add(reopenedData.conversation_id)
+        }
+        if (_handlers.onConversationReopened) {
+          _handlers.onConversationReopened(reopenedData)
+        }
+        break
+      }
+
       case 'conversation.closed': {
         const closedData = data as WSConversationClosed
         if (closedData.advisor_id) {
@@ -915,6 +932,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     onMessageMediaUpdated,
     onConversationReturned,
     onConversationControlTaken,
+    onConversationReopened,
     onConversationClosed,
     onConversationTransferred,
     onConversationPriorityUpdated,
@@ -931,6 +949,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onMessageMediaUpdated) _handlers.onMessageMediaUpdated = onMessageMediaUpdated
     if (onConversationReturned) _handlers.onConversationReturned = onConversationReturned
     if (onConversationControlTaken) _handlers.onConversationControlTaken = onConversationControlTaken
+    if (onConversationReopened) _handlers.onConversationReopened = onConversationReopened
     if (onConversationClosed) _handlers.onConversationClosed = onConversationClosed
     if (onConversationTransferred) _handlers.onConversationTransferred = onConversationTransferred
     if (onConversationPriorityUpdated) _handlers.onConversationPriorityUpdated = onConversationPriorityUpdated
@@ -946,6 +965,7 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onMessageMediaUpdated && _handlers.onMessageMediaUpdated === onMessageMediaUpdated) delete _handlers.onMessageMediaUpdated
       if (onConversationReturned && _handlers.onConversationReturned === onConversationReturned) delete _handlers.onConversationReturned
       if (onConversationControlTaken && _handlers.onConversationControlTaken === onConversationControlTaken) delete _handlers.onConversationControlTaken
+      if (onConversationReopened && _handlers.onConversationReopened === onConversationReopened) delete _handlers.onConversationReopened
       if (onConversationClosed && _handlers.onConversationClosed === onConversationClosed) delete _handlers.onConversationClosed
       if (onConversationTransferred && _handlers.onConversationTransferred === onConversationTransferred) delete _handlers.onConversationTransferred
       if (onConversationPriorityUpdated && _handlers.onConversationPriorityUpdated === onConversationPriorityUpdated) delete _handlers.onConversationPriorityUpdated
@@ -955,7 +975,7 @@ export function useWebSocket(handlers?: WSHandlers) {
     }
   }, [
     onConversationNew, onEscalationNew, onEscalationAssigned, onMessageNew, onMessageMediaUpdated, onConversationReturned,
-    onConversationControlTaken, onConversationClosed, onConversationTransferred,
+    onConversationControlTaken, onConversationReopened, onConversationClosed, onConversationTransferred,
     onConversationPriorityUpdated, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
   ])
 

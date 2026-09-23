@@ -249,6 +249,13 @@ const LOCAL_ERROR_CODES = new Set([
   'BOT_ALREADY_ACTIVE',
   'ALREADY_CLOSED',
   'CONVERSATION_NOT_ESCALATED',
+  'CONVERSATION_NOT_CLOSED',
+  // Race on take-control/reopen: another advisor got there first. The backend
+  // message already names them — handled inline (ChatPage), not by the generic 409 toast.
+  'CONTROL_ALREADY_TAKEN',
+  // 404 on take-control/reopen: handled inline with a tailored message —
+  // without this the generic 404 toast fires alongside it, stacking two toasts.
+  'CONVERSATION_NOT_FOUND',
   // Meta's 24h window is closed. The backend message is already written for the
   // advisor, in Spanish — ChatInput/AudioRecorder show it verbatim next to the
   // composer, so the generic 409 toast must not swallow it.
