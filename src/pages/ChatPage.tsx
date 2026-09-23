@@ -157,12 +157,22 @@ export default function ChatPage() {
         ? Math.max(msgs.length, apiOffsetRef.current)
         : msgs.length;
       initializedRef.current = true;
-    } catch {
-      // interceptor already showed the error toast (a cancelled request shows none)
+    } catch (err: unknown) {
+      if (!isMounted()) return;
+      // CONVERSATION_NOT_FOUND is in LOCAL_ERROR_CODES (shared with take-control/
+      // reopen, where it's handled inline) so the interceptor stays silent here —
+      // without this branch a deleted/inaccessible conversation would fail to
+      // load with zero feedback instead of the generic toast it used to get.
+      const code = extractErrorCode(err);
+      if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
+        navigate(ROUTES.BANDEJA);
+      }
+      // any other code: interceptor already showed the error toast (a cancelled request shows none)
     } finally {
       if (isMounted()) setIsLoading(false);
     }
-  }, [conversationId, fromAlert, getSignal, isMounted]);
+  }, [conversationId, fromAlert, getSignal, isMounted, navigate]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -604,6 +614,8 @@ export default function ChatPage() {
         );
       } else if (code === "CONVERSATION_NOT_ESCALATED") {
         useToastStore.getState().showToast("La conversación no está en estado escalado.", 'error');
+      } else if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
       }
     } finally {
       setIsAssigning(false);
@@ -716,6 +728,8 @@ export default function ChatPage() {
       if (code === "BOT_ALREADY_ACTIVE") {
         useToastStore.getState().showToast("El bot ya controla esta conversación.", 'info');
         await loadConversation();
+      } else if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
       }
     } finally {
       setIsReturning(false);
@@ -742,6 +756,8 @@ export default function ChatPage() {
       const code = extractErrorCode(err);
       if (code === "ALREADY_CLOSED") {
         useToastStore.getState().showToast("Esta conversación ya fue cerrada.", 'error');
+      } else if (code === "CONVERSATION_NOT_FOUND") {
+        useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
       }
     } finally {
       setIsClosing(false);

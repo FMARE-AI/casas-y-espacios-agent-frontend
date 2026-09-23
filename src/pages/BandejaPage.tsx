@@ -373,6 +373,12 @@ export default function BandejaPage() {
         useToastStore.getState().showToast('Otro asesor ya tomó esta conversación primero.', 'error')
         setTakeTarget(null)
         await loadConversations()
+      } else if (code === 'CONVERSATION_NOT_FOUND') {
+        // Shared with take-control/reopen (see LOCAL_ERROR_CODES in lib/axios.ts) —
+        // suppressed globally, so this action must show its own toast.
+        useToastStore.getState().showToast('Esta conversación ya no existe.', 'error')
+        setTakeTarget(null)
+        await loadConversations()
       }
     } finally {
       setIsTaking(false)
