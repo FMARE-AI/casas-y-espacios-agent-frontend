@@ -319,6 +319,19 @@ export default function HistorialPage() {
       } else if (code === "CONVERSATION_NOT_FOUND") {
         useToastStore.getState().showToast("Esta conversación ya no existe.", "error");
         setConversations((prev) => prev.filter((c) => c.id !== id));
+      } else if (code === "CLIENT_HAS_ACTIVE_CONVERSATION") {
+        // Backend guard (fix/reopen-blocks-duplicate-active-conversation): the
+        // client already has another activa/escalada conversation. Reopening
+        // this one too would create a second live conversation for the same
+        // client+line — the router only ever routes an incoming message to
+        // one of them (most recent by last_activity), so the other never
+        // receives another message again. This conversation stays closed;
+        // the advisor works the client from their existing active chat.
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ??
+            "El cliente ya tiene una conversación activa — ábrala desde ahí en vez de reabrir esta.",
+          "error",
+        );
       }
     } finally {
       setReopeningIds((prev) => {
