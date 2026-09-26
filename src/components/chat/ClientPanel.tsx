@@ -1,5 +1,6 @@
 import type { Conversation } from "../../types";
 import { useAuthStore } from "../../store/authStore";
+import { agentLabel, agentStyles } from "../../lib/agentLabels";
 
 export type ChatVariant = "assigned" | "unassigned" | "bot" | "monitoring";
 
@@ -15,16 +16,6 @@ interface ClientPanelProps {
   onCloseConversation?: () => void;
   onTransfer?: () => void;
 }
-
-const CHANNEL_LABELS: Record<string, string> = {
-  administrativa: "Administrativa",
-  comercial: "Comercial",
-};
-
-const CHANNEL_STYLES: Record<string, string> = {
-  administrativa: "bg-success/15 text-success",
-  comercial: "bg-brand-blue/15 text-brand-blue",
-};
 
 const CLIENT_TYPE_LABELS: Record<string, string> = {
   arrendatario: "Arrendatario",
@@ -55,7 +46,7 @@ export default function ClientPanel({
   onCloseConversation,
   onTransfer,
 }: ClientPanelProps) {
-  const { client, escalation, channel } = conversation;
+  const { client, escalation } = conversation;
   const currentAdvisor = useAuthStore((s) => s.advisor);
 
   // An `escalation` object is only ever included in the conversation payload
@@ -111,12 +102,9 @@ export default function ClientPanel({
               {client.full_name ?? "Sin identificar"}
             </h4>
             <span
-              className={`mt-2 text-label px-2.5 py-1 rounded-full uppercase ${
-                CHANNEL_STYLES[channel] ??
-                "bg-border-default/60 text-text-secondary"
-              }`}
+              className={`mt-2 text-label px-2.5 py-1 rounded-full uppercase ${agentStyles(conversation.agent)}`}
             >
-              {CHANNEL_LABELS[channel] ?? channel}
+              {agentLabel(conversation.agent)}
             </span>
           </div>
 

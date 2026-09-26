@@ -2,7 +2,7 @@ import apiClient from '../lib/axios'
 import { withSignal } from './requestConfig'
 import type { PaginatedConversations, PaginatedMessages, Message, Conversation, ConversationStatus } from '../types'
 
-type ConversationListParams = { status?: string; channel?: string; limit?: number; offset?: number }
+type ConversationListParams = { status?: string; channel?: string; agent?: string; limit?: number; offset?: number }
 type PaginationParams = { limit?: number; offset?: number }
 type CloseConversationData = { resolution_type?: string; resolution_notes?: string | null; client_satisfied?: string }
 type AssignResponse = { escalation: { id: string; advisor_id: string; advisor_name: string } }

@@ -11,20 +11,20 @@ interface StatusCounts {
 interface FilterBarProps {
   statusCounts: StatusCounts
   activeStatus: string | null
-  activeChannel: string | null
+  activeAgent: string | null
   advisorRole: string | null
   onStatusChange: (status: string | null) => void
-  onChannelChange: (channel: string | null) => void
+  onAgentChange: (agent: string | null) => void
   onRefresh: () => void
 }
 
 export const FilterBar = memo(function FilterBar({
   statusCounts,
   activeStatus,
-  activeChannel,
+  activeAgent,
   advisorRole,
   onStatusChange,
-  onChannelChange,
+  onAgentChange,
   onRefresh,
 }: FilterBarProps) {
   const totals = statusCounts
@@ -91,13 +91,13 @@ export const FilterBar = memo(function FilterBar({
 
       <div className="flex items-center space-x-2 w-full sm:w-auto">
         <select
-          value={activeChannel || ''}
-          onChange={(e) => onChannelChange(e.target.value || null)}
+          value={activeAgent || ''}
+          onChange={(e) => onAgentChange(e.target.value || null)}
           className="bg-bg-tertiary border border-border-default text-text-primary text-xs rounded px-2.5 py-1.5 w-full sm:w-44 focus:border-brand-blue outline-none"
         >
-          <option value="">Todos los Canales</option>
-          <option value="administrativa">Administrativa</option>
-          <option value="comercial">Comercial</option>
+          <option value="">Todos los Agentes</option>
+          <option value="administrative">Administrativo</option>
+          <option value="commercial">Comercial</option>
         </select>
         <button
           onClick={onRefresh}

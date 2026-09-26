@@ -7,12 +7,15 @@ interface WSState {
   status: WSStatus
   reconnectAttempt: number
   unreadAlerts: number
+  // `channel` was dropped from this shape — it existed only to gate
+  // eligibility on `advisor.area === channel`, and every advisor now sees
+  // every conversation regardless of area/specialty (backend authorizes all
+  // advisors on all conversations).
   pendingEscalation: {
     clientName: string
     reason: string
     conversationId: string
     advisorId: string | null
-    channel: string
   } | null
   advisors: AdvisorOnline[]
 
@@ -22,7 +25,7 @@ interface WSState {
   decrementAlerts: () => void
   resetAlerts: () => void
   setUnreadAlerts: (count: number) => void
-  setPendingEscalation: (data: { clientName: string; reason: string; conversationId: string; advisorId: string | null; channel: string }) => void
+  setPendingEscalation: (data: { clientName: string; reason: string; conversationId: string; advisorId: string | null }) => void
   clearPendingEscalation: () => void
   setAdvisors: (advisors: AdvisorOnline[]) => void
   addConnectedAdvisor: (data: WSAdvisorConnected) => void

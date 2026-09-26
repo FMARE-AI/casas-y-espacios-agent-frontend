@@ -46,6 +46,8 @@ function closedTimestamp(conv: Conversation): number {
 
 function formatDuration(seconds: number | null): string {
   if (seconds == null) return "—";
+  // Under a minute, "0 min" tells the auditor nothing — show the seconds instead.
+  if (seconds < 60) return `${seconds} seg`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
@@ -53,15 +55,6 @@ function formatDuration(seconds: number | null): string {
   if (hours < 24) return `${hours} h ${remainingMinutes} min`;
   const days = Math.floor(hours / 24);
   return `${days} día${days === 1 ? "" : "s"}`;
-}
-
-const CHANNEL_CHIP: Record<string, string> = {
-  comercial: "bg-brand-blue/10 text-brand-blue",
-  administrativa: "bg-success/10 text-success",
-};
-
-function channelLabel(channel: string): string {
-  return channel.charAt(0).toUpperCase() + channel.slice(1);
 }
 
 // Classifies the conversation's routing intent (conversaciones.intent) —
@@ -152,7 +145,6 @@ export default function HistorialPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchText, setSearchText] = useState("");
-  const [lineFilter, setLineFilter] = useState<string>("todos");
   const [dateFilter, setDateFilter] = useState<string>("todos");
 
   const [reopeningIds, setReopeningIds] = useState<Record<string, boolean>>({});
@@ -255,10 +247,6 @@ export default function HistorialPage() {
           if (!matchesName && !matchesDoc) return false;
         }
 
-        if (lineFilter !== "todos") {
-          if (conv.channel !== lineFilter.toLowerCase()) return false;
-        }
-
         if (dateFilter !== "todos") {
           const closedDateStr = conv.closed_at ?? conv.last_activity;
           const lastActivity = parseISO(closedDateStr);
@@ -277,7 +265,7 @@ export default function HistorialPage() {
       // Newest closure first. Safe to sort in place: `filter` already handed
       // back a fresh array, so the `conversations` state is never mutated.
       .sort((a, b) => closedTimestamp(b) - closedTimestamp(a));
-  }, [conversations, searchText, lineFilter, dateFilter]);
+  }, [conversations, searchText, dateFilter]);
 
   function extractErrorCode(err: unknown): string | undefined {
     const e = err as { response?: { data?: { detail?: { code?: string } } } };
@@ -364,7 +352,6 @@ export default function HistorialPage() {
         caseNumber: conv.case_number ?? "—",
         client: conv.client.full_name ?? "Sin identificar",
         document: conv.client.document_id ?? "—",
-        channel: channelLabel(conv.channel),
         intent: conv.intent ? INTENT_LABEL[conv.intent] : "—",
         closedAt: formattedDate,
         duration: formatDuration(conv.duration_seconds),
@@ -385,7 +372,6 @@ export default function HistorialPage() {
       { header: "N° de Caso", key: "caseNumber", width: 14 },
       { header: "Cliente", key: "client", width: 24 },
       { header: "Cédula", key: "document", width: 14 },
-      { header: "Línea", key: "channel", width: 14 },
       { header: "Fecha de Cierre", key: "closedAt", width: 18 },
       { header: "Intención", key: "intent", width: 18 },
       { header: "Duración", key: "duration", width: 14 },
@@ -473,17 +459,6 @@ export default function HistorialPage() {
         </div>
 
         <select
-          id="history-filter-line"
-          value={lineFilter}
-          onChange={(e) => setLineFilter(e.target.value)}
-          className="w-full bg-bg-tertiary border border-border-default text-text-primary text-xs rounded-lg p-2 outline-none focus:border-brand-blue transition"
-        >
-          <option value="todos">Todas las Líneas</option>
-          <option value="Comercial">Comercial</option>
-          <option value="Administrativa">Administrativa</option>
-        </select>
-
-        <select
           id="history-filter-date"
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
@@ -512,7 +487,6 @@ export default function HistorialPage() {
               <tr>
                 <th className="p-4 whitespace-nowrap">N° de Caso</th>
                 <th className="p-4 whitespace-nowrap">Cliente</th>
-                <th className="p-4 whitespace-nowrap">Línea</th>
                 <th className="p-4 whitespace-nowrap">Fecha de Cierre</th>
                 <th className="p-4 whitespace-nowrap">Intención</th>
                 <th className="p-4 whitespace-nowrap">Duración</th>
@@ -530,7 +504,7 @@ export default function HistorialPage() {
             >
               {filteredConversations.length === 0 ? (
                 <tr>
-                  <td colSpan={10}>
+                  <td colSpan={9}>
                     <div className="text-center py-12">
                       <p className="text-text-secondary text-sm">
                         No se encontraron conversaciones cerradas
@@ -557,17 +531,6 @@ export default function HistorialPage() {
                           Sin identificar
                         </span>
                       )}
-                    </td>
-                    <td className="p-4">
-                      <span
-                        className={[
-                          "text-[9px] px-2 py-0.5 rounded font-black uppercase",
-                          CHANNEL_CHIP[conv.channel] ??
-                            "bg-border-default text-text-secondary",
-                        ].join(" ")}
-                      >
-                        {channelLabel(conv.channel)}
-                      </span>
                     </td>
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {formatClosedDate(conv.closed_at ?? conv.last_activity)}

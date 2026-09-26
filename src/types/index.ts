@@ -8,6 +8,12 @@ export type AdvisorRole = "asesor" | "admin";
 export type AdvisorArea = "administrativa" | "comercial" | "ambas";
 export type AvailabilityStatus = "available" | "break" | "offline";
 export type ConversationStatus = "activa" | "escalada" | "cerrada";
+// The bot agent that owns the conversation (two agents behind one WhatsApp
+// number — see CLAUDE.md §3.46 in the backend repo). Distinct from `channel`
+// (the WhatsApp line's channel, always "administrativa" today), which the
+// panel no longer uses to label a conversation. Use lib/agentLabels.ts to
+// resolve/display it — it falls back to "administrative" when missing.
+export type ConversationAgent = "administrative" | "commercial";
 export type ConversationPriority = "baja" | "media" | "alta" | "critica";
 export type MessageDirection = "inbound" | "outbound_bot" | "outbound_advisor";
 export type MessageType = "text" | "image" | "video" | "document" | "audio";
@@ -159,6 +165,13 @@ export interface Conversation {
   bot_activo: boolean;
   has_escalation_history: boolean;
   channel: string;
+  /**
+   * The bot agent that owns this conversation. Optional/absent on payloads
+   * that predate the dual-agent rollout — resolve with
+   * lib/agentLabels.ts's resolveAgent()/agentLabel(), which falls back to
+   * "administrative" rather than assuming the field is always present.
+   */
+  agent?: ConversationAgent;
   last_activity: string;
   intent: ConversationIntent | null;
   client: Client;
@@ -279,6 +292,7 @@ export interface WSEscalationNew {
 export interface WSConversationNew {
   conversation_id: string;
   channel: string;
+  agent?: ConversationAgent;
 }
 
 export interface WSMessageNew {
@@ -294,6 +308,13 @@ export interface WSMessageNew {
    * than regressing a good countdown to unknown.
    */
   whatsapp_window_expires_at?: string | null;
+  /**
+   * The conversation's owning agent as it stands after this message — an
+   * onboarding handoff can reassign a conversation's agent in place mid-turn,
+   * so the inbox card's label updates live from this field when present
+   * instead of waiting for a reload.
+   */
+  conversation_agent?: ConversationAgent | null;
 }
 
 export interface WSAdvisorConnected {

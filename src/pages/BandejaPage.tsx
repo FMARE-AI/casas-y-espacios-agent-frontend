@@ -201,7 +201,7 @@ export default function BandejaPage() {
     if (stored !== null) return stored === 'null' ? null : stored
     return role === 'asesor' ? 'mine' : null
   })
-  const [channelFilter, setChannelFilter] = useState<string | null>(null)
+  const [agentFilter, setAgentFilter] = useState<string | null>(null)
 
   useEffect(() => {
     sessionStorage.setItem(BANDEJA_STATUS_FILTER_KEY, statusFilter ?? 'null')
@@ -248,9 +248,9 @@ export default function BandejaPage() {
     loadOnlineAdvisors()
   }, [getSignal, isMounted])
 
-  const refreshCounts = async (channel?: string) => {
+  const refreshCounts = async (agent?: string) => {
     try {
-      const result = await conversationsService.list({ channel, limit: 100, offset: 0 }, getSignal())
+      const result = await conversationsService.list({ agent, limit: 100, offset: 0 }, getSignal())
       if (!isMounted()) return
       const all = result.conversations || []
       const escaladas = all.filter(c => c.status === 'escalada').length
@@ -276,7 +276,7 @@ export default function BandejaPage() {
     try {
       const result = await conversationsService.list({
         status: statusFilter ?? undefined,
-        channel: channelFilter ?? undefined,
+        agent: agentFilter ?? undefined,
         limit: 50,
         offset: 0,
       }, getSignal())
@@ -307,7 +307,7 @@ export default function BandejaPage() {
       if (isMounted()) setIsLoading(false)
     }
     if (!isMounted()) return
-    refreshCounts(channelFilter ?? undefined)
+    refreshCounts(agentFilter ?? undefined)
 
     if (role === 'admin') {
       try {
@@ -321,7 +321,7 @@ export default function BandejaPage() {
         })
       }
     }
-  }, [statusFilter, channelFilter, role, getSignal, isMounted])
+  }, [statusFilter, agentFilter, role, getSignal, isMounted])
 
   useEffect(() => {
     let ignore = false
@@ -433,6 +433,10 @@ export default function BandejaPage() {
           // backend could not resolve it, not that it became unknown.
           whatsapp_window_expires_at:
             wsMsg.whatsapp_window_expires_at ?? c.whatsapp_window_expires_at,
+          // An onboarding handoff can reassign a conversation's agent in place
+          // mid-turn — merge it so the card's label updates live instead of
+          // waiting for a reload. `null`/absent means unchanged, never a reset.
+          agent: wsMsg.conversation_agent ?? c.agent,
         }
       })
     )
@@ -539,10 +543,10 @@ export default function BandejaPage() {
       <FilterBar
         statusCounts={statusCounts}
         activeStatus={statusFilter}
-        activeChannel={channelFilter}
+        activeAgent={agentFilter}
         advisorRole={role}
         onStatusChange={setStatusFilter}
-        onChannelChange={setChannelFilter}
+        onAgentChange={setAgentFilter}
         onRefresh={loadConversations}
       />
 

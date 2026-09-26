@@ -10,8 +10,8 @@ import { ROUTES } from './constants/routes'
 // Debug helpers — available in all non-production environments via window.__debug
 if (import.meta.env.MODE !== 'production') {
   (window as Window & { __debug?: object }).__debug = {
-    escalation: (clientName = 'Carlos Mendoza', reason = 'frustracion_detectada', conversationId = 'demo', advisorId = null, channel = 'administrativa') =>
-      useWSStore.getState().setPendingEscalation({ clientName, reason, conversationId, advisorId, channel }),
+    escalation: (clientName = 'Carlos Mendoza', reason = 'frustracion_detectada', conversationId = 'demo', advisorId = null) =>
+      useWSStore.getState().setPendingEscalation({ clientName, reason, conversationId, advisorId }),
     clearEscalation: () => useWSStore.getState().clearPendingEscalation(),
     toast: (message = 'Operación exitosa') => useToastStore.getState().showToast(message),
     sound: () => playNotificationSound(),

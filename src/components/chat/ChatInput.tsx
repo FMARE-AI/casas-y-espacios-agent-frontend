@@ -45,7 +45,8 @@ const EMOJI_CATEGORIES = [
 interface ChatInputProps {
   conversationId: string
   clientName: string
-  channel: string
+  /** Display label for the conversation's owning agent (see lib/agentLabels.ts) — not the WhatsApp line's `channel`. */
+  agentDisplay: string
   waitMinutes: number | null
   currentAdvisorName?: string
   onOptimisticMessage: (message: Message) => void
@@ -537,7 +538,7 @@ function getErrorMessage(
 export default function ChatInput({
   conversationId,
   clientName,
-  channel,
+  agentDisplay,
   waitMinutes,
   currentAdvisorName,
   onOptimisticMessage,
@@ -913,7 +914,7 @@ export default function ChatInput({
           <span className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse" />
           <span>
             Respondiendo a: <strong className="text-white">{clientName}</strong>
-            {' • '}Línea {channel}
+            {' • '}Agente {agentDisplay}
           </span>
         </div>
         {waitMinutes !== null && waitMinutes > 0 && (

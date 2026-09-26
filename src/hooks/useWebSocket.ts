@@ -652,7 +652,6 @@ function connect(token: string): void {
             reason: escData.reason ?? '',
             conversationId: escData.conversation_id,
             advisorId: escData.advisor_id,
-            channel: escData.channel,
           })
         }
 
@@ -821,8 +820,10 @@ function connect(token: string): void {
 }
 
 // Scope rule for escalation.new (sound + toast): admin never; if already
-// assigned, only the assigned advisor; if queued, any advisor whose area
-// matches the channel (or 'ambas'), has capacity, and is available.
+// assigned, only the assigned advisor; if queued, any advisor with capacity
+// who is available. No area/channel gate — every advisor now sees every
+// conversation regardless of area/specialty (backend authorizes all advisors
+// on all conversations; only actual assignment is still decided server-side).
 function isEligibleForEscalation(advisor: Advisor | null, escData: WSEscalationNew): boolean {
   if (!advisor || advisor.role === 'admin') return false
 
@@ -831,7 +832,6 @@ function isEligibleForEscalation(advisor: Advisor | null, escData: WSEscalationN
   }
 
   return (
-    (advisor.area === escData.channel || advisor.area === 'ambas') &&
     advisor.active_conversations < advisor.max_conversations &&
     advisor.availability_status === 'available'
   )
