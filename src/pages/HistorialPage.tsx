@@ -145,6 +145,7 @@ export default function HistorialPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [searchText, setSearchText] = useState("");
+  const [intentFilter, setIntentFilter] = useState<string>("todos");
   const [dateFilter, setDateFilter] = useState<string>("todos");
 
   const [reopeningIds, setReopeningIds] = useState<Record<string, boolean>>({});
@@ -247,6 +248,10 @@ export default function HistorialPage() {
           if (!matchesName && !matchesDoc) return false;
         }
 
+        if (intentFilter !== "todos") {
+          if (conv.intent !== intentFilter) return false;
+        }
+
         if (dateFilter !== "todos") {
           const closedDateStr = conv.closed_at ?? conv.last_activity;
           const lastActivity = parseISO(closedDateStr);
@@ -265,7 +270,7 @@ export default function HistorialPage() {
       // Newest closure first. Safe to sort in place: `filter` already handed
       // back a fresh array, so the `conversations` state is never mutated.
       .sort((a, b) => closedTimestamp(b) - closedTimestamp(a));
-  }, [conversations, searchText, dateFilter]);
+  }, [conversations, searchText, intentFilter, dateFilter]);
 
   function extractErrorCode(err: unknown): string | undefined {
     const e = err as { response?: { data?: { detail?: { code?: string } } } };
@@ -457,6 +462,20 @@ export default function HistorialPage() {
             />
           </svg>
         </div>
+
+        <select
+          id="history-filter-intent"
+          value={intentFilter}
+          onChange={(e) => setIntentFilter(e.target.value)}
+          className="w-full bg-bg-tertiary border border-border-default text-text-primary text-xs rounded-lg p-2 outline-none focus:border-brand-blue transition"
+        >
+          <option value="todos">Todas las Intenciones</option>
+          {(Object.keys(INTENT_LABEL) as ConversationIntent[]).map((intent) => (
+            <option key={intent} value={intent}>
+              {INTENT_LABEL[intent]}
+            </option>
+          ))}
+        </select>
 
         <select
           id="history-filter-date"
