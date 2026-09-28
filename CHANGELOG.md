@@ -2,6 +2,19 @@
 
 Todas las versiones notables de este proyecto se documentan en este archivo.
 
+## [2.6.0] - 2026-09-27
+
+Requiere el backend 2.10.0 (un número, dos agentes). Desplegar después del backend.
+
+### Added
+- La bandeja, el chat y el historial muestran el agente dueño de la conversación (Administrativo / Comercial) en lugar de la línea de WhatsApp.
+- Filtro por agente en la bandeja y filtro por intención en el historial, en el lugar del filtro de línea.
+
+### Changed
+- Toda asesora recibe los avisos y el sonido de escalado de cualquier conversación: el panel ya no filtra por área, igual que el backend.
+- El historial ya no muestra la columna "Línea" (hay un solo número).
+- Los cierres de menos de un minuto muestran segundos en vez de "0 min".
+
 ## [2.5.0] - 2026-09-21
 
 ### Added
