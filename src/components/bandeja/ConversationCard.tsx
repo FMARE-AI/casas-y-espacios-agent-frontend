@@ -10,6 +10,7 @@ import {
   getWhatsAppWindow,
   windowCountdownHint,
 } from "../../lib/whatsappWindow";
+import { agentLabel, agentStyles } from "../../lib/agentLabels";
 
 interface ConversationCardProps {
   conversation: Conversation;
@@ -252,8 +253,10 @@ export const ConversationCard = memo(function ConversationCard({
                   {CLIENT_TYPE_LABELS[conversation.client.client_type]}
                 </span>
               )}
-            <span className="bg-bg-tertiary text-brand-blue text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase">
-              {conversation.channel || "Desconocido"}
+            <span
+              className={`${agentStyles(conversation.agent)} text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase`}
+            >
+              {agentLabel(conversation.agent)}
             </span>
             {showWindowChip && (
               <span

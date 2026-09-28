@@ -56,6 +56,7 @@ function conversation(expiresAt: string | null): Conversation {
     bot_activo: false,
     has_escalation_history: true,
     channel: 'administrativa',
+    agent: 'administrative',
     last_activity: new Date().toISOString(),
     intent: 'cartera',
     client: {

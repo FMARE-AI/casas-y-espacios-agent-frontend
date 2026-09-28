@@ -38,6 +38,7 @@ function closedConversation({
     bot_activo: true,
     has_escalation_history: false,
     channel: 'administrativa',
+    agent: 'administrative',
     last_activity: lastActivity,
     intent: 'cartera',
     client: {

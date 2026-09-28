@@ -27,6 +27,7 @@ import { useWebSocket, consumePendingTransferReason } from "../hooks/useWebSocke
 import { useAbortableLoad } from "../hooks/useAbortableLoad";
 import { useWhatsAppWindow } from "../hooks/useWhatsAppWindow";
 import { formatWindowCountdown, windowCountdownHint } from "../lib/whatsappWindow";
+import { agentLabel } from "../lib/agentLabels";
 import { ROUTES } from "../constants/routes";
 
 function getInitials(name: string): string {
@@ -282,6 +283,16 @@ export default function ChatPage() {
           const freshExpiry = event.whatsapp_window_expires_at;
           setConversation((prev) =>
             prev ? { ...prev, whatsapp_window_expires_at: freshExpiry } : prev,
+          );
+        }
+
+        // An onboarding handoff can reassign a conversation's agent in place
+        // mid-turn — merge it so the header label updates live instead of
+        // waiting for a reload. `null`/absent means unchanged, never a reset.
+        if (event.conversation_agent) {
+          const freshAgent = event.conversation_agent;
+          setConversation((prev) =>
+            prev ? { ...prev, agent: freshAgent } : prev,
           );
         }
 
@@ -783,7 +794,7 @@ export default function ChatPage() {
   const isReadonly =
     variant === "unassigned" || variant === "bot" || variant === "monitoring";
   const clientName = conversation?.client.full_name ?? "Cliente";
-  const channel = conversation?.channel ?? "";
+  const agentDisplay = agentLabel(conversation?.agent);
 
   // Ticks locally against the absolute expiry the backend sent — see
   // lib/whatsappWindow.ts. `null` renders as an open window, never as closed.
@@ -863,7 +874,7 @@ export default function ChatPage() {
               </h3>
               <p className="text-[9px] text-text-secondary flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500/20 border border-green-500/40 inline-block" />
-                WhatsApp: {channel || "—"}
+                WhatsApp: {agentDisplay}
               </p>
             </div>
           </div>
@@ -1030,7 +1041,7 @@ export default function ChatPage() {
           <ChatInput
             conversationId={conversationId!}
             clientName={clientName}
-            channel={channel}
+            agentDisplay={agentDisplay}
             waitMinutes={waitMinutes}
             currentAdvisorName={advisor?.full_name}
             onOptimisticMessage={addOptimisticMessage}

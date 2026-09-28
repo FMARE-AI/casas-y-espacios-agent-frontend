@@ -11,12 +11,14 @@ export default function EscalationToast() {
   const advisor = useAuthStore((s) => s.advisor)
   const isAdmin = advisor?.role === 'admin'
 
-  // "Atender ya" only when: non-admin, unassigned (advisorId null), and channel matches area
+  // "Atender ya" only when: non-admin, unassigned (advisorId null) or assigned
+  // to this advisor. Every advisor sees every conversation now regardless of
+  // area/specialty (backend authorizes all advisors on all conversations) —
+  // no area/channel gate here anymore.
   const showTakeButton =
     !isAdmin &&
     pendingEscalation !== null &&
-    (pendingEscalation.advisorId === null || pendingEscalation.advisorId === advisor?.id) &&
-    (advisor?.area === 'ambas' || advisor?.area === pendingEscalation.channel)
+    (pendingEscalation.advisorId === null || pendingEscalation.advisorId === advisor?.id)
 
   // Auto-dismiss after 8 seconds
   useEffect(() => {
