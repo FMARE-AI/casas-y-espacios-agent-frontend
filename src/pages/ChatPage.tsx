@@ -821,6 +821,23 @@ export default function ChatPage() {
       ? "Ventana desconocida — no se puede reabrir sin template"
       : "Ventana vencida";
 
+  // A tab opened straight on /chat/{id} — the WhatsApp notification button, the
+  // escalation email, a pasted link, a reload — has nothing of the panel behind
+  // it, and navigate(-1) is then a silent no-op. React Router keeps the entry's
+  // index in history.state.idx; it stays 0 through the login round-trip too,
+  // because both of those redirects replace instead of push (location.key does
+  // not survive that, which is why it is not used here).
+  const handleBack = () => {
+    const hasPanelHistory = (window.history.state?.idx ?? 0) > 0;
+    if (hasPanelHistory) {
+      navigate(-1);
+      return;
+    }
+    navigate(conversation?.status === "cerrada" ? "/historial" : ROUTES.BANDEJA, {
+      replace: true,
+    });
+  };
+
   const waitSeconds = conversation?.escalation?.escalated_at
     ? Math.floor((now - new Date(conversation.escalation.escalated_at).getTime()) / 1000)
     : (conversation?.escalation?.wait_seconds ?? null);
@@ -839,7 +856,7 @@ export default function ChatPage() {
           <div className="flex items-center space-x-3">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={handleBack}
               className="flex items-center gap-1 px-2.5 py-1.5 bg-bg-tertiary hover:bg-border-default border border-border-default rounded-control text-xs font-semibold text-text-secondary hover:text-white transition active:scale-[0.98] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
             >
               <svg
