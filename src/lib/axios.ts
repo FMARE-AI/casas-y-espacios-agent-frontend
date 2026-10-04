@@ -260,6 +260,10 @@ const LOCAL_ERROR_CODES = new Set([
   // advisor, in Spanish — ChatInput/AudioRecorder show it verbatim next to the
   // composer, so the generic 409 toast must not swallow it.
   'WINDOW_EXPIRED',
+  // Agent notifications: the page refetches the row and explains who closed it
+  // (409) or drops it from the inbox (404) — a generic toast would contradict that.
+  'NOTIFICATION_ALREADY_CLOSED',
+  'NOTIFICATION_NOT_FOUND',
   'ADVISOR_NOT_FOUND',
 ])
 

@@ -3,6 +3,7 @@ import { useEffect, useCallback } from 'react'
 import { useAuthStore } from '../store/authStore'
 import { useWSStore } from '../store/wsStore'
 import { useToastStore } from '../store/toastStore'
+import { useNotificationsStore } from '../store/notificationsStore'
 import { advisorsService } from '../services/advisors'
 import { getValidToken, forceRefreshToken } from '../lib/axios'
 import type {
@@ -23,6 +24,7 @@ import type {
   WSAdvisorDisconnected,
   WSBehaviorAlertEvent,
   WSSubscribeError,
+  WSNotificationEvent,
   Advisor,
 } from '../types'
 
@@ -42,6 +44,8 @@ interface WSHandlers {
   onQueuePending?: (data: WSQueuePending) => void
   onAdvisorStatusChanged?: (data: WSAdvisorStatusChanged) => void
   onBehaviorAlert?: (data: WSBehaviorAlertEvent) => void
+  onNotificationNew?: (data: WSNotificationEvent) => void
+  onNotificationUpdated?: (data: WSNotificationEvent) => void
 }
 
 const _handlers: WSHandlers = {}
@@ -779,6 +783,11 @@ function connect(token: string): void {
         }
         break
 
+      case 'notification.new':
+      case 'notification.updated':
+        handleNotificationEvent(eventType, data)
+        break
+
       case 'error':
         handleSubscribeError(data as WSSubscribeError)
         break
@@ -816,6 +825,49 @@ function connect(token: string): void {
 
   ws.onerror = () => {
     // onclose fires automatically after onerror — nothing else needed
+  }
+}
+
+// Agent notifications (notification.new / notification.updated). The global part
+// — badge, toast, sound — runs here so it works whatever page is mounted; the
+// inbox page only receives the forwarded event to update its list.
+// Sound and toast are for BOTH roles: unlike chat messages, a notification is
+// actionable work for admins too. Only `new` alerts; `updated` (another file
+// appended, or someone closed it) silently refreshes the badge.
+const NOTIFICATION_SOUND_THROTTLE_MS = 3000
+let lastNotificationSoundAt = 0
+
+function isNotificationEvent(data: unknown): data is WSNotificationEvent {
+  if (!data || typeof data !== 'object') return false
+  const { notification, pending_count } = data as Partial<WSNotificationEvent>
+  // The row reads client/conversation/attachments directly — a partial payload
+  // (version skew) must be dropped here, not crash the inbox render.
+  return (
+    typeof pending_count === 'number' &&
+    !!notification &&
+    typeof notification.id === 'string' &&
+    typeof notification.status === 'string' &&
+    !!notification.client && typeof notification.client === 'object' &&
+    !!notification.conversation && typeof notification.conversation === 'object' &&
+    Array.isArray(notification.attachments)
+  )
+}
+
+function handleNotificationEvent(eventType: 'notification.new' | 'notification.updated', data: unknown): void {
+  if (!isNotificationEvent(data)) return
+  const store = useNotificationsStore.getState()
+  store.setPendingCount(data.pending_count)
+
+  if (eventType === 'notification.new') {
+    store.setIncoming(data.notification)
+    const now = Date.now()
+    if (now - lastNotificationSoundAt >= NOTIFICATION_SOUND_THROTTLE_MS) {
+      lastNotificationSoundAt = now
+      playNotificationSound()
+    }
+    _handlers.onNotificationNew?.(data)
+  } else {
+    _handlers.onNotificationUpdated?.(data)
   }
 }
 
@@ -939,6 +991,8 @@ export function useWebSocket(handlers?: WSHandlers) {
     onQueuePending,
     onAdvisorStatusChanged,
     onBehaviorAlert,
+    onNotificationNew,
+    onNotificationUpdated,
   } = handlers ?? {}
 
   useEffect(() => {
@@ -956,6 +1010,8 @@ export function useWebSocket(handlers?: WSHandlers) {
     if (onQueuePending)       _handlers.onQueuePending       = onQueuePending
     if (onAdvisorStatusChanged) _handlers.onAdvisorStatusChanged = onAdvisorStatusChanged
     if (onBehaviorAlert)      _handlers.onBehaviorAlert      = onBehaviorAlert
+    if (onNotificationNew)    _handlers.onNotificationNew    = onNotificationNew
+    if (onNotificationUpdated) _handlers.onNotificationUpdated = onNotificationUpdated
 
     return () => {
       if (onConversationNew   && _handlers.onConversationNew    === onConversationNew)    delete _handlers.onConversationNew
@@ -972,11 +1028,14 @@ export function useWebSocket(handlers?: WSHandlers) {
       if (onQueuePending       && _handlers.onQueuePending       === onQueuePending)       delete _handlers.onQueuePending
       if (onAdvisorStatusChanged && _handlers.onAdvisorStatusChanged === onAdvisorStatusChanged) delete _handlers.onAdvisorStatusChanged
       if (onBehaviorAlert      && _handlers.onBehaviorAlert      === onBehaviorAlert)      delete _handlers.onBehaviorAlert
+      if (onNotificationNew    && _handlers.onNotificationNew    === onNotificationNew)    delete _handlers.onNotificationNew
+      if (onNotificationUpdated && _handlers.onNotificationUpdated === onNotificationUpdated) delete _handlers.onNotificationUpdated
     }
   }, [
     onConversationNew, onEscalationNew, onEscalationAssigned, onMessageNew, onMessageMediaUpdated, onConversationReturned,
     onConversationControlTaken, onConversationReopened, onConversationClosed, onConversationTransferred,
     onConversationPriorityUpdated, onQueuePending, onAdvisorStatusChanged, onBehaviorAlert,
+    onNotificationNew, onNotificationUpdated,
   ])
 
   // Open the connection when a session exists; close it whenever there is no

@@ -29,6 +29,9 @@ import { useWhatsAppWindow } from "../hooks/useWhatsAppWindow";
 import { formatWindowCountdown, windowCountdownHint } from "../lib/whatsappWindow";
 import { agentLabel } from "../lib/agentLabels";
 import { ROUTES } from "../constants/routes";
+import { useFocusMessage } from "../hooks/useFocusMessage";
+import { buildNotificationsUrl } from "../lib/notificationRoutes";
+import type { ChatLocationState } from "../types/navigation";
 
 function getInitials(name: string): string {
   try {
@@ -68,8 +71,11 @@ export default function ChatPage() {
   // Cancels this page's reads on unmount and gates every write that follows one.
   const { getSignal, isMounted } = useAbortableLoad();
 
-  const fromAlert: boolean = location.state?.fromAlert ?? false;
-  const alertAdvisorName: string | undefined = location.state?.advisorName;
+  const locationState = (location.state ?? {}) as ChatLocationState;
+  const fromAlert: boolean = locationState.fromAlert ?? false;
+  const alertAdvisorName: string | undefined = locationState.advisorName;
+  const fromNotification = locationState.fromNotification ?? null;
+  const focusWamId = locationState.focusWamId ?? null;
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -225,8 +231,12 @@ export default function ChatPage() {
     return () => cancelAnimationFrame(raf);
   }, [isLoading]);
 
-  async function loadMoreMessages() {
-    if (isLoadingMore || apiOffsetRef.current >= totalRef.current) return;
+  // Resolves to how many older messages were added (0 when there was nothing
+  // to load or the request failed), or null when a load was already in flight
+  // — useFocusMessage tells "busy" apart from "no older history".
+  async function loadMoreMessages(): Promise<number | null> {
+    if (isLoadingMore) return null;
+    if (apiOffsetRef.current >= totalRef.current) return 0;
     const container = feedRef.current;
     const prevScrollHeight = container ? container.scrollHeight : 0;
     setIsLoadingMore(true);
@@ -239,7 +249,7 @@ export default function ChatPage() {
         { limit: 100, offset: apiOffsetRef.current },
         getSignal(),
       );
-      if (!isMounted()) return;
+      if (!isMounted()) return 0;
       apiOffsetRef.current += older.length;
       setMessages((prev) => {
         const existingIds = new Set(prev.map((m) => m.id));
@@ -251,12 +261,24 @@ export default function ChatPage() {
           container.scrollTop = container.scrollHeight - prevScrollHeight;
         }
       }, 0);
+      return older.length;
     } catch {
       // silently fail
+      return 0;
     } finally {
       if (isMounted()) setIsLoadingMore(false);
     }
   }
+
+  // Deep link from a notification attachment: scroll to the receipt message.
+  const highlightedWamId = useFocusMessage({
+    focusWamId,
+    messages,
+    isReady: !isLoading && conversation !== null,
+    feedRef,
+    loadOlder: loadMoreMessages,
+    canLoadOlder: () => apiOffsetRef.current < totalRef.current,
+  });
 
   // WS handlers — called by useWebSocket hook
   const onNewMessage = useCallback(
@@ -1040,6 +1062,23 @@ export default function ChatPage() {
           </div>
         </div>
 
+        {fromNotification && (
+          <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-2 bg-warning/10 border-b border-warning/30 text-[11px] text-warning">
+            <span className="min-w-0 truncate">
+              Viniste desde la notificación <strong className="font-bold">«{fromNotification.title}»</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                navigate(buildNotificationsUrl({ status: fromNotification.status, id: fromNotification.id }))
+              }
+              className="shrink-0 font-bold underline hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90"
+            >
+              ← Volver a la notificación
+            </button>
+          </div>
+        )}
+
         {/* Message feed */}
         <MessageFeed
           messages={messages}
@@ -1051,6 +1090,7 @@ export default function ChatPage() {
           clientName={conversation?.client.full_name}
           onScrollTop={loadMoreMessages}
           feedRef={feedRef}
+          highlightedWamId={highlightedWamId}
         />
 
         {/* Input area or banners */}
