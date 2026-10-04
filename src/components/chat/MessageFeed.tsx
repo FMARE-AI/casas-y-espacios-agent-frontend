@@ -122,6 +122,8 @@ interface MessageFeedProps {
   onScrollTop: () => void
   feedRef: React.RefObject<HTMLDivElement | null>
   isTyping?: boolean
+  /** wam_id of the message to highlight briefly (deep link from a notification). */
+  highlightedWamId?: string | null
 }
 
 export default memo(function MessageFeed({
@@ -135,6 +137,7 @@ export default memo(function MessageFeed({
   onScrollTop,
   feedRef,
   isTyping,
+  highlightedWamId = null,
 }: MessageFeedProps) {
   const handleScroll = useCallback(() => {
     if (feedRef.current && feedRef.current.scrollTop === 0) {
@@ -172,7 +175,14 @@ export default memo(function MessageFeed({
                 const isSameSender =
                   index > 0 && group.messages[index - 1].direction === msg.direction
                 return (
-                  <div key={msg.id} className={isSameSender ? 'mt-1' : 'mt-3'}>
+                  <div
+                    key={msg.id}
+                    data-wam-id={msg.wam_id ?? undefined}
+                    className={[
+                      isSameSender ? 'mt-1' : 'mt-3',
+                      highlightedWamId && msg.wam_id === highlightedWamId ? 'message-focus-highlight' : '',
+                    ].join(' ')}
+                  >
                     <MessageBubble
                       message={msg}
                       advisorName={
