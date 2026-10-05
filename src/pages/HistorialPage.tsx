@@ -17,6 +17,7 @@ import { resolutionLabel } from "../constants/resolutions";
 import { useToastStore } from "../store/toastStore";
 import { getWhatsAppWindow, formatWindowCountdown } from "../lib/whatsappWindow";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { buildChatUrl } from "../lib/notificationRoutes";
 import type { Conversation, ConversationIntent, WSConversationReopened } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
@@ -292,7 +293,7 @@ export default function HistorialPage() {
       useToastStore.getState().showToast("Conversación reabierta.", "success");
       // Send the advisor straight into the chat she just reopened, so she can
       // write the first message without a second click to find the conversation.
-      navigate(`/chat/${id}`);
+      navigate(buildChatUrl(id));
     } catch (err: unknown) {
       const code = extractErrorCode(err);
       if (code === "CONTROL_ALREADY_TAKEN") {

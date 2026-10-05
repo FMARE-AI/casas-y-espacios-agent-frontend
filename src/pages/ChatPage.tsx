@@ -742,6 +742,12 @@ export default function ChatPage() {
         );
       } else if (code === "CONVERSATION_NOT_FOUND") {
         useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
+      } else if (code === "CLIENT_HAS_ACTIVE_CONVERSATION") {
+        useToastStore.getState().showToast(
+          extractErrorMessage(err) ??
+            "El cliente ya tiene una conversación activa — ábrala desde ahí en vez de reabrir esta.",
+          'error',
+        );
       }
     } finally {
       setIsReopening(false);

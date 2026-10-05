@@ -589,6 +589,9 @@ function connect(token: string): void {
           // `raw`, and anything not named here is dropped before the handlers
           // ever see it.
           whatsapp_window_expires_at: raw.whatsapp_window_expires_at ?? null,
+          // Same root-level rule: an onboarding handoff can reassign the agent
+          // mid-turn; ChatPage/BandejaPage merge it (null = unchanged).
+          conversation_agent: raw.conversation_agent ?? null,
         }
 
         // Sound rules:

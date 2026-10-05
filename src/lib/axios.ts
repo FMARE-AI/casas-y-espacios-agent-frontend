@@ -256,6 +256,10 @@ const LOCAL_ERROR_CODES = new Set([
   // 404 on take-control/reopen: handled inline with a tailored message —
   // without this the generic 404 toast fires alongside it, stacking two toasts.
   'CONVERSATION_NOT_FOUND',
+  // 409 on reopen: the client already has another live conversation. ChatPage
+  // and HistorialPage show the backend's message — the generic 409 toast would
+  // stack a second, vaguer one on top.
+  'CLIENT_HAS_ACTIVE_CONVERSATION',
   // Meta's 24h window is closed. The backend message is already written for the
   // advisor, in Spanish — ChatInput/AudioRecorder show it verbatim next to the
   // composer, so the generic 409 toast must not swallow it.
