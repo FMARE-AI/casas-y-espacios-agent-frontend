@@ -175,6 +175,7 @@ No request body required.
           "phone_number": "+573001234567",
           "bsuid": null,
           "user_name": null,
+          "email": null,
           "full_name": "Carlos Rodríguez",
           "document_id": "1020304050",
           "client_type": "propietario"
@@ -280,6 +281,7 @@ No request body required.
         "phone_number": "+573001234567",
         "bsuid": null,
         "user_name": null,
+        "email": null,
         "document_id": "1020304050",
         "client_type": "propietario"
       },
@@ -1079,7 +1081,7 @@ Internally this is the same state transition as `take-control`: creates an `esca
 
 | Param    | Type      | Default | Description                                                      |
 | -------- | --------- | ------- | ---------------------------------------------------------------- |
-| `q`      | `string`  | none    | Case-insensitive substring search over name, phone, and document |
+| `q`      | `string`  | none    | Case-insensitive substring search over name, phone, document, and email |
 | `limit`  | `integer` | 20      | Page size (1–100)                                                |
 | `offset` | `integer` | 0       | Pagination offset                                                |
 
@@ -1094,6 +1096,7 @@ Internally this is the same state transition as `take-control`: creates an `esca
         "phone_number": "+573001234567",
         "bsuid": null,
         "user_name": null,
+        "email": null,
         "document_id": "1020304050",
         "full_name": "Carlos Rodríguez",
         "client_type": "propietario",
@@ -1106,6 +1109,7 @@ Internally this is the same state transition as `take-control`: creates an `esca
         "phone_number": null,
         "bsuid": "CO.1A2B3C4D5E6F7G8H",
         "user_name": "ana.g",
+        "email": "ana.g@correo.com",
         "document_id": null,
         "full_name": "Prospecto Nuevo",
         "client_type": "prospecto",
@@ -1134,6 +1138,7 @@ Internally this is the same state transition as `take-control`: creates an `esca
 - `commercial_classification` is `null` unless the client has at least one conversation with `intent = "comercial"` and a set `commercial_classification` (`potencial` / `no_potencial`). When a client has multiple classified commercial conversations over time, this is the classification from the **most recent** one (by `created_at`).
 - This first version deliberately excludes a "contact client" action (depends on WhatsApp message templates — separate feature) and the full commercial requirement summary (only the classification badge is shown here).
 - `bsuid` is a WhatsApp username-based identifier (support_bsuid_from_meta) — present only for contacts who reached the bot via username without ever sharing a phone number; display-only, never dialable.
+- `email` is the address a commercial prospect gave the bot (stored lowercased, as-is); `null` when they never gave one — the common case for administrative clients. The panel shows it only when present.
 - `user_name` is that contact's public WhatsApp username handle — the readable label to show in their row when `phone_number` is `null`, since a `bsuid` is an opaque string. See [Client identity](#client-identity-phone_number-and-bsuid).
 
 ---

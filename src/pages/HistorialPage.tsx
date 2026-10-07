@@ -246,7 +246,9 @@ export default function HistorialPage() {
             conv.client.full_name?.toLowerCase().includes(search) ?? false;
           const matchesDoc =
             conv.client.document_id?.toLowerCase().includes(search) ?? false;
-          if (!matchesName && !matchesDoc) return false;
+          const matchesEmail =
+            conv.client.email?.toLowerCase().includes(search) ?? false;
+          if (!matchesName && !matchesDoc && !matchesEmail) return false;
         }
 
         if (intentFilter !== "todos") {
@@ -358,6 +360,8 @@ export default function HistorialPage() {
         caseNumber: conv.case_number ?? "—",
         client: conv.client.full_name ?? "Sin identificar",
         document: conv.client.document_id ?? "—",
+        // Empty (not "—") when missing: the email is optional and its absence is normal.
+        email: conv.client.email ?? "",
         intent: conv.intent ? INTENT_LABEL[conv.intent] : "—",
         closedAt: formattedDate,
         duration: formatDuration(conv.duration_seconds),
@@ -378,6 +382,7 @@ export default function HistorialPage() {
       { header: "N° de Caso", key: "caseNumber", width: 14 },
       { header: "Cliente", key: "client", width: 24 },
       { header: "Cédula", key: "document", width: 14 },
+      { header: "Correo", key: "email", width: 28 },
       { header: "Fecha de Cierre", key: "closedAt", width: 18 },
       { header: "Intención", key: "intent", width: 18 },
       { header: "Duración", key: "duration", width: 14 },
@@ -446,7 +451,7 @@ export default function HistorialPage() {
             type="text"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
-            placeholder="Buscar por cliente, cédula..."
+            placeholder="Buscar por cliente, cédula o correo..."
             className="w-full bg-bg-tertiary border border-border-default text-text-primary text-xs rounded-lg pl-8 pr-3 py-2 outline-none focus:border-brand-blue transition"
           />
           <svg
