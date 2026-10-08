@@ -5,3 +5,11 @@
 export function mailtoHref(email: string): string {
   return `mailto:${encodeURIComponent(email).replace(/%40/g, '@')}`
 }
+
+// Pragmatic shape check: something@domain.tld, no spaces. The address is typed by the client
+// over WhatsApp, so it may be malformed — we show it anyway but never offer it as a mailto link.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL_PATTERN.test(email.trim())
+}
