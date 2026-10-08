@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest'
-import { activeConversationNotice, extractActiveConversation } from '../../lib/reopenConflict'
+import { beforeEach, describe, it, expect } from 'vitest'
+import {
+  ACTIVE_CONVERSATION_NOTICE_MS,
+  activeConversationNotice,
+  extractActiveConversation,
+  notifyActiveConversation,
+} from '../../lib/reopenConflict'
+import { useToastStore } from '../../store/toastStore'
 
 function axiosError(detail: unknown) {
   return { response: { status: 409, data: { detail } } }
@@ -49,20 +55,44 @@ describe('extractActiveConversation', () => {
 })
 
 describe('activeConversationNotice', () => {
-  it('tells the advisor to take control when the bot is handling it', () => {
+  it('names the exact take-control button when the bot is handling it', () => {
+    // The advisor has to find the button on the page she just landed on —
+    // "take control" in the abstract did not tell her which button to press.
     const notice = activeConversationNotice(ACTIVE)
     expect(notice).toContain('CE-2026-000123')
-    expect(notice).toContain('tome el control')
+    expect(notice).toContain('«Tomar control manual»')
   })
 
   it('does not ask for take-control when an advisor already has it', () => {
     const notice = activeConversationNotice({ ...ACTIVE, bot_activo: false })
     expect(notice).toContain('CE-2026-000123')
-    expect(notice).not.toContain('tome el control')
+    expect(notice).not.toContain('Tomar control manual')
   })
 
   it('omits the case number when there is none', () => {
     const notice = activeConversationNotice({ ...ACTIVE, case_number: null })
     expect(notice).not.toContain('(')
+  })
+})
+
+describe('notifyActiveConversation', () => {
+  beforeEach(() => {
+    useToastStore.setState({ toasts: [] })
+  })
+
+  it('shows a long-lived warning when the advisor still has to take control', () => {
+    // The default 4s toast vanished while the new chat was still loading.
+    notifyActiveConversation(ACTIVE)
+    const [toast] = useToastStore.getState().toasts
+    expect(toast.type).toBe('warning')
+    expect(toast.durationMs).toBe(ACTIVE_CONVERSATION_NOTICE_MS)
+    expect(ACTIVE_CONVERSATION_NOTICE_MS).toBeGreaterThanOrEqual(10_000)
+  })
+
+  it('stays informational when an advisor already has the conversation', () => {
+    notifyActiveConversation({ ...ACTIVE, bot_activo: false })
+    const [toast] = useToastStore.getState().toasts
+    expect(toast.type).toBe('info')
+    expect(toast.durationMs).toBe(ACTIVE_CONVERSATION_NOTICE_MS)
   })
 })
