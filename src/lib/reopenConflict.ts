@@ -6,6 +6,8 @@
 // `detail.active_conversation` so the panel can take the advisor there instead
 // of leaving her retrying the closed one (PROD 2026-10-08).
 
+import { useToastStore } from '../store/toastStore'
+
 export interface ActiveConversationRef {
   id: string
   status: string | null
@@ -31,9 +33,31 @@ export function extractActiveConversation(err: unknown): ActiveConversationRef |
   }
 }
 
-/** Toast shown while the panel opens the live conversation instead. */
+/**
+ * How long the notice stays up. The default 4s toast was gone before the
+ * advisor had read it on the chat she was just moved to, and it carries an
+ * instruction she has to act on.
+ */
+export const ACTIVE_CONVERSATION_NOTICE_MS = 15_000
+
+/** Toast text shown while the panel opens the live conversation instead. */
 export function activeConversationNotice(active: ActiveConversationRef): string {
   const caseLabel = active.case_number ? ` (${active.case_number})` : ''
   const base = `El cliente volvió a escribir y ya tiene otra conversación abierta${caseLabel}. Le abrimos esa.`
-  return active.bot_activo ? `${base} Para escribirle, tome el control desde ahí.` : base
+  // Name the button exactly as ChatPage renders it so she can find it.
+  return active.bot_activo
+    ? `${base} Para escribirle, dé clic en «Tomar control manual».`
+    : base
+}
+
+/**
+ * Shows the notice: a warning when she still has to take control (the bot has
+ * the conversation), informational when an advisor already holds it.
+ */
+export function notifyActiveConversation(active: ActiveConversationRef): void {
+  useToastStore
+    .getState()
+    .showToast(activeConversationNotice(active), active.bot_activo ? 'warning' : 'info', {
+      durationMs: ACTIVE_CONVERSATION_NOTICE_MS,
+    })
 }

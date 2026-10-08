@@ -112,9 +112,10 @@ describe('HistorialPage — reopen blocked by a live conversation', () => {
 
     expect(await screen.findByText('chat abierto: conv-live')).toBeTruthy()
     const [toast] = useToastStore.getState().toasts
-    expect(toast.type).toBe('info')
+    expect(toast.type).toBe('warning')
     expect(toast.message).toContain('CE-2026-000123')
-    expect(toast.message).toContain('tome el control')
+    expect(toast.message).toContain('«Tomar control manual»')
+    expect(toast.durationMs).toBeGreaterThanOrEqual(10_000)
   })
 
   it('stays put with the backend message when the live conversation is not named', async () => {

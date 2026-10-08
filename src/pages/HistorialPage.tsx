@@ -18,7 +18,7 @@ import { useToastStore } from "../store/toastStore";
 import { getWhatsAppWindow, formatWindowCountdown } from "../lib/whatsappWindow";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { buildChatUrl } from "../lib/notificationRoutes";
-import { activeConversationNotice, extractActiveConversation } from "../lib/reopenConflict";
+import { extractActiveConversation, notifyActiveConversation } from "../lib/reopenConflict";
 import type { Conversation, ConversationIntent, WSConversationReopened } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
@@ -327,7 +327,7 @@ export default function HistorialPage() {
         // when the backend names it, open it for her.
         const active = extractActiveConversation(err);
         if (active) {
-          useToastStore.getState().showToast(activeConversationNotice(active), "info");
+          notifyActiveConversation(active);
           navigate(buildChatUrl(active.id));
         } else {
           useToastStore.getState().showToast(

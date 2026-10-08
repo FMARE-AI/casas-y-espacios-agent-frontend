@@ -31,7 +31,7 @@ import { agentLabel } from "../lib/agentLabels";
 import { ROUTES } from "../constants/routes";
 import { useFocusMessage } from "../hooks/useFocusMessage";
 import { buildChatUrl, buildNotificationsUrl } from "../lib/notificationRoutes";
-import { activeConversationNotice, extractActiveConversation } from "../lib/reopenConflict";
+import { extractActiveConversation, notifyActiveConversation } from "../lib/reopenConflict";
 import type { ChatLocationState } from "../types/navigation";
 
 function getInitials(name: string): string {
@@ -749,7 +749,7 @@ export default function ChatPage() {
         // retrying this one (see lib/reopenConflict.ts).
         const active = extractActiveConversation(err);
         if (active) {
-          useToastStore.getState().showToast(activeConversationNotice(active), 'info');
+          notifyActiveConversation(active);
           navigate(buildChatUrl(active.id));
         } else {
           useToastStore.getState().showToast(
