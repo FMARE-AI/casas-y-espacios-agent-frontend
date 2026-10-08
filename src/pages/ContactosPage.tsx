@@ -253,6 +253,7 @@ export default function ContactosPage() {
             <thead className="bg-bg-tertiary/60 border-b border-border-default text-text-secondary text-label uppercase">
               <tr>
                 <th className="p-4 whitespace-nowrap">Nombre</th>
+                <th className="p-4 whitespace-nowrap">Correo</th>
                 <th className="p-4 whitespace-nowrap">Teléfono</th>
                 <th className="p-4 whitespace-nowrap">Documento</th>
                 <th className="p-4 whitespace-nowrap">Tipo de cliente</th>
@@ -262,7 +263,7 @@ export default function ContactosPage() {
             <tbody id="contacts-table-body" className="divide-y divide-border-default">
               {pagedClients.length === 0 ? (
                 <tr>
-                  <td colSpan={5}>
+                  <td colSpan={6}>
                     <div className="text-center py-12">
                       <p className="text-text-secondary text-sm">
                         No se encontraron contactos
@@ -283,12 +284,12 @@ export default function ContactosPage() {
                           <span className="text-text-secondary font-medium italic">Sin identificar</span>
                         )}
                       </p>
-                      {/* Optional: a client without an email renders exactly as before — no empty line. */}
-                      {client.email && (
-                        <EmailLink
-                          email={client.email}
-                          className="mt-0.5 max-w-[180px] text-[11px] text-text-secondary"
-                        />
+                    </td>
+                    <td className="p-4 text-text-secondary whitespace-nowrap">
+                      {client.email ? (
+                        <EmailLink email={client.email} className="max-w-[220px]" />
+                      ) : (
+                        "—"
                       )}
                     </td>
                     <td className="p-4 text-text-secondary whitespace-nowrap">
