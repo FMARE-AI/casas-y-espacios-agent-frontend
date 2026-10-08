@@ -1,35 +1,51 @@
-import { isValidEmail, mailtoHref } from '../../lib/mailto'
+import { toast } from 'sonner'
+import { isValidEmail } from '../../lib/mailto'
 
 interface EmailLinkProps {
   email: string
   className?: string
-  // true: long addresses wrap onto several lines (narrow side panels).
-  // false: single line truncated with ellipsis, full address in the tooltip (table cells).
-  wrap?: boolean
 }
 
-// One mailto link for every place that shows a client's email (chat panel, Contactos).
-export function EmailLink({ email, className = '', wrap = false }: EmailLinkProps) {
+// One clickable email for every place that shows a client's email (chat panel, Contactos).
+// Click copies the address. It is always shown in full: a line break is offered right before
+// the '@' so, where the container is narrow, it splits as "local-part / @domain" instead of
+// mid-word; overflow-wrap only breaks inside a part if that part alone does not fit.
+export function EmailLink({ email, className = '' }: EmailLinkProps) {
   const value = email.trim()
-  const layout = wrap ? 'break-all' : 'truncate'
+  const valid = isValidEmail(value)
+  const at = value.lastIndexOf('@')
 
-  if (!isValidEmail(value)) {
-    return (
-      <span className={`block ${className}`} title={`Correo no válido: ${value}`}>
-        <span className={`block ${layout} line-through decoration-text-secondary/60`}>{value}</span>
-        <span className="block text-[10px] font-sans text-amber-400">Correo no válido</span>
-      </span>
-    )
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast.success('Correo copiado')
+    } catch {
+      toast.error('No se pudo copiar el correo')
+    }
   }
 
   return (
-    <a
-      href={mailtoHref(value)}
-      aria-label={`Enviar correo a ${value}`}
-      title={value}
-      className={`block ${layout} hover:text-brand-blue transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 rounded-sm ${className}`}
-    >
-      {value}
-    </a>
+    <span className={`block ${className}`}>
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={`Copiar correo ${value}`}
+        title={valid ? 'Clic para copiar' : `Correo no válido: ${value}`}
+        className={`text-left [overflow-wrap:anywhere] cursor-copy hover:text-brand-blue transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-blue/90 rounded-sm ${
+          valid ? '' : 'line-through decoration-text-secondary/60'
+        }`}
+      >
+        {at > 0 ? (
+          <>
+            {value.slice(0, at)}
+            <wbr />
+            {value.slice(at)}
+          </>
+        ) : (
+          value
+        )}
+      </button>
+      {!valid && <span className="block text-[10px] font-sans text-amber-400">Correo no válido</span>}
+    </span>
   )
 }

@@ -35,13 +35,12 @@ beforeEach(() => {
 })
 
 describe('ContactosPage — client email', () => {
-  it('shows the email as a mailto link when the client has one', async () => {
+  it('shows the email as a copy button when the client has one', async () => {
     render(<ContactosPage />)
 
     const row = await rowFor('Laura Gómez')
-    const link = within(row).getByRole('link', { name: `Enviar correo a ${PROSPECT_EMAIL}` })
-    expect(link).toHaveAttribute('href', `mailto:${PROSPECT_EMAIL}`)
-    expect(link).toHaveAttribute('title', PROSPECT_EMAIL)
+    const link = within(row).getByRole('button', { name: `Copiar correo ${PROSPECT_EMAIL}` })
+    expect(link).toHaveTextContent(PROSPECT_EMAIL)
   })
 
   it('leaves no empty label behind when the client has no email', async () => {
