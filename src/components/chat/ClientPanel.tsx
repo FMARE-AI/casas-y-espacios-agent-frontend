@@ -173,7 +173,6 @@ export default function ClientPanel({
                   <EmailLink
                     email={client.email}
                     className="text-white font-mono text-xs"
-                    wrap
                   />
                 </div>
               </div>

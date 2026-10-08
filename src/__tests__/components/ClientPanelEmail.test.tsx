@@ -28,13 +28,12 @@ function renderPanel(client: Client) {
 }
 
 describe('ClientPanel — client email', () => {
-  it('shows a "Correo" row with a mailto link when the client has an email', () => {
+  it('shows a "Correo" row with a copy button when the client has an email', () => {
     renderPanel(clientWithEmail())
 
     expect(screen.getByText('Correo')).toBeInTheDocument()
-    const link = screen.getByRole('link', { name: `Enviar correo a ${PROSPECT_EMAIL}` })
-    expect(link).toHaveAttribute('href', `mailto:${PROSPECT_EMAIL}`)
-    expect(link).toHaveAttribute('title', PROSPECT_EMAIL)
+    const link = screen.getByRole('button', { name: `Copiar correo ${PROSPECT_EMAIL}` })
+    expect(link).toHaveTextContent(PROSPECT_EMAIL)
     expect(link).toHaveTextContent(PROSPECT_EMAIL)
   })
 

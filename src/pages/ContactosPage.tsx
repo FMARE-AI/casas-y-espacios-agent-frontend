@@ -287,7 +287,7 @@ export default function ContactosPage() {
                     </td>
                     <td className="p-4 text-text-secondary whitespace-nowrap">
                       {client.email ? (
-                        <EmailLink email={client.email} className="max-w-[220px]" />
+                        <EmailLink email={client.email} />
                       ) : (
                         "—"
                       )}
