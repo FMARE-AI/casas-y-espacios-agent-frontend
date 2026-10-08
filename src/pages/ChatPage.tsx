@@ -30,7 +30,8 @@ import { formatWindowCountdown, windowCountdownHint } from "../lib/whatsappWindo
 import { agentLabel } from "../lib/agentLabels";
 import { ROUTES } from "../constants/routes";
 import { useFocusMessage } from "../hooks/useFocusMessage";
-import { buildNotificationsUrl } from "../lib/notificationRoutes";
+import { buildChatUrl, buildNotificationsUrl } from "../lib/notificationRoutes";
+import { activeConversationNotice, extractActiveConversation } from "../lib/reopenConflict";
 import type { ChatLocationState } from "../types/navigation";
 
 function getInitials(name: string): string {
@@ -743,11 +744,20 @@ export default function ChatPage() {
       } else if (code === "CONVERSATION_NOT_FOUND") {
         useToastStore.getState().showToast("Esta conversación ya no existe.", 'error');
       } else if (code === "CLIENT_HAS_ACTIVE_CONVERSATION") {
-        useToastStore.getState().showToast(
-          extractErrorMessage(err) ??
-            "El cliente ya tiene una conversación activa — ábrala desde ahí en vez de reabrir esta.",
-          'error',
-        );
+        // The client wrote again after the close and already has a live
+        // conversation — open that one instead of leaving the advisor
+        // retrying this one (see lib/reopenConflict.ts).
+        const active = extractActiveConversation(err);
+        if (active) {
+          useToastStore.getState().showToast(activeConversationNotice(active), 'info');
+          navigate(buildChatUrl(active.id));
+        } else {
+          useToastStore.getState().showToast(
+            extractErrorMessage(err) ??
+              "El cliente ya tiene una conversación activa — ábrala desde ahí en vez de reabrir esta.",
+            'error',
+          );
+        }
       }
     } finally {
       setIsReopening(false);

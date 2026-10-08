@@ -825,6 +825,7 @@ Internally this is the same state transition as `take-control`: creates an `esca
 | 409  | `CONVERSATION_NOT_CLOSED` | Conversation `status` is not `cerrada` — use `take-control` instead for a non-closed conversation          |
 | 409  | `WINDOW_EXPIRED`          | `whatsapp_window_expires_at` is `null` (unknown) or already in the past — use an approved template instead |
 | 409  | `CONTROL_ALREADY_TAKEN`   | Another advisor already holds an active escalation on this conversation (rare race) — `message` names them |
+| 409  | `CLIENT_HAS_ACTIVE_CONVERSATION` | The client already has another `activa`/`escalada` conversation on the same line (they wrote again after the close). `detail.active_conversation` = `{id, status, bot_activo, case_number}` — open that one instead (take-control if `bot_activo`) |
 
 **Notes:**
 

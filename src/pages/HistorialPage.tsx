@@ -18,6 +18,7 @@ import { useToastStore } from "../store/toastStore";
 import { getWhatsAppWindow, formatWindowCountdown } from "../lib/whatsappWindow";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { buildChatUrl } from "../lib/notificationRoutes";
+import { activeConversationNotice, extractActiveConversation } from "../lib/reopenConflict";
 import type { Conversation, ConversationIntent, WSConversationReopened } from "../types";
 
 // ── Helpers ───────────────────────────────────────────────
@@ -322,12 +323,19 @@ export default function HistorialPage() {
         // client+line — the router only ever routes an incoming message to
         // one of them (most recent by last_activity), so the other never
         // receives another message again. This conversation stays closed;
-        // the advisor works the client from their existing active chat.
-        useToastStore.getState().showToast(
-          extractErrorMessage(err) ??
-            "El cliente ya tiene una conversación activa — ábrala desde ahí en vez de reabrir esta.",
-          "error",
-        );
+        // the advisor works the client from their existing active chat — so
+        // when the backend names it, open it for her.
+        const active = extractActiveConversation(err);
+        if (active) {
+          useToastStore.getState().showToast(activeConversationNotice(active), "info");
+          navigate(buildChatUrl(active.id));
+        } else {
+          useToastStore.getState().showToast(
+            extractErrorMessage(err) ??
+              "El cliente ya tiene una conversación activa — ábrala desde ahí en vez de reabrir esta.",
+            "error",
+          );
+        }
       }
     } finally {
       setReopeningIds((prev) => {
